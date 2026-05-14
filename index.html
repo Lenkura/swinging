@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yoyo Smash</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="yoyo-picker">
+      <div class="picker-label">Choose your yoyo</div>
+      <button class="yoyo-btn active" data-type="standard">
+        <span class="yoyo-icon standard-icon"></span>
+        <span class="yoyo-name">Standard</span>
+        <span class="yoyo-desc">Balanced</span>
+      </button>
+      <button class="yoyo-btn" data-type="heavy">
+        <span class="yoyo-icon heavy-icon"></span>
+        <span class="yoyo-name">Iron</span>
+        <span class="yoyo-desc">Hits Hard</span>
+      </button>
+      <button class="start-btn" id="start-btn">Launch!</button>
+    </div>
+
+    <div id="hint-text"></div>
+
+    <div id="result-panel" class="hidden">
+      <div id="result-outcome"></div>
+      <div id="result-stars"></div>
+      <div id="result-score-label">Score</div>
+      <div id="result-score">0</div>
+      <div id="result-buttons">
+        <button id="retry-btn">Retry</button>
+        <button id="next-btn" class="hidden">Next Level</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/poly-decomp/0.3.0/decomp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
