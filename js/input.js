@@ -21,6 +21,7 @@ export function init(canvasEl, pivotPos, strLen, variant) {
   stringLength = strLen;
   variantKey = variant;
   smoothedAV = 0;
+  mouseDown = false;
   prevAngle = null;
   prevTime = null;
   currAngle = Math.PI / 2; // start below pivot
