@@ -1,4 +1,4 @@
-import { MATERIALS, getFragmentVerts, evaluateImpact, generateCrackPattern } from './target.js';
+import { MATERIALS, evaluateImpact, generateCrackPattern } from './target.js';
 import { YOYO_VARIANTS } from './yoyo.js';
 
 const { Engine, Bodies, Body, Composite, Constraint, Events, World } = Matter;
@@ -57,12 +57,21 @@ function onCollision(event) {
       const speed = Math.sqrt(yoyo.velocity.x ** 2 + yoyo.velocity.y ** 2);
       const material = MATERIALS[target.plugin.materialKey];
       const impactMultiplier = yoyo.plugin.impactMultiplier;
-      const outcome = evaluateImpact(speed, yoyo.mass, material, impactMultiplier);
+
+      const normal = pair.collision?.normal;
+      let angleFactor = 1.0;
+      if (speed > 0 && normal) {
+        const dot = Math.abs((yoyo.velocity.x * normal.x + yoyo.velocity.y * normal.y) / speed);
+        angleFactor = 0.3 + 0.7 * dot;
+      }
+
+      const outcome = evaluateImpact(speed * angleFactor, yoyo.mass, material, impactMultiplier);
       emit('yoyo-hit-target', {
         target,
         yoyo,
         outcome,
         speed,
+        angleFactor,
         hitPoint: { x: (bodyA.position.x + bodyB.position.x) / 2, y: (bodyA.position.y + bodyB.position.y) / 2 },
         material,
       });
@@ -74,7 +83,7 @@ export function step(delta) {
   Engine.update(engine, delta);
 }
 
-export function spawnYoyo(x, y, variantKey) {
+export function spawnYoyo(x, y, variantKey, asStatic = false) {
   if (yoyoBody) Composite.remove(world, yoyoBody);
   const v = YOYO_VARIANTS[variantKey];
   yoyoBody = Bodies.circle(x, y, v.radius, {
@@ -83,21 +92,22 @@ export function spawnYoyo(x, y, variantKey) {
     friction: v.friction,
     frictionAir: v.frictionAir,
     collisionFilter: { category: 0x0001, mask: 0x0002 | 0x0004 },
-    plugin: { impactMultiplier: v.impactMultiplier, variantKey },
+    plugin: { impactMultiplier: v.impactMultiplier, variantKey, radius: v.radius, fragmentsSpawned: false },
   });
   Body.setMass(yoyoBody, v.mass);
+  if (asStatic) Body.setStatic(yoyoBody, true);
   Composite.add(world, yoyoBody);
   return yoyoBody;
 }
 
-export function attachString(pivotX, pivotY, length) {
+export function attachString(pivotX, pivotY, length, stiffness = 1.0) {
   if (stringConstraint) Composite.remove(world, stringConstraint);
   stringConstraint = Constraint.create({
     pointA: { x: pivotX, y: pivotY },
     bodyB: yoyoBody,
     pointB: { x: 0, y: 0 },
     length,
-    stiffness: 1.0,
+    stiffness,
     damping: 0.0,
   });
   Composite.add(world, stringConstraint);
@@ -157,67 +167,100 @@ export function spawnTargets(levelTargets, pivotRelX, pivotRelY) {
   return targetBodies;
 }
 
-export function applyBreak(target, outcome, hitPoint, blastBonus) {
-  const material = MATERIALS[target.plugin.materialKey];
-  if (outcome === 'SHATTER' && !target.plugin.fragmentsSpawned) {
-    target.plugin.fragmentsSpawned = true;
-    spawnFragments(target, hitPoint, material, blastBonus);
-    Composite.remove(world, target);
-    targetBodies = targetBodies.filter(b => b !== target);
+export function applyBreak(yoyo, outcome, hitPoint, blastBonus) {
+  if (outcome === 'SHATTER' && !yoyo.plugin.fragmentsSpawned) {
+    yoyo.plugin.fragmentsSpawned = true;
+    spawnYoyoFragments(yoyo, hitPoint, blastBonus);
+    Composite.remove(world, yoyo);
+    yoyoBody = null;
+    detachString();
   } else if (outcome === 'CRACK') {
-    target.plugin.cracked = true;
-    target.plugin.crackPattern = generateCrackPattern(6);
-    // halve thresholds so next hit shatters
-    const mat = MATERIALS[target.plugin.materialKey];
-    target.plugin.strength = mat.crackThreshold * 0.5;
-    target.plugin.crackThreshold = mat.crackThreshold * 0.3;
+    yoyo.plugin.cracked = true;
+    yoyo.plugin.crackPattern = generateCrackPattern(6);
   }
 }
 
-function spawnFragments(target, hitPoint, material, blastBonus = 1) {
-  const fragVerts = getFragmentVerts(material.fragmentCount);
-  const w = target.plugin.width;
-  const h = target.plugin.height;
-  const cx = target.position.x;
-  const cy = target.position.y;
-  const spread = material.fragmentSpread * blastBonus * 4;
+function spawnYoyoFragments(yoyo, hitPoint, blastBonus = 1) {
+  const r = yoyo.plugin.radius || 18;
+  const cx = yoyo.position.x;
+  const cy = yoyo.position.y;
+  const fragCount = 8;
+  const spread = 1.4 * blastBonus;
   const newFrags = [];
 
-  for (const polyNorm of fragVerts) {
-    const verts = polyNorm.map(([nx, ny]) => ({ x: cx + nx * w, y: cy + ny * h }));
-    try {
-      const frag = Bodies.fromVertices(
-        cx + (Math.random() - 0.5) * 2,
-        cy + (Math.random() - 0.5) * 2,
-        verts,
-        {
-          label: 'fragment',
-          restitution: 0.25,
-          friction: 0.4,
-          frictionAir: 0.01,
-          collisionFilter: { category: 0x0004, mask: 0x0002 | 0x0004 | 0x0008 },
-          plugin: { materialKey: target.plugin.materialKey, born: Date.now() },
-        }
-      );
-      const dx = frag.position.x - hitPoint.x;
-      const dy = frag.position.y - hitPoint.y;
-      const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-      const blastSpeed = spread * 80;
-      Body.setVelocity(frag, {
-        x: (dx / dist) * blastSpeed * (0.5 + Math.random()),
-        y: (dy / dist) * blastSpeed * (0.5 + Math.random()) - 60,
-      });
-      Body.setAngularVelocity(frag, (Math.random() - 0.5) * 0.4);
-      Composite.add(world, frag);
-      newFrags.push(frag);
-      fragmentBodies.push(frag);
-    } catch {}
+  for (let i = 0; i < fragCount; i++) {
+    const angle = (i / fragCount) * Math.PI * 2;
+    const fragR = r * (0.2 + Math.random() * 0.25);
+    const frag = Bodies.circle(
+      cx + Math.cos(angle) * r * 0.5,
+      cy + Math.sin(angle) * r * 0.5,
+      fragR,
+      {
+        label: 'fragment',
+        restitution: 0.3,
+        friction: 0.4,
+        frictionAir: 0.01,
+        collisionFilter: { category: 0x0004, mask: 0x0002 | 0x0004 | 0x0008 },
+        plugin: { variantKey: yoyo.plugin.variantKey, born: Date.now() },
+      }
+    );
+    const dx = frag.position.x - hitPoint.x;
+    const dy = frag.position.y - hitPoint.y;
+    const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+    Body.setVelocity(frag, {
+      x: (dx / dist) * spread * 80 * (0.5 + Math.random()),
+      y: (dy / dist) * spread * 80 * (0.5 + Math.random()) - 80,
+    });
+    Body.setAngularVelocity(frag, (Math.random() - 0.5) * 0.5);
+    Composite.add(world, frag);
+    newFrags.push(frag);
+    fragmentBodies.push(frag);
   }
 
   setTimeout(() => {
     newFrags.forEach(f => { try { Composite.remove(world, f); } catch {} });
     fragmentBodies = fragmentBodies.filter(f => !newFrags.includes(f));
   }, 4000);
+}
+
+export function attachStringToMouse(mouseX, mouseY) {
+  if (!yoyoBody) return;
+  Body.setStatic(yoyoBody, false);
+  Body.setVelocity(yoyoBody, { x: 0, y: 0 });
+  const dx = mouseX - yoyoBody.position.x;
+  const dy = mouseY - yoyoBody.position.y;
+  const length = Math.max(Math.sqrt(dx * dx + dy * dy), 20);
+  attachString(mouseX, mouseY, length, 0.85);
+}
+
+export function updatePivot(x, y) {
+  if (stringConstraint) stringConstraint.pointA = { x, y };
+}
+
+export function detachString() {
+  if (stringConstraint) {
+    Composite.remove(world, stringConstraint);
+    stringConstraint = null;
+  }
+}
+
+export function setYoyoPosition(x, y) {
+  if (yoyoBody) Body.setPosition(yoyoBody, { x, y });
+}
+
+export function setYoyoVelocity(vx, vy) {
+  if (yoyoBody) Body.setVelocity(yoyoBody, { x: vx, y: vy });
+}
+
+export function clampYoyoSpeed(maxSpeed) {
+  if (!yoyoBody) return;
+  const spd = Math.sqrt(yoyoBody.velocity.x ** 2 + yoyoBody.velocity.y ** 2);
+  if (spd > maxSpeed) {
+    Body.setVelocity(yoyoBody, {
+      x: (yoyoBody.velocity.x / spd) * maxSpeed,
+      y: (yoyoBody.velocity.y / spd) * maxSpeed,
+    });
+  }
 }
 
 export function getYoyoBody() { return yoyoBody; }

@@ -13,13 +13,16 @@ let currAngle = 0;
 let mouseDown = false;
 let canvas = null;
 
-const callbacks = { swing: null, release: null };
+let inputMode = 'swing'; // 'swing' | 'push'
 
-export function init(canvasEl, pivotPos, strLen, variant) {
+const callbacks = { swing: null, release: null, pivotMove: null };
+
+export function init(canvasEl, pivotPos, strLen, variant, mode = 'swing') {
   canvas = canvasEl;
   pivot = { ...pivotPos };
   stringLength = strLen;
   variantKey = variant;
+  inputMode = mode;
   smoothedAV = 0;
   mouseDown = false;
   prevAngle = null;
@@ -32,6 +35,7 @@ export function setStringLength(l) { stringLength = l; }
 
 export function onSwing(fn) { callbacks.swing = fn; }
 export function onRelease(fn) { callbacks.release = fn; }
+export function onPivotMove(fn) { callbacks.pivotMove = fn; }
 
 export function attachToCanvas(canvasEl) {
   canvas = canvasEl;
@@ -62,39 +66,56 @@ function onMouseDown(e) {
   const pos = getCanvasXY(e);
   mouseX = pos.x;
   mouseY = pos.y;
+  prevTime = performance.now();
+
+  if (inputMode === 'push') {
+    if (callbacks.pivotMove) callbacks.pivotMove({ x: pos.x, y: pos.y });
+    return;
+  }
+
   currAngle = Math.atan2(mouseY - pivot.y, mouseX - pivot.x);
   prevAngle = currAngle;
-  prevTime = performance.now();
   smoothedAV = 0;
 }
 
 function onMouseMove(e) {
   const pos = getCanvasXY(e);
+
+  // Push mode: pivot always follows mouse, no hold required
+  if (inputMode === 'push') {
+    mouseX = pos.x;
+    mouseY = pos.y;
+    if (callbacks.pivotMove) callbacks.pivotMove({ x: pos.x, y: pos.y });
+    return;
+  }
+
+  if (!mouseDown) {
+    mouseX = pos.x;
+    mouseY = pos.y;
+    return;
+  }
+
+  const now = performance.now();
+  const dt = Math.min((now - (prevTime || now)) / 1000, 0.05);
+  prevTime = now;
+
+  // Swing mode
   mouseX = pos.x;
   mouseY = pos.y;
 
-  if (!mouseDown) return;
-
-  const now = performance.now();
-  const dt = Math.min((now - (prevTime || now)) / 1000, 0.05); // seconds, capped
-  prevTime = now;
-
   const newAngle = Math.atan2(mouseY - pivot.y, mouseX - pivot.x);
   let delta = newAngle - (prevAngle ?? newAngle);
-  // Normalize to [-π, π]
   while (delta > Math.PI) delta -= Math.PI * 2;
   while (delta < -Math.PI) delta += Math.PI * 2;
 
   const rawAV = dt > 0 ? delta / dt : 0;
 
-  // Decay on direction reversal
   if (smoothedAV !== 0 && Math.sign(rawAV) !== Math.sign(smoothedAV)) {
     smoothedAV *= 0.92;
   }
 
   smoothedAV = 0.85 * smoothedAV + 0.15 * rawAV;
 
-  // Clamp by variant max speed
   const variant = YOYO_VARIANTS[variantKey];
   const maxAV = variant.maxSpeed / stringLength;
   smoothedAV = Math.max(-maxAV, Math.min(maxAV, smoothedAV));
@@ -102,7 +123,6 @@ function onMouseMove(e) {
   currAngle = newAngle;
   prevAngle = newAngle;
 
-  // Compute yoyo position on circle
   const yoyoX = pivot.x + stringLength * Math.cos(currAngle);
   const yoyoY = pivot.y + stringLength * Math.sin(currAngle);
 
@@ -115,13 +135,13 @@ function onMouseUp() {
   if (!mouseDown) return;
   mouseDown = false;
 
+  if (inputMode === 'push') return; // no release mechanic in push mode
+
   const variant = YOYO_VARIANTS[variantKey];
   const speed = Math.abs(smoothedAV) * stringLength;
   const clampedSpeed = Math.min(speed, variant.maxSpeed);
   const dir = Math.sign(smoothedAV);
 
-  // Tangent direction: perpendicular to radius
-  // CW rotation: tangent = angle + π/2; CCW: angle - π/2
   const tangentAngle = currAngle + dir * Math.PI / 2;
   const vx = Math.cos(tangentAngle) * clampedSpeed;
   const vy = Math.sin(tangentAngle) * clampedSpeed;
@@ -134,6 +154,7 @@ function onMouseUp() {
 }
 
 export function getAngularSpeed() {
+  if (inputMode === 'push') return 0; // main.js reads speed from physics body
   const variant = YOYO_VARIANTS[variantKey];
   const maxAV = variant.maxSpeed / stringLength;
   return Math.min(Math.abs(smoothedAV) / maxAV, 1);

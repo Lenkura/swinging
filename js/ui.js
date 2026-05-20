@@ -10,7 +10,9 @@ const startBtn = document.getElementById('start-btn');
 const yoyoBtns = document.querySelectorAll('.yoyo-btn');
 
 let selectedVariant = 'standard';
-const callbacks = { start: null, retry: null, next: null, variantChange: null };
+let selectedMode = 'push';
+let scoreInterval = null;
+const callbacks = { start: null, retry: null, next: null, variantChange: null, modeChange: null };
 
 export function init() {
   yoyoBtns.forEach(btn => {
@@ -19,6 +21,15 @@ export function init() {
       btn.classList.add('active');
       selectedVariant = btn.dataset.type;
       if (callbacks.variantChange) callbacks.variantChange(selectedVariant);
+    });
+  });
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedMode = btn.dataset.mode;
+      if (callbacks.modeChange) callbacks.modeChange(selectedMode);
     });
   });
 
@@ -39,6 +50,8 @@ export function onStart(fn) { callbacks.start = fn; }
 export function onRetry(fn) { callbacks.retry = fn; }
 export function onNext(fn) { callbacks.next = fn; }
 export function onVariantChange(fn) { callbacks.variantChange = fn; }
+export function onModeChange(fn) { callbacks.modeChange = fn; }
+export function getSelectedMode() { return selectedMode; }
 
 export function showPicker() {
   yoyoPicker.style.display = 'flex';
@@ -55,22 +68,23 @@ export function setHint(text) {
 export function showResult(outcome, score, parScore) {
   resultPanel.classList.remove('hidden');
 
-  const outcomeText = { SHATTER: 'SHATTERED!', CRACK: 'CRACKED!', SURVIVE: 'SURVIVED.' };
+  const outcomeText = { SHATTER: 'SMASHED!', CRACK: 'CRACKED!', SURVIVE: 'BOUNCED OFF.' };
   const outcomeClass = { SHATTER: 'outcome-shatter', CRACK: 'outcome-crack', SURVIVE: 'outcome-survive' };
-  resultOutcome.textContent = outcomeText[outcome] || outcome;
+  resultOutcome.textContent = outcomeText[outcome] || 'Unknown';
   resultOutcome.className = outcomeClass[outcome] || '';
 
   const stars = score >= parScore ? '★★★' : score >= parScore * 0.6 ? '★★☆' : '★☆☆';
   resultStars.textContent = stars;
 
   // Animate score count-up
+  if (scoreInterval) clearInterval(scoreInterval);
   let displayed = 0;
   const step = Math.ceil(score / 30);
   resultScore.textContent = '0';
-  const interval = setInterval(() => {
+  scoreInterval = setInterval(() => {
     displayed = Math.min(displayed + step, score);
     resultScore.textContent = displayed.toLocaleString();
-    if (displayed >= score) clearInterval(interval);
+    if (displayed >= score) clearInterval(scoreInterval);
   }, 20);
 }
 

@@ -22,6 +22,11 @@
         <span class="yoyo-name">Iron</span>
         <span class="yoyo-desc">Hits Hard</span>
       </button>
+      <!-- Mode selector hidden while fling mode is on hold — see PLAN.md -->
+      <div class="picker-sep hidden"></div>
+      <div class="picker-label hidden">Style</div>
+      <button class="mode-btn hidden" data-mode="swing">Fling</button>
+      <button class="mode-btn active hidden" data-mode="push">Push</button>
       <button class="start-btn" id="start-btn">Launch!</button>
     </div>
 
@@ -39,8 +44,8 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/poly-decomp/0.3.0/decomp.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/poly-decomp/0.3.0/decomp.min.js" integrity="sha512-c7v2mEghMrX9YKC1iSb93skFX4CVpTvFJxTiEek0DDQZc2zq/WsnlmeBARTTBr/M3Pzd9RwLZ/6ePHPFRYPldA==" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" integrity="sha512-0z8URjGET6GWnS1xcgiLBZBzoaS8BNlKayfZyQNKz4IRp+s7CKXx0yz7Eco2+TcwoeMBa5KMwmTX7Kus7Fa5Uw==" crossorigin="anonymous"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -10,6 +10,12 @@ const TRAIL_MAX = 30;
 const trail = [];
 let spinAngle = 0;
 
+// Per-level render caches (invalidated when level identity changes)
+let cachedGradient = null;
+let cachedGradientKey = '';
+let cachedGroundCanvas = null;
+let cachedGroundKey = '';
+
 export function init(canvasEl) {
   canvas = canvasEl;
   ctx = canvas.getContext('2d');
@@ -35,6 +41,7 @@ export function updateSpin(angularVelocity, dt) {
 
 export function draw({
   state,
+  mode = 'swing',
   level,
   pivot,
   yoyoBody,
@@ -42,15 +49,17 @@ export function draw({
   fragmentBodies,
   stringConstraint,
   angularSpeed,
-  releaseTrail,
   aimPoints,
+  hpFraction = 1.0,
+  hitCount = 0,
+  comboCount = 0,
 }) {
   ctx.clearRect(0, 0, canvasW, canvasH);
 
   drawBackground(level);
   drawGround(level);
 
-  if (state === 'SWINGING' || state === 'IDLE_ARMED') {
+  if (stringConstraint && (state === 'SWINGING' || state === 'IDLE_ARMED')) {
     drawString(pivot, yoyoBody, angularSpeed, stringConstraint);
   }
 
@@ -68,64 +77,110 @@ export function draw({
   Particles.draw(ctx);
 
   drawSpeedMeter(angularSpeed);
-  drawPivotHand(pivot, state);
+  if (mode === 'swing' || stringConstraint) drawPivotHand(pivot, state);
+  if (mode === 'push') {
+    drawHpBar(hpFraction);
+    drawHitCounter(hitCount);
+    drawCombo(comboCount);
+  }
 }
 
 function drawBackground(level) {
-  const grad = ctx.createLinearGradient(0, 0, 0, canvasH);
-  grad.addColorStop(0, level.background[0]);
-  grad.addColorStop(1, level.background[1]);
-  ctx.fillStyle = grad;
+  const key = level.background[0] + '|' + level.background[1];
+  if (!cachedGradient || cachedGradientKey !== key) {
+    cachedGradient = ctx.createLinearGradient(0, 0, 0, canvasH);
+    cachedGradient.addColorStop(0, level.background[0]);
+    cachedGradient.addColorStop(1, level.background[1]);
+    cachedGradientKey = key;
+  }
+  ctx.fillStyle = cachedGradient;
   ctx.fillRect(0, 0, canvasW, canvasH);
 }
 
 function drawGround(level) {
-  const groundY = canvasH - 40;
-  ctx.fillStyle = level.groundColor;
-  ctx.fillRect(0, groundY, canvasW, 40);
+  const key = level.groundColor + '|' + canvasW;
+  if (!cachedGroundCanvas || cachedGroundKey !== key) {
+    const GRASS_MAX = 9, GROUND_H = 40;
+    const oc = document.createElement('canvas');
+    oc.width = canvasW;
+    oc.height = GRASS_MAX + GROUND_H;
+    const gctx = oc.getContext('2d');
 
-  // cartoon outline
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(0, groundY);
-  ctx.lineTo(canvasW, groundY);
-  ctx.stroke();
+    gctx.fillStyle = level.groundColor;
+    gctx.fillRect(0, GRASS_MAX, canvasW, GROUND_H);
 
-  // grass tufts
-  ctx.fillStyle = '#3a8f3a';
-  for (let x = 10; x < canvasW; x += 22) {
-    const h = 6 + Math.sin(x * 0.3) * 3;
-    ctx.fillRect(x, groundY - h, 4, h);
+    gctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    gctx.lineWidth = 3;
+    gctx.beginPath();
+    gctx.moveTo(0, GRASS_MAX);
+    gctx.lineTo(canvasW, GRASS_MAX);
+    gctx.stroke();
+
+    gctx.fillStyle = '#3a8f3a';
+    for (let x = 10; x < canvasW; x += 22) {
+      const h = 6 + Math.sin(x * 0.3) * 3;
+      gctx.fillRect(x, GRASS_MAX - h, 4, h);
+    }
+
+    cachedGroundCanvas = oc;
+    cachedGroundKey = key;
   }
+  ctx.drawImage(cachedGroundCanvas, 0, canvasH - 49);
 }
 
 function drawString(pivot, yoyo, normalizedSpeed, constraint) {
   if (!yoyo) return;
-  const ex = yoyo.position.x;
-  const ey = yoyo.position.y;
+  const px = pivot.x, py = pivot.y;
+  const ex = yoyo.position.x, ey = yoyo.position.y;
 
-  const dx = ex - pivot.x;
-  const dy = ey - pivot.y;
-  const len = Math.sqrt(dx * dx + dy * dy);
-  if (len < 1) return;
+  const dx = ex - px;
+  const dy = ey - py;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 1) return;
 
-  // perp unit
-  const perpX = -dy / len;
-  const perpY = dx / len;
-  const bow = normalizedSpeed * 22;
-  const midX = (pivot.x + ex) / 2 + perpX * bow;
-  const midY = (pivot.y + ey) / 2 + perpY * bow;
+  const perpX = -dy / dist;
+  const perpY = dx / dist;
 
-  // shadow
+  // Gravity sag: stronger when rope is horizontal, zero when vertical
+  const horizontalFraction = Math.abs(dx) / dist;
+  const gravSag = horizontalFraction * dist * 0.18;
+
+  // Extra sag when rope is slack (yoyo closer than constraint length)
+  const slack = Math.max(0, (constraint?.length ?? dist) - dist);
+  const slackSag = slack * 0.4;
+
+  const totalSag = gravSag + slackSag;
+
+  // Lateral bow from swing speed
+  const speedBow = normalizedSpeed * 16;
+
+  // Build 8 rope points with parabolic gravity + speed bow
+  const N = 8;
+  const pts = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const s = Math.sin(t * Math.PI); // 0 at ends, peak at midpoint
+    pts.push({
+      x: px + dx * t + perpX * speedBow * s,
+      y: py + dy * t + perpY * speedBow * s + totalSag * s,
+    });
+  }
+
+  // Draw smooth curve through points (Catmull-Rom style via quadratic beziers)
   ctx.shadowColor = 'rgba(0,0,0,0.25)';
   ctx.shadowBlur = 3;
-  ctx.beginPath();
-  ctx.moveTo(pivot.x, pivot.y);
-  ctx.quadraticCurveTo(midX, midY, ex, ey);
   ctx.strokeStyle = '#3d2b1f';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i].x + pts[i + 1].x) / 2;
+    const my = (pts[i].y + pts[i + 1].y) / 2;
+    ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+  }
+  ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
   ctx.stroke();
   ctx.shadowBlur = 0;
 }
@@ -191,6 +246,18 @@ function drawYoyo(body, variant) {
   ctx.lineWidth = 2;
   ctx.stroke();
 
+  // crack overlay when damaged
+  if (body.plugin?.cracked && body.plugin?.crackPattern) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+    ctx.lineWidth = 1.5;
+    for (const { angle, len } of body.plugin.crackPattern) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(angle) * len * variant.radius * 1.8, Math.sin(angle) * len * variant.radius * 1.8);
+      ctx.stroke();
+    }
+  }
+
   ctx.restore();
 }
 
@@ -198,6 +265,7 @@ function drawTargets(targets) {
   for (const body of targets) {
     const mat = MATERIALS[body.plugin.materialKey];
     drawPhysicsBody(body, body.plugin.cracked ? mat.crackedColor : mat.color, mat.outlineColor);
+    if (body.plugin.cracked && body.plugin.crackPattern) drawCracks(body, body.plugin.crackPattern);
 
     // material label
     const { x, y } = body.position;
@@ -218,10 +286,6 @@ function drawTargets(targets) {
     ctx.fill();
     ctx.restore();
 
-    // crack overlay
-    if (body.plugin.cracked && body.plugin.crackPattern) {
-      drawCracks(body, body.plugin.crackPattern);
-    }
   }
 }
 
@@ -245,11 +309,20 @@ function drawCracks(body, pattern) {
 }
 
 function drawFragments(frags) {
+  const now = Date.now();
   for (const body of frags) {
-    const mat = MATERIALS[body.plugin.materialKey];
-    const age = (Date.now() - body.plugin.born) / 4000;
-    ctx.globalAlpha = Math.max(0, 1 - age);
-    drawPhysicsBody(body, mat.crackedColor, mat.outlineColor);
+    const v = YOYO_VARIANTS[body.plugin.variantKey || 'standard'];
+    const age = (now - body.plugin.born) / 4000;
+    const alpha = Math.max(0, 1 - age);
+    const r = body.circleRadius || 6;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(body.position.x, body.position.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = v.color;
+    ctx.fill();
+    ctx.strokeStyle = v.outlineColor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.globalAlpha = 1;
   }
 }
@@ -349,4 +422,47 @@ function drawPivotHand(pivot, state) {
   }
 
   ctx.restore();
+}
+
+function drawHpBar(fraction) {
+  const barW = 160;
+  const barH = 12;
+  const x = canvasW - barW - 20;
+  const y = canvasH - 68;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(x, y, barW, barH);
+
+  const hue = fraction * 120; // green → red as HP drops
+  ctx.fillStyle = `hsl(${hue},85%,50%)`;
+  ctx.fillRect(x, y, barW * Math.max(0, fraction), barH);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, barW, barH);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = 'bold 10px system-ui';
+  ctx.textAlign = 'right';
+  ctx.fillText('HP', x - 6, y + barH - 1);
+  ctx.textAlign = 'left';
+}
+
+function drawHitCounter(hitCount) {
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = 'bold 12px system-ui';
+  ctx.textAlign = 'right';
+  ctx.fillText(`Hits: ${hitCount}`, canvasW - 20, canvasH - 82);
+  ctx.textAlign = 'left';
+}
+
+function drawCombo(combo) {
+  if (combo < 2) return;
+  const mult = Math.min(1 + (combo - 1) * 0.5, 3.0).toFixed(1);
+  const hue = Math.max(0, 60 - (combo - 2) * 15); // yellow → orange → red
+  ctx.fillStyle = `hsl(${hue}, 100%, 60%)`;
+  ctx.font = `bold ${14 + Math.min(combo, 5) * 2}px system-ui`;
+  ctx.textAlign = 'right';
+  ctx.fillText(`${combo}× COMBO  ${mult}x`, canvasW - 20, canvasH - 96);
+  ctx.textAlign = 'left';
 }

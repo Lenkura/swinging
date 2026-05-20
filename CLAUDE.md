@@ -68,6 +68,7 @@ Or use any static file server (`npx serve`, `caddy`, etc.).
 
 ## Testing
 
-No automated test framework yet — **adding one is a prerequisite before new features**. See workspace CLAUDE.md for the test cycle.
-
-Manual testing: open browser console; Matter.js collision/body errors appear there. Use browser devtools Performance tab to check frame timing.
+- **Framework:** Vitest — config at `vitest.config.js`, test files in `tests/`
+- **Run:** `npx vitest run` (single pass) or `npx vitest` (watch mode)
+- **Spec:** `TEST_SPEC.md` at project root
+- Integration tests for physics and renderer are deferred — currently manual browser testing. Use browser console for Matter.js errors and devtools Performance tab for frame timing.

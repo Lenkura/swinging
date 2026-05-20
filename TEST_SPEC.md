@@ -156,6 +156,31 @@
 
 ---
 
+## Combo System (Push Mode)
+
+**Source:** `js/main.js` — `comboCount`, `comboTimer`, `COMBO_WINDOW`
+**Priority:** High
+
+### Expected behaviours
+
+| # | Behaviour | Test type | Priority |
+|---|---|---|---|
+| 1 | First hit has multiplier 1.0× (comboCount = 0 pre-hit) | Happy path | High |
+| 2 | Second hit within window has multiplier 1.5× | Happy path | High |
+| 3 | Third hit within window has multiplier 2.0× | Happy path | High |
+| 4 | Multiplier caps at 3.0× (hit 5+) | Boundary | High |
+| 5 | comboCount resets to 0 after COMBO_WINDOW elapses with no hit | Unhappy path | High |
+| 6 | comboTimer resets to COMBO_WINDOW on each registered hit | Happy path | High |
+| 7 | Combo does not advance when hitCooldown is active (hit ignored) | Unhappy path | High |
+| 8 | comboCount resets on `startLevel()` | Boundary | Medium |
+
+### Edge cases and unhappy paths
+
+- Two hits at exact COMBO_WINDOW boundary — combo should reset (timer ≤ 0 before second hit)
+- Combo multiplier formula: `Math.min(1 + comboCount * 0.5, 3.0)` where `comboCount` is pre-increment
+
+---
+
 ## Physics & Renderer (Integration — Deferred)
 
 **Source:** `js/physics.js`, `js/renderer.js`

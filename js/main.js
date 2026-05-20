@@ -5,18 +5,28 @@ import * as Particles from './particles.js';
 import * as UI from './ui.js';
 import { YOYO_VARIANTS } from './yoyo.js';
 import { LEVELS, getLevel, saveProgress } from './levels.js';
+import { generateCrackPattern } from './target.js';
 
 const canvas = document.getElementById('game-canvas');
-const CANVAS_W = 900;
-const CANVAS_H = 540;
+const CANVAS_W = 1100;
+const CANVAS_H = 620;
 canvas.width = CANVAS_W;
 canvas.height = CANVAS_H;
 
 // --- State machine ---
 // States: PICKER | IDLE_ARMED | SWINGING | RELEASED | IMPACT | RESULT
+const YOYO_MAX_HP = 100;
+
 let gameState = 'PICKER';
 let currentLevelId = 1;
 let selectedVariant = 'standard';
+let selectedMode = 'push'; // 'swing' | 'push' — synced from UI.getSelectedMode() on init
+let yoyoHp = YOYO_MAX_HP;
+let hitCount = 0;
+let hitCooldown = 0;
+let comboCount = 0;
+let comboTimer = 0;
+const COMBO_WINDOW = 1.0;
 let lastTime = null;
 let pivot = { x: 0, y: 0 };
 let stringLength = 130;
@@ -28,7 +38,7 @@ let aimGuideTimer = 0;
 let aimPoints = null;
 let spinAccum = 0; // accumulated spin angle for renderer
 
-function getLevel_() {
+function currentLevel() {
   return getLevel(currentLevelId);
 }
 
@@ -39,10 +49,14 @@ function computePivot(level) {
   };
 }
 
-function calcScore(outcome, speed, material) {
+function calcScore(outcome, speed, material, angleFactor = 1.0) {
   const base = outcome === 'SHATTER' ? 1000 : outcome === 'CRACK' ? 300 : 0;
   const speedBonus = Math.floor(speed / 8);
-  return base + speedBonus;
+  return Math.floor((base + speedBonus) * angleFactor);
+}
+
+function calcPushScore(hits) {
+  return Math.max(200, 3000 - (hits - 1) * 500);
 }
 
 function computeAimPoints(vx, vy, x0, y0) {
@@ -62,8 +76,10 @@ Physics.init(CANVAS_W, CANVAS_H);
 Physics.installReleaseHook();
 Renderer.init(canvas);
 UI.init();
+selectedMode = UI.getSelectedMode();
 
 UI.onVariantChange(v => { selectedVariant = v; });
+UI.onModeChange(m => { selectedMode = m; });
 
 UI.onStart(variant => {
   selectedVariant = variant;
@@ -88,18 +104,53 @@ UI.onNext(() => {
 });
 
 // Physics collision event
-Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, material }) => {
+Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, material, angleFactor }) => {
+  const af = angleFactor ?? 1.0;
+  const variant = YOYO_VARIANTS[yoyo.plugin?.variantKey || 'standard'];
+
+  if (selectedMode === 'push') {
+    if (gameState !== 'SWINGING' || hitCooldown > 0) return;
+
+    const comboMultiplier = Math.min(1 + comboCount * 0.5, 3.0);
+    comboCount++;
+    comboTimer = COMBO_WINDOW;
+
+    const damage = speed * af * (material.yoyoDamage || 1.0) * (yoyo.plugin.impactMultiplier || 1.0) * comboMultiplier / 50;
+    yoyoHp = Math.max(0, yoyoHp - damage);
+    hitCount++;
+    hitCooldown = 0.35;
+
+    // Progressive crack visuals
+    const hpFrac = yoyoHp / YOYO_MAX_HP;
+    yoyo.plugin.cracked = hpFrac < 1.0;
+    const crackCount = hpFrac < 0.25 ? 12 : hpFrac < 0.5 ? 8 : hpFrac < 0.75 ? 4 : 0;
+    if (crackCount > 0) yoyo.plugin.crackPattern = generateCrackPattern(crackCount);
+
+    Particles.emit(hitPoint.x, hitPoint.y, {
+      count: 6,
+      color: variant.color,
+      speed: 180,
+      radius: 3,
+    });
+
+    if (yoyoHp <= 0) {
+      gameState = 'IMPACT';
+      lastOutcome = 'SHATTER';
+      lastScore = calcPushScore(hitCount);
+      Physics.applyBreak(yoyo, 'SHATTER', hitPoint, variant.blastBonus);
+      Particles.emit(hitPoint.x, hitPoint.y, { count: 20, color: variant.color, speed: 350, radius: 5 });
+      impactTimer = 0.85;
+    }
+    return;
+  }
+
+  // Fling mode
   if (gameState !== 'RELEASED') return;
   gameState = 'IMPACT';
   lastOutcome = outcome;
+  lastScore = calcScore(outcome, speed, material, af);
+  Physics.applyBreak(yoyo, outcome, hitPoint, variant.blastBonus);
 
-  const variant = YOYO_VARIANTS[yoyo.plugin?.variantKey || 'standard'];
-  lastScore = calcScore(outcome, speed, material);
-
-  // Apply break
-  Physics.applyBreak(target, outcome, hitPoint, variant.blastBonus);
-
-  // Particles
   const colors = { SHATTER: ['#a8d8ea','#fff','#90e0ef'], CRACK: ['#c4a265','#8b6914','#fff'], SURVIVE: ['#8a9ba8','#adb5bd'] };
   const count = outcome === 'SHATTER' ? 20 : outcome === 'CRACK' ? 10 : 5;
   Particles.emit(hitPoint.x, hitPoint.y, {
@@ -115,16 +166,18 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
 // Input callbacks
 Input.onSwing(({ x, y, angle, angularVelocity }) => {
   if (gameState !== 'SWINGING') return;
-  const yoyoBody = Physics.getYoyoBody();
-  if (yoyoBody) {
-    Matter.Body.setPosition(yoyoBody, { x, y });
-    Matter.Body.setVelocity(yoyoBody, { x: 0, y: 0 });
-    Renderer.updateTrail(x, y);
-    Renderer.updateSpin(angularVelocity, 1 / 60);
-  }
+  Physics.setYoyoPosition(x, y);
+  Physics.setYoyoVelocity(0, 0);
+  Renderer.updateTrail(x, y);
+  Renderer.updateSpin(angularVelocity, 1 / 60);
 });
 
-Input.onRelease(({ vx, vy, speed, angle }) => {
+Input.onPivotMove(({ x, y }) => {
+  if (gameState !== 'SWINGING') return;
+  Physics.updatePivot(x, y);
+});
+
+Input.onRelease(({ vx, vy }) => {
   if (gameState !== 'SWINGING') return;
   gameState = 'RELEASED';
   Renderer.clearTrail();
@@ -135,15 +188,20 @@ Input.onRelease(({ vx, vy, speed, angle }) => {
     aimPoints = computeAimPoints(vx, vy, yoyoBody.position.x, yoyoBody.position.y);
   }
   aimGuideTimer = AIM_GUIDE_DURATION;
-
   Physics.scheduleRelease(vx, vy);
 });
 
 function startLevel() {
-  const level = getLevel_();
+  const level = currentLevel();
   pivot = computePivot(level);
   stringLength = level.stringLength;
   spinAccum = 0;
+
+  yoyoHp = YOYO_MAX_HP;
+  hitCount = 0;
+  hitCooldown = 0;
+  comboCount = 0;
+  comboTimer = 0;
 
   Physics.reset();
   Particles.clear();
@@ -152,18 +210,27 @@ function startLevel() {
   // Spawn targets
   Physics.spawnTargets(level.targets, level.pivot.x, level.pivot.y);
 
-  // Spawn yoyo at rest below pivot
-  const startX = pivot.x;
-  const startY = pivot.y + stringLength;
-  const yoyoBody = Physics.spawnYoyo(startX, startY, selectedVariant);
-  Physics.attachString(pivot.x, pivot.y, stringLength);
-
-  // Setup input
-  Input.init(canvas, pivot, stringLength, selectedVariant);
+  // Spawn yoyo and setup input based on mode
+  if (selectedMode === 'push') {
+    const psl = level.pushStringLength || stringLength;
+    Physics.spawnYoyo(pivot.x, pivot.y + psl, selectedVariant);
+    Physics.attachString(pivot.x, pivot.y, psl, 0.65);
+    Input.init(canvas, pivot, psl, selectedVariant, 'push');
+  } else {
+    const startX = pivot.x;
+    const startY = pivot.y + stringLength;
+    Physics.spawnYoyo(startX, startY, selectedVariant);
+    Physics.attachString(pivot.x, pivot.y, stringLength);
+    Input.init(canvas, pivot, stringLength, selectedVariant, 'swing');
+  }
   Input.attachToCanvas(canvas);
 
   UI.hidePicker();
-  UI.setHint(level.hint || 'Hold mouse button and move in circles to build speed!');
+  if (selectedMode === 'push') {
+    UI.setHint('Hold the mouse to grab the string anchor. Swing the yoyo, then release!');
+  } else {
+    UI.setHint(level.hint || 'Hold mouse button and move in circles to build speed!');
+  }
 
   gameState = 'SWINGING';
   lastOutcome = null;
@@ -185,6 +252,11 @@ function gameLoop(timestamp) {
   if (gameState !== 'PICKER' && gameState !== 'RESULT') {
     Physics.step(dt * 1000);
     Particles.update(dt);
+    if (hitCooldown > 0) hitCooldown -= dt;
+    if (comboTimer > 0) {
+      comboTimer -= dt;
+      if (comboTimer <= 0) comboCount = 0;
+    }
   }
 
   // State-specific logic
@@ -195,14 +267,7 @@ function gameLoop(timestamp) {
     // Keep yoyo within bounds (cap speed to avoid tunneling)
     const yoyo = Physics.getYoyoBody();
     if (yoyo) {
-      const spd = Math.sqrt(yoyo.velocity.x ** 2 + yoyo.velocity.y ** 2);
-      const maxSpd = YOYO_VARIANTS[selectedVariant].maxSpeed;
-      if (spd > maxSpd) {
-        Matter.Body.setVelocity(yoyo, {
-          x: (yoyo.velocity.x / spd) * maxSpd,
-          y: (yoyo.velocity.y / spd) * maxSpd,
-        });
-      }
+      Physics.clampYoyoSpeed(YOYO_VARIANTS[selectedVariant].maxSpeed);
       Renderer.updateTrail(yoyo.position.x, yoyo.position.y);
 
       // Off-screen without hitting anything → RESULT with survive
@@ -224,20 +289,48 @@ function gameLoop(timestamp) {
     }
   }
 
+  // Push mode: update trail and spin from physics body during swing
+  if (selectedMode === 'push' && gameState === 'SWINGING') {
+    const yb = Physics.getYoyoBody();
+    if (yb) {
+      Renderer.updateTrail(yb.position.x, yb.position.y);
+      Renderer.updateSpin(yb.angularVelocity * 60, 1 / 60);
+    }
+  }
+
   // Render
-  const level = getLevel_();
-  const angularSpeed = gameState === 'SWINGING' ? Input.getAngularSpeed() : 0;
+  const level = currentLevel();
+  let angularSpeed = 0;
+  if (gameState === 'SWINGING') {
+    if (selectedMode === 'push') {
+      const yb = Physics.getYoyoBody();
+      if (yb) {
+        const spd = Math.sqrt(yb.velocity.x ** 2 + yb.velocity.y ** 2);
+        angularSpeed = Math.min(spd / YOYO_VARIANTS[selectedVariant].maxSpeed, 1);
+      }
+    } else {
+      angularSpeed = Input.getAngularSpeed();
+    }
+  }
+
+  // In push mode, pass the constraint anchor as pivot so string + hand draw at mouse position
+  const constraint = Physics.getStringConstraint();
+  const displayPivot = (selectedMode === 'push' && constraint) ? constraint.pointA : pivot;
 
   Renderer.draw({
     state: gameState,
+    mode: selectedMode,
     level,
-    pivot,
+    pivot: displayPivot,
     yoyoBody: Physics.getYoyoBody(),
     targetBodies: Physics.getTargetBodies(),
     fragmentBodies: Physics.getFragmentBodies(),
-    stringConstraint: Physics.getStringConstraint(),
+    stringConstraint: constraint,
     angularSpeed,
     aimPoints: aimGuideTimer > 0 ? aimPoints : null,
+    hpFraction: yoyoHp / YOYO_MAX_HP,
+    hitCount,
+    comboCount,
   });
 }
 
@@ -246,10 +339,11 @@ function showResult() {
   Input.detachFromCanvas();
   Physics.removeYoyo();
 
-  const level = getLevel_();
+  const level = currentLevel();
   saveProgress(currentLevelId, lastScore);
 
-  UI.showResult(lastOutcome, lastScore, level.parScore);
+  const parScore = selectedMode === 'push' ? (level.pushParScore || 1500) : level.parScore;
+  UI.showResult(lastOutcome, lastScore, parScore);
   UI.setNextVisible(currentLevelId < LEVELS.length);
   UI.setHint('');
 }
