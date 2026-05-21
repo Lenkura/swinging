@@ -6,7 +6,7 @@ See [../CLAUDE.md](../CLAUDE.md) for workspace-wide standards.
 
 ## Project Overview
 
-**Yoyo Smash** — a browser physics game where the player swings a yoyo and releases it to smash targets. No build system. Vanilla JS with ES6 modules, Matter.js for physics, Canvas 2D for rendering.
+**Yoyo Smash** — a browser physics game with two modes. **Push mode** (default): the pivot follows the mouse; swing the yoyo repeatedly into targets to deplete its HP and shatter it in as few hits as possible. **Fling mode**: build angular speed then release the yoyo as a projectile to smash targets. No build system. Vanilla JS with ES6 modules, Matter.js for physics, Canvas 2D for rendering.
 
 ---
 
@@ -23,6 +23,7 @@ See [../CLAUDE.md](../CLAUDE.md) for workspace-wide standards.
 | `js/yoyo.js` | Yoyo variant definitions (standard, heavy) |
 | `js/target.js` | Material definitions, impact evaluation, crack/fragment generation |
 | `js/particles.js` | Particle system |
+| `js/audio.js` | Web Audio API sound synthesis — hit, shatter, combo tone |
 
 **State machine** (in `main.js`): `PICKER → SWINGING → RELEASED → IMPACT → RESULT`
 
@@ -63,6 +64,19 @@ Or use any static file server (`npx serve`, `caddy`, etc.).
 **New yoyo variant**: add to `YOYO_VARIANTS` in `yoyo.js` and add a picker button in `index.html`.
 
 **New material**: add to `MATERIALS` in `target.js`.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Vanilla JS — ES6 modules (`"type": "module"`) |
+| Rendering | Canvas 2D |
+| Physics | Matter.js 0.19.0 via CDN |
+| Audio | Web Audio API (built-in, no library) |
+| Test framework | Vitest ^2.0.0 + jsdom |
+| Build system | None |
 
 ---
 

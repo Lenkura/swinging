@@ -10,6 +10,11 @@
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
 
+    <div id="level-select" class="hidden">
+      <div class="ls-title">Select Level</div>
+      <div id="ls-grid" class="ls-grid"></div>
+    </div>
+
     <div id="yoyo-picker">
       <div class="picker-label">Choose your yoyo</div>
       <button class="yoyo-btn active" data-type="standard">
@@ -22,11 +27,10 @@
         <span class="yoyo-name">Iron</span>
         <span class="yoyo-desc">Hits Hard</span>
       </button>
-      <!-- Mode selector hidden while fling mode is on hold — see PLAN.md -->
-      <div class="picker-sep hidden"></div>
-      <div class="picker-label hidden">Style</div>
-      <button class="mode-btn hidden" data-mode="swing">Fling</button>
-      <button class="mode-btn active hidden" data-mode="push">Push</button>
+      <div class="picker-sep"></div>
+      <div class="picker-label">Style</div>
+      <button class="mode-btn" data-mode="swing">Fling</button>
+      <button class="mode-btn active" data-mode="push">Push</button>
       <button class="start-btn" id="start-btn">Launch!</button>
     </div>
 
@@ -38,6 +42,7 @@
       <div id="result-score-label">Score</div>
       <div id="result-score">0</div>
       <div id="result-buttons">
+        <button id="ls-btn">Levels</button>
         <button id="retry-btn">Retry</button>
         <button id="next-btn" class="hidden">Next Level</button>
       </div>

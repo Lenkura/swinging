@@ -1,0 +1,93 @@
+{
+  "project_name": "Yoyo Smash (swinging)",
+  "created_date": "2026-05-20",
+  "last_session_date": "2026-05-20",
+  "last_session_summary_path": null,
+  "current_activity": "Action plan complete — all 7 items shipped",
+  "action_plan": [
+    {
+      "id": 1,
+      "description": "Decide what to do with fling mode: keep as second mode, repurpose as level variant, or cut. Document the decision.",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 2,
+      "description": "Balance pass on damage values (the '/ 50' divisor in main.js) once more levels exist",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 3,
+      "description": "Add more push mode levels with varied pushStringLength and target layouts",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 4,
+      "description": "Visual feedback on near-miss angles (e.g. 'Glancing blow!' flash)",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 5,
+      "description": "Screen shake on high-damage hits",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 6,
+      "description": "Sound effects",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 7,
+      "description": "Level select screen (unlockedLevel already tracked in localStorage but no UI)",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 8,
+      "description": "Update CLAUDE.md — test framework (Vitest) is already set up; CLAUDE.md incorrectly says it isn't",
+      "priority": "medium",
+      "status": "completed"
+    }
+  ],
+  "recently_updated_files": ["js/audio.js", "js/levels.js", "js/main.js", "js/renderer.js", "js/ui.js", "js/yoyo.js", "css/style.css", "index.html", "CLAUDE.md"],
+  "open_questions": [],
+  "milestones": [
+    { "name": "Push mode playable", "status": "completed" },
+    { "name": "Fling mode decision made", "status": "completed" },
+    { "name": "Push mode polished (balance + levels + feedback)", "status": "completed" },
+    { "name": "Mobile / HiDPI support", "status": "pending" }
+  ],
+  "decisions": [
+    {
+      "date": "2026-05-20",
+      "decision": "Push mode only for now — fling mode UI hidden, selectedMode hardcoded to 'push'",
+      "rationale": "Ship a polished single mode rather than two half-finished modes"
+    },
+    {
+      "date": "2026-05-20",
+      "decision": "Vanilla JS + Matter.js, no build system, Canvas 2D",
+      "rationale": "No build complexity for a game of this scope; Matter.js loaded via CDN"
+    },
+    {
+      "date": "2026-05-20",
+      "decision": "Test framework: Vitest (already set up)",
+      "rationale": "Modern, fast, ESM-native — compatible with the project's ES6 module structure"
+    },
+    {
+      "date": "2026-05-20",
+      "decision": "Add hit combo multiplier to push mode: each hit within 1s raises damage by 0.5×, capped at 3.0×",
+      "rationale": "Rewards skilled rapid swinging without changing the core one-hit-ideal scoring loop"
+    },
+    {
+      "date": "2026-05-20",
+      "decision": "Keep fling mode as a selectable second mode; push mode is the default and primary",
+      "rationale": "Both mechanics are worth keeping — push for sustained swinging, fling for projectile precision"
+    }
+  ],
+  "notes": "CLAUDE.md says no test framework yet — this is incorrect. Vitest is set up (vitest.config.js, tests/ dir, TEST_SPEC.md). Update CLAUDE.md."
+}

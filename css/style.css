@@ -250,3 +250,69 @@ body {
 
 #next-btn:hover { transform: scale(1.05); }
 #next-btn.hidden { display: none; }
+
+/* Level select */
+#level-select {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 15, 30, 0.94);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  animation: slideIn 0.2s ease;
+}
+
+#level-select.hidden { display: none; }
+
+.ls-title {
+  color: white;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.ls-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.ls-card {
+  background: rgba(255,255,255,0.07);
+  border: 2px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 14px 18px;
+  min-width: 150px;
+  cursor: pointer;
+  color: white;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+
+.ls-card:hover:not(:disabled) {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.35);
+  transform: translateY(-2px);
+}
+
+.ls-card:disabled { opacity: 0.38; cursor: not-allowed; }
+.ls-card.ls-played { border-color: rgba(144,224,239,0.35); }
+
+.ls-num  { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700; letter-spacing: 1px; }
+.ls-name { font-size: 14px; font-weight: 800; }
+.ls-stars { font-size: 15px; color: #f9c74f; letter-spacing: 2px; min-height: 18px; }
+.ls-score { font-size: 11px; color: rgba(255,255,255,0.5); }
+.ls-lock  { font-size: 18px; margin-top: 4px; }

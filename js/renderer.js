@@ -53,8 +53,17 @@ export function draw({
   hpFraction = 1.0,
   hitCount = 0,
   comboCount = 0,
+  hitLabel = null,
+  shake = 0,
 }) {
   ctx.clearRect(0, 0, canvasW, canvasH);
+  ctx.save();
+  if (shake > 0) {
+    ctx.translate(
+      (Math.random() - 0.5) * 2 * shake,
+      (Math.random() - 0.5) * 2 * shake
+    );
+  }
 
   drawBackground(level);
   drawGround(level);
@@ -83,6 +92,8 @@ export function draw({
     drawHitCounter(hitCount);
     drawCombo(comboCount);
   }
+  if (hitLabel && hitLabel.alpha > 0) drawHitLabel(hitLabel);
+  ctx.restore();
 }
 
 function drawBackground(level) {
@@ -454,6 +465,16 @@ function drawHitCounter(hitCount) {
   ctx.textAlign = 'right';
   ctx.fillText(`Hits: ${hitCount}`, canvasW - 20, canvasH - 82);
   ctx.textAlign = 'left';
+}
+
+function drawHitLabel({ text, x, y, alpha, color }) {
+  ctx.globalAlpha = Math.max(0, alpha);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 18px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, y - 30);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
 }
 
 function drawCombo(combo) {

@@ -4,15 +4,18 @@ const resultStars = document.getElementById('result-stars');
 const resultScore = document.getElementById('result-score');
 const retryBtn = document.getElementById('retry-btn');
 const nextBtn = document.getElementById('next-btn');
+const lsBtn = document.getElementById('ls-btn');
 const hintText = document.getElementById('hint-text');
 const yoyoPicker = document.getElementById('yoyo-picker');
 const startBtn = document.getElementById('start-btn');
 const yoyoBtns = document.querySelectorAll('.yoyo-btn');
+const lsPanel = document.getElementById('level-select');
+const lsGrid = document.getElementById('ls-grid');
 
 let selectedVariant = 'standard';
 let selectedMode = 'push';
 let scoreInterval = null;
-const callbacks = { start: null, retry: null, next: null, variantChange: null, modeChange: null };
+const callbacks = { start: null, retry: null, next: null, variantChange: null, modeChange: null, levelSelect: null, levelSelectBack: null };
 
 export function init() {
   yoyoBtns.forEach(btn => {
@@ -44,6 +47,10 @@ export function init() {
   nextBtn.addEventListener('click', () => {
     if (callbacks.next) callbacks.next();
   });
+
+  lsBtn.addEventListener('click', () => {
+    if (callbacks.levelSelectBack) callbacks.levelSelectBack();
+  });
 }
 
 export function onStart(fn) { callbacks.start = fn; }
@@ -52,6 +59,39 @@ export function onNext(fn) { callbacks.next = fn; }
 export function onVariantChange(fn) { callbacks.variantChange = fn; }
 export function onModeChange(fn) { callbacks.modeChange = fn; }
 export function getSelectedMode() { return selectedMode; }
+export function onLevelSelect(fn) { callbacks.levelSelect = fn; }
+export function onLevelSelectBack(fn) { callbacks.levelSelectBack = fn; }
+
+export function buildLevelSelect(levels, progress) {
+  const unlockedLevel = progress.unlockedLevel || 1;
+  const highScores = progress.highScores || {};
+  lsGrid.innerHTML = '';
+  for (const level of levels) {
+    const unlocked = level.id <= unlockedLevel;
+    const score = highScores[level.id] || 0;
+    const par = level.pushParScore || level.parScore;
+    const stars = score >= par ? '★★★' : score >= par * 0.6 ? '★★☆' : score > 0 ? '★☆☆' : '';
+    const card = document.createElement('button');
+    card.className = 'ls-card' + (score > 0 ? ' ls-played' : '');
+    card.disabled = !unlocked;
+    card.dataset.id = level.id;
+    card.innerHTML = unlocked
+      ? `<span class="ls-num">LEVEL ${level.id}</span>
+         <span class="ls-name">${level.name}</span>
+         <span class="ls-stars">${stars || '—'}</span>
+         <span class="ls-score">${score > 0 ? score.toLocaleString() : 'Not played'}</span>`
+      : `<span class="ls-num">LEVEL ${level.id}</span>
+         <span class="ls-name">${level.name}</span>
+         <span class="ls-lock">🔒</span>`;
+    card.addEventListener('click', () => {
+      if (callbacks.levelSelect) callbacks.levelSelect(level.id);
+    });
+    lsGrid.appendChild(card);
+  }
+}
+
+export function showLevelSelect() { lsPanel.classList.remove('hidden'); }
+export function hideLevelSelect() { lsPanel.classList.add('hidden'); }
 
 export function showPicker() {
   yoyoPicker.style.display = 'flex';

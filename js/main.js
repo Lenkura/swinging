@@ -4,8 +4,9 @@ import * as Renderer from './renderer.js';
 import * as Particles from './particles.js';
 import * as UI from './ui.js';
 import { YOYO_VARIANTS } from './yoyo.js';
-import { LEVELS, getLevel, saveProgress } from './levels.js';
+import { LEVELS, getLevel, saveProgress, loadProgress } from './levels.js';
 import { generateCrackPattern } from './target.js';
+import { playHit, playShatter, playComboTone } from './audio.js';
 
 const canvas = document.getElementById('game-canvas');
 const CANVAS_W = 1100;
@@ -27,6 +28,11 @@ let hitCooldown = 0;
 let comboCount = 0;
 let comboTimer = 0;
 const COMBO_WINDOW = 1.0;
+let hitLabel = { text: '', x: 0, y: 0, timer: 0, color: '#fff' };
+const HIT_LABEL_DURATION = 0.7;
+let shakeTimer = 0;
+let shakeIntensity = 0;
+const SHAKE_DURATION = 0.3;
 let lastTime = null;
 let pivot = { x: 0, y: 0 };
 let stringLength = 130;
@@ -91,6 +97,18 @@ UI.onRetry(() => {
   startLevel();
 });
 
+UI.onLevelSelect(id => {
+  currentLevelId = id;
+  UI.hideLevelSelect();
+  UI.showPicker();
+});
+
+UI.onLevelSelectBack(() => {
+  UI.hideResult();
+  UI.buildLevelSelect(LEVELS, loadProgress());
+  UI.showLevelSelect();
+});
+
 UI.onNext(() => {
   UI.hideResult();
   const nextId = currentLevelId + 1;
@@ -115,10 +133,23 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     comboCount++;
     comboTimer = COMBO_WINDOW;
 
-    const damage = speed * af * (material.yoyoDamage || 1.0) * (yoyo.plugin.impactMultiplier || 1.0) * comboMultiplier / 50;
+    const damage = speed * af * (material.yoyoDamage || 1.0) * (yoyo.plugin.impactMultiplier || 1.0) * comboMultiplier / 15;
     yoyoHp = Math.max(0, yoyoHp - damage);
     hitCount++;
     hitCooldown = 0.35;
+    playHit(target.plugin.materialKey, Math.min(damage / YOYO_MAX_HP, 1));
+    playComboTone(comboCount);
+
+    if (af < 0.55) {
+      hitLabel = { text: 'GLANCING!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#f4a261' };
+    } else if (af > 0.88) {
+      hitLabel = { text: 'CLEAN HIT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#80ffdb' };
+    }
+
+    if (damage > 20) {
+      shakeIntensity = Math.min(damage / 8, 10);
+      shakeTimer = SHAKE_DURATION;
+    }
 
     // Progressive crack visuals
     const hpFrac = yoyoHp / YOYO_MAX_HP;
@@ -137,6 +168,7 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
       gameState = 'IMPACT';
       lastOutcome = 'SHATTER';
       lastScore = calcPushScore(hitCount);
+      playShatter();
       Physics.applyBreak(yoyo, 'SHATTER', hitPoint, variant.blastBonus);
       Particles.emit(hitPoint.x, hitPoint.y, { count: 20, color: variant.color, speed: 350, radius: 5 });
       impactTimer = 0.85;
@@ -202,6 +234,9 @@ function startLevel() {
   hitCooldown = 0;
   comboCount = 0;
   comboTimer = 0;
+  hitLabel = { text: '', x: 0, y: 0, timer: 0, color: '#fff' };
+  shakeTimer = 0;
+  shakeIntensity = 0;
 
   Physics.reset();
   Particles.clear();
@@ -257,6 +292,8 @@ function gameLoop(timestamp) {
       comboTimer -= dt;
       if (comboTimer <= 0) comboCount = 0;
     }
+    if (hitLabel.timer > 0) hitLabel.timer -= dt;
+    if (shakeTimer > 0) shakeTimer -= dt;
   }
 
   // State-specific logic
@@ -306,7 +343,7 @@ function gameLoop(timestamp) {
       const yb = Physics.getYoyoBody();
       if (yb) {
         const spd = Math.sqrt(yb.velocity.x ** 2 + yb.velocity.y ** 2);
-        angularSpeed = Math.min(spd / YOYO_VARIANTS[selectedVariant].maxSpeed, 1);
+        angularSpeed = Math.min(spd / YOYO_VARIANTS[selectedVariant].pushMaxSpeed, 1);
       }
     } else {
       angularSpeed = Input.getAngularSpeed();
@@ -331,6 +368,8 @@ function gameLoop(timestamp) {
     hpFraction: yoyoHp / YOYO_MAX_HP,
     hitCount,
     comboCount,
+    hitLabel: { ...hitLabel, alpha: hitLabel.timer / HIT_LABEL_DURATION },
+    shake: shakeTimer > 0 ? shakeIntensity * (shakeTimer / SHAKE_DURATION) : 0,
   });
 }
 
@@ -349,6 +388,7 @@ function showResult() {
 }
 
 // Initial state
-UI.showPicker();
-UI.setHint('Choose your yoyo and click Launch!');
+UI.buildLevelSelect(LEVELS, loadProgress());
+UI.showLevelSelect();
+UI.setHint('');
 requestAnimationFrame(gameLoop);
