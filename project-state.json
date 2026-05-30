@@ -1,9 +1,9 @@
 {
   "project_name": "Yoyo Smash (swinging)",
   "created_date": "2026-05-20",
-  "last_session_date": "2026-05-20",
-  "last_session_summary_path": null,
-  "current_activity": "Action plan complete — all 7 items shipped",
+  "last_session_date": "2026-05-21",
+  "last_session_summary_path": "history/session-001-summary.md",
+  "current_activity": "Post-review fixes shipped (security + 3 MUST FIX) + combo system; verification and doc updates pending",
   "action_plan": [
     {
       "id": 1,
@@ -52,10 +52,60 @@
       "description": "Update CLAUDE.md — test framework (Vitest) is already set up; CLAUDE.md incorrectly says it isn't",
       "priority": "medium",
       "status": "completed"
+    },
+    {
+      "id": 9,
+      "description": "Verify fragmentsSpawned fix in physics.js — browser test shatter, confirm fragment count is correct",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 10,
+      "description": "Confirm SRI hashes in index.html are valid (not placeholders) for Matter.js 0.19.0 and poly-decomp 0.3.0",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 11,
+      "description": "Run npx vitest run and record pass/fail result — 51/51 passing",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 12,
+      "description": "Update TEST_SPEC.md for push mode — push-mode input, HP drain, hit cooldown, combo system",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 13,
+      "description": "Update CLAUDE.md — push mode as primary mechanic, state machine paths, combo system, Tech Stack section",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 14,
+      "description": "Remove fling mode entirely — delete RELEASED state, fling input, mode UI",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 15,
+      "description": "Fix .gitignore — add .env, *.env.*, secrets/, *.key, *.pem, credentials*",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 16,
+      "description": "Commit post-review hygiene branch",
+      "priority": "low",
+      "status": "in_progress"
     }
   ],
-  "recently_updated_files": ["js/audio.js", "js/levels.js", "js/main.js", "js/renderer.js", "js/ui.js", "js/yoyo.js", "css/style.css", "index.html", "CLAUDE.md"],
-  "open_questions": [],
+  "recently_updated_files": ["index.html", "js/main.js", "js/physics.js", "js/ui.js", "js/levels.js", "js/renderer.js", "css/style.css"],
+  "open_questions": [
+    "drawCracks in renderer.js: wired in or removed? Investigate during fling-removal pass."
+  ],
   "milestones": [
     { "name": "Push mode playable", "status": "completed" },
     { "name": "Fling mode decision made", "status": "completed" },
@@ -87,6 +137,11 @@
       "date": "2026-05-20",
       "decision": "Keep fling mode as a selectable second mode; push mode is the default and primary",
       "rationale": "Both mechanics are worth keeping — push for sustained swinging, fling for projectile precision"
+    },
+    {
+      "date": "2026-05-24",
+      "decision": "Remove fling mode entirely — delete RELEASED state, fling input handling, and mode picker UI",
+      "rationale": "Simplify the codebase to a single polished mode; fling was never the primary experience and adds dead code"
     }
   ],
   "notes": "CLAUDE.md says no test framework yet — this is incorrect. Vitest is set up (vitest.config.js, tests/ dir, TEST_SPEC.md). Update CLAUDE.md."
