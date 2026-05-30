@@ -1,2 +1,10 @@
 node_modules/
 package-lock.json
+.env
+*.env.*
+secrets/
+*.key
+*.pem
+credentials*
+history/*.jsonl
+history/pending-summary.flag

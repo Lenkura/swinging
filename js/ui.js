@@ -1,3 +1,5 @@
+import { ACT_NAMES } from './levels.js';
+
 const resultPanel = document.getElementById('result-panel');
 const resultOutcome = document.getElementById('result-outcome');
 const resultStars = document.getElementById('result-stars');
@@ -66,7 +68,17 @@ export function buildLevelSelect(levels, progress) {
   const unlockedLevel = progress.unlockedLevel || 1;
   const highScores = progress.highScores || {};
   lsGrid.innerHTML = '';
+
+  let currentAct = null;
   for (const level of levels) {
+    if (level.act !== currentAct) {
+      currentAct = level.act;
+      const header = document.createElement('div');
+      header.className = 'ls-act-header';
+      header.textContent = `ACT ${currentAct} — ${ACT_NAMES[currentAct] || ''}`;
+      lsGrid.appendChild(header);
+    }
+
     const unlocked = level.id <= unlockedLevel;
     const score = highScores[level.id] || 0;
     const par = level.pushParScore || level.parScore;
@@ -105,13 +117,21 @@ export function setHint(text) {
   hintText.textContent = text || '';
 }
 
-export function showResult(outcome, score, parScore) {
+export function showResult(outcome, score, parScore, actClear = false) {
   resultPanel.classList.remove('hidden');
 
-  const outcomeText = { SHATTER: 'SMASHED!', CRACK: 'CRACKED!', SURVIVE: 'BOUNCED OFF.' };
-  const outcomeClass = { SHATTER: 'outcome-shatter', CRACK: 'outcome-crack', SURVIVE: 'outcome-survive' };
-  resultOutcome.textContent = outcomeText[outcome] || 'Unknown';
-  resultOutcome.className = outcomeClass[outcome] || '';
+  let outcomeText, outcomeClass;
+  if (actClear) {
+    outcomeText = 'ACT CLEAR!';
+    outcomeClass = 'outcome-actclear';
+  } else {
+    const texts = { SHATTER: 'SMASHED!', CRACK: 'CRACKED!', SURVIVE: 'BOUNCED OFF.' };
+    const classes = { SHATTER: 'outcome-shatter', CRACK: 'outcome-crack', SURVIVE: 'outcome-survive' };
+    outcomeText = texts[outcome] || 'Unknown';
+    outcomeClass = classes[outcome] || '';
+  }
+  resultOutcome.textContent = outcomeText;
+  resultOutcome.className = outcomeClass;
 
   const stars = score >= parScore ? '★★★' : score >= parScore * 0.6 ? '★★☆' : '★☆☆';
   resultStars.textContent = stars;

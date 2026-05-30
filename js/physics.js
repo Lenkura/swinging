@@ -8,6 +8,7 @@ let yoyoBody = null;
 let stringConstraint = null;
 let targetBodies = [];
 let fragmentBodies = [];
+let bumperBodies = [];
 let groundBody, leftWall, rightWall;
 let canvasW, canvasH;
 
@@ -137,7 +138,7 @@ export function installReleaseHook() {
   });
 }
 
-export function spawnTargets(levelTargets, pivotRelX, pivotRelY) {
+export function spawnTargets(levelTargets) {
   targetBodies.forEach(b => Composite.remove(world, b));
   targetBodies = [];
 
@@ -145,26 +146,75 @@ export function spawnTargets(levelTargets, pivotRelX, pivotRelY) {
     const x = td.x * canvasW;
     const y = td.y * canvasH;
     const material = MATERIALS[td.material];
-    const body = Bodies.rectangle(x, y, td.w, td.h, {
-      isStatic: true,
-      label: 'target',
-      restitution: material.restitution,
-      friction: 0.5,
-      collisionFilter: { category: 0x0002, mask: 0x0001 },
-      plugin: {
-        materialKey: td.material,
-        cracked: false,
-        crackPattern: null,
-        hitsRemaining: 1,
-        width: td.w,
-        height: td.h,
-        fragmentsSpawned: false,
-      },
-    });
+
+    let body;
+    if (td.shape === 'circle') {
+      body = Bodies.circle(x, y, td.r, {
+        isStatic: true,
+        label: 'target',
+        restitution: material.restitution,
+        friction: 0.5,
+        collisionFilter: { category: 0x0002, mask: 0x0001 },
+        plugin: {
+          materialKey: td.material,
+          cracked: false,
+          crackPattern: null,
+          isCircle: true,
+          radius: td.r,
+          fragmentsSpawned: false,
+          isShield: td.isShield || false,
+          breakSpeed: td.breakSpeed || 0,
+        },
+      });
+    } else {
+      body = Bodies.rectangle(x, y, td.w, td.h, {
+        isStatic: true,
+        label: 'target',
+        restitution: material.restitution,
+        friction: 0.5,
+        collisionFilter: { category: 0x0002, mask: 0x0001 },
+        plugin: {
+          materialKey: td.material,
+          cracked: false,
+          crackPattern: null,
+          width: td.w,
+          height: td.h,
+          fragmentsSpawned: false,
+          isShield: td.isShield || false,
+          breakSpeed: td.breakSpeed || 0,
+        },
+      });
+    }
     Composite.add(world, body);
     targetBodies.push(body);
   }
   return targetBodies;
+}
+
+export function spawnBumpers(levelBumpers = []) {
+  bumperBodies.forEach(b => Composite.remove(world, b));
+  bumperBodies = [];
+
+  for (const bd of levelBumpers) {
+    const x = bd.x * canvasW;
+    const y = bd.y * canvasH;
+    const body = Bodies.circle(x, y, bd.radius, {
+      isStatic: true,
+      label: 'bumper',
+      restitution: 0.9,
+      friction: 0.0,
+      collisionFilter: { category: 0x0002, mask: 0x0001 },
+      plugin: { radius: bd.radius },
+    });
+    Composite.add(world, body);
+    bumperBodies.push(body);
+  }
+  return bumperBodies;
+}
+
+export function removeTarget(body) {
+  Composite.remove(world, body);
+  targetBodies = targetBodies.filter(b => b !== body);
 }
 
 export function applyBreak(yoyo, outcome, hitPoint, blastBonus) {
@@ -266,6 +316,7 @@ export function clampYoyoSpeed(maxSpeed) {
 export function getYoyoBody() { return yoyoBody; }
 export function getTargetBodies() { return targetBodies; }
 export function getFragmentBodies() { return fragmentBodies; }
+export function getBumperBodies() { return bumperBodies; }
 export function getStringConstraint() { return stringConstraint; }
 
 export function reset() {
@@ -275,6 +326,7 @@ export function reset() {
   stringConstraint = null;
   targetBodies = [];
   fragmentBodies = [];
+  bumperBodies = [];
   pendingRelease = false;
 }
 

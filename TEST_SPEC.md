@@ -181,6 +181,52 @@
 
 ---
 
+## Input — Push Mode Behaviour
+
+**Source:** `js/input.js` — `init()`, `onMouseMove`, `onMouseUp`, `getAngularSpeed()` in push mode
+**Priority:** High
+
+### Expected behaviours
+
+| # | Behaviour | Test type | Priority |
+|---|---|---|---|
+| 1 | `pivotMove` callback fires on mousemove with no button held | Happy path | High |
+| 2 | `pivotMove` callback fires on mousedown (push mode treats mousedown as a pivot move) | Happy path | High |
+| 3 | `onMouseUp` does not invoke the `release` callback in push mode | Unhappy path | High |
+| 4 | `getAngularSpeed()` returns 0 in push mode regardless of mouse motion | Boundary | High |
+| 5 | After `init(canvas, pivot, len, 'standard', 'push')`, `isMouseDown()` is false | Happy path | Medium |
+
+### Setup requirements
+
+- Call `init()` with `mode = 'push'`
+- Fire synthetic `mousemove` and `mousedown`/`mouseup` events on the mock canvas
+- Assert `release` callback is NOT called after mouseup in push mode
+
+---
+
+## Push Mode Scoring
+
+**Source:** `js/main.js` — `calcPushScore(hits)`, `yoyoHp` drain logic, `hitCooldown`
+**Priority:** High
+
+### Expected behaviours
+
+| # | Behaviour | Test type | Priority |
+|---|---|---|---|
+| 1 | `calcPushScore(1)` returns 3000 | Happy path | High |
+| 2 | `calcPushScore(2)` returns 2500 | Happy path | High |
+| 3 | `calcPushScore(6)` returns 500 | Boundary | High |
+| 4 | `calcPushScore(7)` returns 200 (floor) | Boundary | High |
+| 5 | `calcPushScore(100)` returns 200 (floor holds) | Unhappy path | High |
+
+### Notes
+
+- `calcPushScore` is a pure function: `Math.max(200, 3000 - (hits - 1) * 500)`
+- Damage formula (integration, deferred): `speed × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / 15`; HP floor is 0
+- Hit cooldown (integration, deferred): 0.35s; a second collision within the window must not decrement `yoyoHp` or increment `hitCount`
+
+---
+
 ## Physics & Renderer (Integration — Deferred)
 
 **Source:** `js/physics.js`, `js/renderer.js`

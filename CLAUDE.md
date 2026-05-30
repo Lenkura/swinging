@@ -17,7 +17,7 @@ See [../CLAUDE.md](../CLAUDE.md) for workspace-wide standards.
 | `js/main.js` | Game loop, state machine, event wiring |
 | `js/physics.js` | Matter.js wrapper — bodies, constraints, collisions, fragments |
 | `js/renderer.js` | Canvas 2D drawing |
-| `js/input.js` | Mouse input — swing tracking, release detection |
+| `js/input.js` | Mouse input — push mode pivot-follow, swing tracking, release detection (fling mode) |
 | `js/ui.js` | DOM panel management (picker, result, hints) |
 | `js/levels.js` | Level data, localStorage progress save/load |
 | `js/yoyo.js` | Yoyo variant definitions (standard, heavy) |
@@ -25,7 +25,9 @@ See [../CLAUDE.md](../CLAUDE.md) for workspace-wide standards.
 | `js/particles.js` | Particle system |
 | `js/audio.js` | Web Audio API sound synthesis — hit, shatter, combo tone |
 
-**State machine** (in `main.js`): `PICKER → SWINGING → RELEASED → IMPACT → RESULT`
+**State machine** (in `main.js`):
+- Push mode: `PICKER → SWINGING → IMPACT → RESULT`
+- Fling mode: `PICKER → SWINGING → RELEASED → IMPACT → RESULT`
 
 **External deps (CDN, no install):**
 - Matter.js 0.19.0 — physics engine
@@ -49,9 +51,13 @@ Or use any static file server (`npx serve`, `caddy`, etc.).
 ## Key Concepts
 
 - **Pivot**: fixed point the string attaches to; defined per-level as `{x, y}` fractions of canvas size.
-- **String**: a Matter.js `Constraint` with `stiffness: 1.0`; removed on release via `scheduleRelease` (deferred to `beforeUpdate` to avoid mid-step mutation).
-- **Impact outcomes**: `SHATTER` (destroys target, spawns fragments), `CRACK` (weakens target, halves thresholds), `SURVIVE`.
-- **Materials**: defined in `target.js` — glass, wood, steel each have `shatterThreshold`, `crackThreshold`, `fragmentCount`, `fragmentSpread`.
+- **String**: a Matter.js `Constraint`; in fling mode `stiffness: 1.0`, in push mode `stiffness: 0.65`. Removed on release via `scheduleRelease` (deferred to `beforeUpdate` to avoid mid-step mutation).
+- **Push mode**: The pivot follows the mouse every frame (no button hold required). The yoyo stays attached and accumulates damage on each hit. `yoyoHp` starts at 100; damage per hit = `speed × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / 15`. HP floor is 0; the yoyo shatters when HP reaches 0.
+- **Hit cooldown**: 0.35s lock-out after each registered push-mode hit. Prevents the physics engine from double-counting a single contact as multiple hits.
+- **Combo system**: In push mode, each hit within `COMBO_WINDOW` (1.0s) increments `comboCount`. Multiplier = `min(1 + comboCount × 0.5, 3.0)` applied to the next hit's damage. Resets if no hit lands before the window expires.
+- **calcPushScore**: `max(200, 3000 − (hits − 1) × 500)` — 1 hit = 3000, each additional hit costs 500, floor = 200.
+- **Fling mode outcomes**: `evaluateImpact` returns `SHATTER` (yoyo destroyed, spawns fragments), `CRACK` (yoyo cracked, visual only), or `SURVIVE`. Triggered on first collision after release.
+- **Materials**: defined in `target.js` — glass, wood, steel each have `shatterThreshold`, `crackThreshold`, `fragmentCount`, `fragmentSpread`, `yoyoDamage`.
 - **Fragment cleanup**: setTimeout 4000ms removes fragment bodies from world after they settle.
 - **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel`.
 
@@ -59,7 +65,7 @@ Or use any static file server (`npx serve`, `caddy`, etc.).
 
 ## Adding Content
 
-**New level**: add an entry to `LEVELS` in `levels.js`. Required fields: `id`, `name`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`. Optional: `hint`, `yoyoType`.
+**New level**: add an entry to `LEVELS` in `levels.js`. Required fields: `id`, `name`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`. Optional: `hint`, `yoyoType`, `pushStringLength` (overrides `stringLength` in push mode), `pushParScore` (par score for push mode; default 1500).
 
 **New yoyo variant**: add to `YOYO_VARIANTS` in `yoyo.js` and add a picker button in `index.html`.
 

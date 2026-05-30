@@ -46,6 +46,7 @@ export function draw({
   pivot,
   yoyoBody,
   targetBodies,
+  bumperBodies = [],
   fragmentBodies,
   stringConstraint,
   angularSpeed,
@@ -74,11 +75,12 @@ export function draw({
 
   drawTrail(yoyoBody, level);
   drawFragments(fragmentBodies);
+  drawBumpers(bumperBodies);
   drawTargets(targetBodies);
 
   if (yoyoBody) {
     const v = YOYO_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'];
-    drawYoyo(yoyoBody, v);
+    drawRat(yoyoBody, v, hpFraction);
   }
 
   if (aimPoints && aimPoints.length > 1) drawAimGuide(aimPoints);
@@ -209,94 +211,305 @@ function drawTrail(yoyo, level) {
   }
 }
 
-function drawYoyo(body, variant) {
+function drawRat(body, variant, hpFraction) {
   const { x, y } = body.position;
+  const r = variant.radius;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(spinAngle);
 
-  // drop shadow
+  // Body
   ctx.shadowColor = 'rgba(0,0,0,0.4)';
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 4;
-
-  // outer circle fill
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 3;
   ctx.beginPath();
-  ctx.arc(0, 0, variant.radius, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, r * 0.92, r * 0.65, 0, 0, Math.PI * 2);
   ctx.fillStyle = variant.color;
   ctx.fill();
-
-  // outer ring outline (cartoon)
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
   ctx.strokeStyle = variant.outlineColor;
-  ctx.lineWidth = 3.5;
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // inner groove ring
+  // Belly highlight
   ctx.beginPath();
-  ctx.arc(0, 0, variant.radius * 0.65, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // axle dot
-  ctx.beginPath();
-  ctx.arc(0, 0, variant.radius * 0.28, 0, Math.PI * 2);
+  ctx.ellipse(r * 0.05, r * 0.14, r * 0.44, r * 0.27, 0, 0, Math.PI * 2);
   ctx.fillStyle = variant.trimColor;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
 
-  // spin marker
+  // Head (right side)
+  const hx = r * 0.68, hy = -r * 0.08, hr = r * 0.46;
   ctx.beginPath();
-  ctx.moveTo(variant.radius * 0.28, 0);
-  ctx.lineTo(variant.radius * 0.88, 0);
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+  ctx.fillStyle = variant.color;
+  ctx.fill();
+  ctx.strokeStyle = variant.outlineColor;
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // crack overlay when damaged
-  if (body.plugin?.cracked && body.plugin?.crackPattern) {
-    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+  // Ears
+  for (const [ex, ey, er] of [
+    [hx - r * 0.12, hy - hr * 0.85, r * 0.22],
+    [hx + r * 0.22, hy - hr * 0.72, r * 0.18],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.fillStyle = variant.color;
+    ctx.fill();
+    ctx.strokeStyle = variant.outlineColor;
     ctx.lineWidth = 1.5;
-    for (const { angle, len } of body.plugin.crackPattern) {
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(angle) * len * variant.radius * 1.8, Math.sin(angle) * len * variant.radius * 1.8);
-      ctx.stroke();
-    }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(ex, ey, er * 0.58, 0, Math.PI * 2);
+    ctx.fillStyle = variant.earColor;
+    ctx.fill();
   }
 
+  // Eye
+  const eyeX = hx + r * 0.2, eyeY = hy - r * 0.13;
+  if (hpFraction <= 0.25) {
+    const xs = r * 0.11;
+    ctx.strokeStyle = '#dd0000';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(eyeX - xs, eyeY - xs); ctx.lineTo(eyeX + xs, eyeY + xs);
+    ctx.moveTo(eyeX + xs, eyeY - xs); ctx.lineTo(eyeX - xs, eyeY + xs);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, r * 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(eyeX + r * 0.04, eyeY - r * 0.04, r * 0.04, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fill();
+  }
+
+  // Snout
+  const sx = hx + hr * 0.82, sy = hy + r * 0.05;
+  ctx.beginPath();
+  ctx.ellipse(sx, sy, r * 0.14, r * 0.1, 0.2, 0, Math.PI * 2);
+  ctx.fillStyle = variant.snoutColor;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(sx + r * 0.08, sy, r * 0.065, 0, Math.PI * 2);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+
+  // Whiskers
+  ctx.lineCap = 'round';
+  for (let i = -1; i <= 1; i++) {
+    const wy = sy + i * r * 0.1;
+    ctx.strokeStyle = `rgba(220,215,200,${0.85 - Math.abs(i) * 0.2})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx, wy);
+    ctx.lineTo(sx + r * 0.52, wy + i * r * 0.12 - r * 0.05);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sx, wy);
+    ctx.lineTo(sx - r * 0.18, wy - i * r * 0.07);
+    ctx.stroke();
+  }
+
+  // Tail
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.85, r * 0.22);
+  ctx.bezierCurveTo(-r * 1.15, r * 0.58, -r * 1.55, -r * 0.22, -r * 1.82, r * 0.12);
+  ctx.strokeStyle = variant.tailColor;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Damage state overlays
+  if (hpFraction < 0.75) drawRatDamage(hpFraction, hx, hy - hr * 0.6, r);
+
   ctx.restore();
+}
+
+function drawRatDamage(hpFraction, headX, headTopY, r) {
+  const t = Date.now() / 500;
+  if (hpFraction >= 0.5) {
+    // Dazed: golden orbiting stars
+    for (let i = 0; i < 3; i++) {
+      const a = t + (i * Math.PI * 2 / 3);
+      ctx.fillStyle = '#FFD700';
+      ctx.font = `${Math.ceil(r * 0.5)}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('★', headX + Math.cos(a) * r * 0.55, headTopY + Math.sin(a) * r * 0.25);
+    }
+    ctx.textBaseline = 'alphabetic';
+  } else {
+    // Injured / Critical: wound marks + blood drips
+    const woundCount = hpFraction < 0.25 ? 4 : 2;
+    const woundPositions = [
+      [-r * 0.35, -r * 0.18],
+      [r * 0.06, r * 0.28],
+      [-r * 0.52, r * 0.12],
+      [r * 0.22, -r * 0.32],
+    ];
+    ctx.strokeStyle = '#cc2222';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < woundCount; i++) {
+      const [wx, wy] = woundPositions[i];
+      const s = r * 0.14;
+      ctx.beginPath();
+      ctx.moveTo(wx - s, wy - s * 0.4); ctx.lineTo(wx + s, wy + s * 0.4);
+      ctx.moveTo(wx - s * 0.4, wy - s); ctx.lineTo(wx + s * 0.4, wy + s);
+      ctx.stroke();
+    }
+
+    // Blood drips — in local space so they fling outward as the rat spins
+    const dripPositions = hpFraction < 0.25
+      ? [[-r*0.28, r*0.58, r*0.42], [r*0.12, r*0.62, r*0.32], [-r*0.58, r*0.42, r*0.28], [r*0.32, r*0.54, r*0.38]]
+      : [[-r*0.28, r*0.58, r*0.22], [r*0.12, r*0.62, r*0.18]];
+    ctx.fillStyle = '#aa0000';
+    for (const [dx, dy, len] of dripPositions) {
+      const dr = r * 0.075;
+      ctx.beginPath();
+      ctx.arc(dx, dy, dr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(dx - dr * 0.9, dy);
+      ctx.lineTo(dx + dr * 0.9, dy);
+      ctx.lineTo(dx, dy + len);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Critical: red spinning stars too
+    if (hpFraction < 0.25) {
+      const tf = Date.now() / 380;
+      for (let i = 0; i < 3; i++) {
+        const a = tf + (i * Math.PI * 2 / 3);
+        ctx.fillStyle = '#FF3333';
+        ctx.font = `${Math.ceil(r * 0.5)}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('★', headX + Math.cos(a) * r * 0.55, headTopY + Math.sin(a) * r * 0.25);
+      }
+      ctx.textBaseline = 'alphabetic';
+    }
+  }
 }
 
 function drawTargets(targets) {
   for (const body of targets) {
     const mat = MATERIALS[body.plugin.materialKey];
-    drawPhysicsBody(body, body.plugin.cracked ? mat.crackedColor : mat.color, mat.outlineColor);
-    if (body.plugin.cracked && body.plugin.crackPattern) drawCracks(body, body.plugin.crackPattern);
+    const isShield = body.plugin.isShield;
+    const fillColor = isShield
+      ? 'rgba(180,230,255,0.35)'
+      : (body.plugin.cracked ? mat.crackedColor : mat.color);
+    const strokeColor = isShield ? '#88ddff' : mat.outlineColor;
 
-    // material label
+    if (body.plugin.isCircle) {
+      drawCircleBody(body, fillColor, strokeColor);
+    } else {
+      drawPhysicsBody(body, fillColor, strokeColor);
+    }
+
+    if (!isShield) {
+      if (body.plugin.cracked && body.plugin.crackPattern) drawCracks(body, body.plugin.crackPattern);
+
+      const { x, y } = body.position;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.font = 'bold 11px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(mat.label, x, y + 4);
+
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      if (body.plugin.isCircle) {
+        ctx.beginPath();
+        ctx.arc(body.position.x, body.position.y, body.plugin.radius, 0, Math.PI * 2);
+      } else {
+        ctx.beginPath();
+        const verts = body.vertices;
+        ctx.moveTo(verts[0].x, verts[0].y);
+        for (let i = 1; i < verts.length; i++) ctx.lineTo(verts[i].x, verts[i].y);
+        ctx.closePath();
+      }
+      ctx.fillStyle = mat.glowColor;
+      ctx.fill();
+      ctx.restore();
+    } else {
+      // Shield sheen — vertical highlight strip
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      const { x, y } = body.position;
+      const w = body.plugin.width || 14;
+      const h = body.plugin.height || 80;
+      ctx.translate(x, y);
+      ctx.rotate(body.angle);
+      const sheen = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+      sheen.addColorStop(0, 'transparent');
+      sheen.addColorStop(0.4, 'rgba(255,255,255,0.9)');
+      sheen.addColorStop(1, 'transparent');
+      ctx.fillStyle = sheen;
+      ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
+  }
+}
+
+function drawCircleBody(body, fill, stroke) {
+  const { x, y } = body.position;
+  const r = body.plugin.radius;
+  ctx.shadowColor = 'rgba(0,0,0,0.2)';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+function drawBumpers(bumpers) {
+  for (const body of bumpers) {
     const { x, y } = body.position;
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.font = 'bold 11px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText(mat.label, x, y + 4);
+    const r = body.plugin.radius;
 
-    // glow
-    ctx.save();
-    ctx.globalAlpha = 0.18;
+    // Metallic base
+    const grad = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+    grad.addColorStop(0, '#d0d8e0');
+    grad.addColorStop(0.5, '#8090a0');
+    grad.addColorStop(1, '#4a5560');
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 8;
     ctx.beginPath();
-    const verts = body.vertices;
-    ctx.moveTo(verts[0].x, verts[0].y);
-    for (let i = 1; i < verts.length; i++) ctx.lineTo(verts[i].x, verts[i].y);
-    ctx.closePath();
-    ctx.fillStyle = mat.glowColor;
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#2a3540';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Shine highlight
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.beginPath();
+    ctx.arc(x - r * 0.28, y - r * 0.28, r * 0.45, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
     ctx.fill();
     ctx.restore();
 
+    // Center ring
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.22, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   }
 }
 
@@ -319,21 +532,27 @@ function drawCracks(body, pattern) {
   ctx.restore();
 }
 
+const GIBLET_COLORS = ['#cc0000', '#ff1111', '#ff3333', '#dd0000', '#ff4444'];
+
 function drawFragments(frags) {
   const now = Date.now();
   for (const body of frags) {
-    const v = YOYO_VARIANTS[body.plugin.variantKey || 'standard'];
     const age = (now - body.plugin.born) / 4000;
     const alpha = Math.max(0, 1 - age);
-    const r = body.circleRadius || 6;
+    const r = (body.circleRadius || 6) * 2.2;
+    const ci = Math.abs(Math.round(body.position.x * 7 + body.position.y * 3)) % GIBLET_COLORS.length;
     ctx.globalAlpha = alpha;
+    ctx.save();
+    ctx.translate(body.position.x, body.position.y);
+    ctx.rotate(body.angle);
     ctx.beginPath();
-    ctx.arc(body.position.x, body.position.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = v.color;
+    ctx.ellipse(0, 0, r, r * 0.55, 0, 0, Math.PI * 2);
+    ctx.fillStyle = GIBLET_COLORS[ci];
     ctx.fill();
-    ctx.strokeStyle = v.outlineColor;
+    ctx.strokeStyle = '#660000';
     ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 }

@@ -129,6 +129,20 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
   if (selectedMode === 'push') {
     if (gameState !== 'SWINGING' || hitCooldown > 0) return;
 
+    // Shield hit — check break threshold
+    if (target.plugin.isShield) {
+      hitCooldown = 0.35;
+      if (speed >= target.plugin.breakSpeed) {
+        Physics.removeTarget(target);
+        playHit(target.plugin.materialKey, 0.8);
+        hitLabel = { text: 'SHIELD BREAK!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#ffd166' };
+        Particles.emit(hitPoint.x, hitPoint.y, { count: 8, color: '#ffd166', speed: 220, radius: 3 });
+      } else {
+        hitLabel = { text: 'TOO SLOW!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#e07070' };
+      }
+      return;
+    }
+
     const comboMultiplier = Math.min(1 + comboCount * 0.5, 3.0);
     comboCount++;
     comboTimer = COMBO_WINDOW;
@@ -137,7 +151,7 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     yoyoHp = Math.max(0, yoyoHp - damage);
     hitCount++;
     hitCooldown = 0.35;
-    playHit(target.plugin.materialKey, Math.min(damage / YOYO_MAX_HP, 1));
+    playHit(target.plugin.materialKey, Math.min(damage / YOYO_MAX_HP, 1), comboCount);
     playComboTone(comboCount);
 
     if (af < 0.55) {
@@ -242,8 +256,9 @@ function startLevel() {
   Particles.clear();
   Renderer.clearTrail();
 
-  // Spawn targets
-  Physics.spawnTargets(level.targets, level.pivot.x, level.pivot.y);
+  // Spawn targets and bumpers
+  Physics.spawnTargets(level.targets);
+  Physics.spawnBumpers(level.bumpers || []);
 
   // Spawn yoyo and setup input based on mode
   if (selectedMode === 'push') {
@@ -262,7 +277,7 @@ function startLevel() {
 
   UI.hidePicker();
   if (selectedMode === 'push') {
-    UI.setHint('Hold the mouse to grab the string anchor. Swing the yoyo, then release!');
+    UI.setHint('Move the mouse to swing the rat! Chain hits for a combo bonus.');
   } else {
     UI.setHint(level.hint || 'Hold mouse button and move in circles to build speed!');
   }
@@ -361,6 +376,7 @@ function gameLoop(timestamp) {
     pivot: displayPivot,
     yoyoBody: Physics.getYoyoBody(),
     targetBodies: Physics.getTargetBodies(),
+    bumperBodies: Physics.getBumperBodies(),
     fragmentBodies: Physics.getFragmentBodies(),
     stringConstraint: constraint,
     angularSpeed,
@@ -381,8 +397,11 @@ function showResult() {
   const level = currentLevel();
   saveProgress(currentLevelId, lastScore);
 
+  const nextLevel = LEVELS.find(l => l.id === currentLevelId + 1);
+  const actClear = lastOutcome === 'SHATTER' && (!nextLevel || nextLevel.act !== level.act);
+
   const parScore = selectedMode === 'push' ? (level.pushParScore || 1500) : level.parScore;
-  UI.showResult(lastOutcome, lastScore, parScore);
+  UI.showResult(lastOutcome, lastScore, parScore, actClear);
   UI.setNextVisible(currentLevelId < LEVELS.length);
   UI.setHint('');
 }
