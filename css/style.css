@@ -234,6 +234,14 @@ body {
   transition: transform 0.15s, box-shadow 0.15s;
 }
 
+#ls-btn {
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.7);
+  border: 2px solid rgba(255,255,255,0.18);
+}
+
+#ls-btn:hover { background: rgba(255,255,255,0.14); }
+
 #retry-btn {
   background: rgba(255,255,255,0.12);
   color: white;
@@ -316,3 +324,21 @@ body {
 .ls-stars { font-size: 15px; color: #f9c74f; letter-spacing: 2px; min-height: 18px; }
 .ls-score { font-size: 11px; color: rgba(255,255,255,0.5); }
 .ls-lock  { font-size: 18px; margin-top: 4px; }
+
+.ls-act-header {
+  width: 100%;
+  flex-basis: 100%;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  padding: 6px 0 2px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.outcome-actclear {
+  color: #80ffdb;
+  text-shadow: 0 0 24px rgba(128,255,219,0.55);
+}

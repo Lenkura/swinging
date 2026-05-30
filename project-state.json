@@ -3,7 +3,7 @@
   "created_date": "2026-05-20",
   "last_session_date": "2026-05-21",
   "last_session_summary_path": "history/session-001-summary.md",
-  "current_activity": "Post-review fixes shipped (security + 3 MUST FIX) + combo system; verification and doc updates pending",
+  "current_activity": "Level redesign: 9 levels across 3 acts with shields and bumpers",
   "action_plan": [
     {
       "id": 1,
@@ -100,6 +100,108 @@
       "description": "Commit post-review hygiene branch",
       "priority": "low",
       "status": "in_progress"
+    },
+    {
+      "id": 17,
+      "description": "renderer.js — replace yoyo drawing with procedural rat; 4 damage states; giblet fragment colours",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": 18,
+      "description": "yoyo.js — update variant display names (Brown Rat / Sewer Rat), descriptions, colours",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": 19,
+      "description": "index.html — title → Rat Smash, picker label, variant button text",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": 20,
+      "description": "levels.js + ui.js — replace yoyo copy in hint text and UI strings",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 21,
+      "description": "Browser-test commit 1: verify rat renders at all damage states, giblets on shatter, both variants distinct",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": 22,
+      "description": "Rename yoyo.js → rat.js, export RAT_VARIANTS; update all imports",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 23,
+      "description": "physics.js — internal symbol renames (yoyoBody → ratBody, spawnYoyo → spawnRat, etc.)",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 24,
+      "description": "main.js — internal symbol renames (yoyoHp → ratHp, YOYO_MAX_HP → RAT_MAX_HP, etc.)",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 25,
+      "description": "index.html + css/style.css — CSS class renames (yoyo-btn → rat-btn, etc.)",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 26,
+      "description": "CLAUDE.md — update project overview, architecture table, key concepts for rat retheme",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 27,
+      "description": "Run npx vitest run — confirm all 51 tests still pass after internal renames",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": 28,
+      "description": "Design 9 level configs in levels.js — 3 acts, shapes, shield/bumper placement, themes",
+      "priority": "high",
+      "status": "in_progress"
+    },
+    {
+      "id": 29,
+      "description": "physics.js — circle/angle support in spawnTargets; isShield tag; spawnBumpers; getBumperBodies export",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": 30,
+      "description": "main.js — shield collision branch; spawnBumpers in startLevel; pass bumpers to renderer",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": 31,
+      "description": "renderer.js — circle target rendering; shield visuals; drawBumpers",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "id": 32,
+      "description": "ui.js — act-grouped level select with section headers; ACT CLEAR result state",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 33,
+      "description": "Balance pass — playtest shield break thresholds, bumper placement, par scores",
+      "priority": "medium",
+      "status": "pending"
     }
   ],
   "recently_updated_files": ["index.html", "js/main.js", "js/physics.js", "js/ui.js", "js/levels.js", "js/renderer.js", "css/style.css"],
@@ -142,6 +244,16 @@
       "date": "2026-05-24",
       "decision": "Remove fling mode entirely — delete RELEASED state, fling input handling, and mode picker UI",
       "rationale": "Simplify the codebase to a single polished mode; fling was never the primary experience and adds dead code"
+    },
+    {
+      "date": "2026-05-26",
+      "decision": "Full retheme: replace yoyo with procedurally drawn rat; giblet shatter; 4 damage states (healthy/dazed/injured/critical); layered commits (player-facing first, internal rename second)",
+      "rationale": "User requested tone/theme change; layered approach keeps each commit reviewable and game in working state throughout"
+    },
+    {
+      "date": "2026-05-26",
+      "decision": "Redesign levels as 9 levels in 3 acts (Sewer/Warehouse/Lab); Act 2 introduces destructible shields; Act 3 introduces bumpers; act-grouped level select with ACT CLEAR screen",
+      "rationale": "Levels felt samey with no new mechanics; acts provide structure and escalation; shields/bumpers implementable with existing physics primitives"
     }
   ],
   "notes": "CLAUDE.md says no test framework yet — this is incorrect. Vitest is set up (vitest.config.js, tests/ dir, TEST_SPEC.md). Update CLAUDE.md."
