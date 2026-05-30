@@ -6,3 +6,5 @@ secrets/
 *.key
 *.pem
 credentials*
+history/*.jsonl
+history/pending-summary.flag
