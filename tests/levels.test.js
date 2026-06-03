@@ -14,13 +14,13 @@ describe('getLevel', () => {
   it('returns level 1 for id = 1', () => {  // spec row 1
     const level = getLevel(1)
     expect(level.id).toBe(1)
-    expect(level.name).toBe('Greenhouse')
+    expect(level.name).toBe('Pipe Dreams')
   })
 
   it('returns level 2 for id = 2', () => {  // spec row 2
     const level = getLevel(2)
     expect(level.id).toBe(2)
-    expect(level.name).toBe('Scrapyard')
+    expect(level.name).toBe('Drip Room')
   })
 
   it('returns LEVELS[0] as fallback for unknown id = 99', () => {  // spec row 3

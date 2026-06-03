@@ -129,33 +129,6 @@
 
 ---
 
-## Input — Angular Speed & State
-
-**Source:** `js/input.js` → `init()`, `getAngularSpeed()`, `isMouseDown()`, `getCurrentAngle()`
-**Priority:** High
-
-### Expected behaviours
-
-| # | Behaviour | Test type | Priority |
-|---|---|---|---|
-| 1 | `getAngularSpeed()` returns 0 immediately after `init()` | Happy path | High |
-| 2 | `isMouseDown()` returns false immediately after `init()` | Happy path | High |
-| 3 | `getCurrentAngle()` returns π/2 immediately after `init()` (start below pivot) | Happy path | High |
-| 4 | After mousedown on canvas, `isMouseDown()` returns true | Happy path | High |
-| 5 | After mousedown then mouseup, `isMouseDown()` returns false | Happy path | High |
-| 6 | Release callback is called with `vx`, `vy`, `speed`, `angle` fields | Happy path | High |
-| 7 | Release speed is clamped to variant `maxSpeed` | Boundary | High |
-| 8 | `getAngularSpeed()` returns value in [0, 1] range | Boundary | High |
-| 9 | `detachFromCanvas` removes all event listeners (no callback after detach) | Unhappy path | Medium |
-
-### Setup requirements
-
-- Create a mock canvas: `document.createElement('canvas')` with mocked `getBoundingClientRect`
-- Mock `performance.now()` via `vi.spyOn` to control timing for angular velocity tests
-- Clear module state between tests with re-import or `init()` reset calls
-
----
-
 ## Combo System (Push Mode)
 
 **Source:** `js/main.js` — `comboCount`, `comboTimer`, `COMBO_WINDOW`
@@ -183,24 +156,29 @@
 
 ## Input — Push Mode Behaviour
 
-**Source:** `js/input.js` — `init()`, `onMouseMove`, `onMouseUp`, `getAngularSpeed()` in push mode
+**Source:** `js/input.js` — `init(canvasEl, pivot)`, `onPivotMove`, `attachToCanvas`, `detachFromCanvas`
 **Priority:** High
+
+Push mode is the only input mode. The pivot follows the pointer at all times (mouse or touch); no button hold required, no release mechanic. Pointer events (`pointermove`, `pointerdown`) handle both mouse and touch in a single codepath.
 
 ### Expected behaviours
 
 | # | Behaviour | Test type | Priority |
 |---|---|---|---|
-| 1 | `pivotMove` callback fires on mousemove with no button held | Happy path | High |
-| 2 | `pivotMove` callback fires on mousedown (push mode treats mousedown as a pivot move) | Happy path | High |
-| 3 | `onMouseUp` does not invoke the `release` callback in push mode | Unhappy path | High |
-| 4 | `getAngularSpeed()` returns 0 in push mode regardless of mouse motion | Boundary | High |
-| 5 | After `init(canvas, pivot, len, 'standard', 'push')`, `isMouseDown()` is false | Happy path | Medium |
+| 1 | `onPivotMove` fires on `pointermove` with correct x, y coordinates | Happy path | High |
+| 2 | `onPivotMove` fires on every `pointermove` event | Happy path | High |
+| 3 | `onPivotMove` fires without a prior `pointerdown` (no hold required) | Unhappy path | High |
+| 4 | `onPivotMove` fires on `pointerdown` | Happy path | High |
+| 5 | `detachFromCanvas` stops `pointermove` callbacks | Unhappy path | High |
+| 6 | `detachFromCanvas` stops `pointerdown` callbacks | Unhappy path | High |
+| 7 | Can `attachToCanvas` again after `detachFromCanvas` | Recovery | Medium |
+| 8 | `clientX`/`Y` are scaled to canvas coordinates when the canvas is CSS-scaled | Boundary | High |
 
 ### Setup requirements
 
-- Call `init()` with `mode = 'push'`
-- Fire synthetic `mousemove` and `mousedown`/`mouseup` events on the mock canvas
-- Assert `release` callback is NOT called after mouseup in push mode
+- Create a mock canvas: `document.createElement('canvas')` with mocked `getBoundingClientRect`
+- `init(canvas, pivot)` — no mode, no stringLength, no variant key
+- Fire synthetic `PointerEvent` events via `dispatchEvent`
 
 ---
 

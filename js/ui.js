@@ -8,33 +8,23 @@ const retryBtn = document.getElementById('retry-btn');
 const nextBtn = document.getElementById('next-btn');
 const lsBtn = document.getElementById('ls-btn');
 const hintText = document.getElementById('hint-text');
-const yoyoPicker = document.getElementById('yoyo-picker');
+const ratPicker = document.getElementById('rat-picker');
 const startBtn = document.getElementById('start-btn');
-const yoyoBtns = document.querySelectorAll('.yoyo-btn');
+const ratBtns = document.querySelectorAll('.rat-btn');
 const lsPanel = document.getElementById('level-select');
 const lsGrid = document.getElementById('ls-grid');
 
 let selectedVariant = 'standard';
-let selectedMode = 'push';
 let scoreInterval = null;
-const callbacks = { start: null, retry: null, next: null, variantChange: null, modeChange: null, levelSelect: null, levelSelectBack: null };
+const callbacks = { start: null, retry: null, next: null, variantChange: null, levelSelect: null, levelSelectBack: null };
 
 export function init() {
-  yoyoBtns.forEach(btn => {
+  ratBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      yoyoBtns.forEach(b => b.classList.remove('active'));
+      ratBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       selectedVariant = btn.dataset.type;
       if (callbacks.variantChange) callbacks.variantChange(selectedVariant);
-    });
-  });
-
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedMode = btn.dataset.mode;
-      if (callbacks.modeChange) callbacks.modeChange(selectedMode);
     });
   });
 
@@ -59,8 +49,6 @@ export function onStart(fn) { callbacks.start = fn; }
 export function onRetry(fn) { callbacks.retry = fn; }
 export function onNext(fn) { callbacks.next = fn; }
 export function onVariantChange(fn) { callbacks.variantChange = fn; }
-export function onModeChange(fn) { callbacks.modeChange = fn; }
-export function getSelectedMode() { return selectedMode; }
 export function onLevelSelect(fn) { callbacks.levelSelect = fn; }
 export function onLevelSelectBack(fn) { callbacks.levelSelectBack = fn; }
 
@@ -102,26 +90,29 @@ export function buildLevelSelect(levels, progress) {
   }
 }
 
-export function showLevelSelect() { lsPanel.classList.remove('hidden'); }
+export function showLevelSelect() { lsPanel.classList.remove('hidden'); ratPicker.style.display = 'none'; }
 export function hideLevelSelect() { lsPanel.classList.add('hidden'); }
 
 export function showPicker() {
-  yoyoPicker.style.display = 'flex';
+  ratPicker.style.display = 'flex';
 }
 
 export function hidePicker() {
-  yoyoPicker.style.display = 'none';
+  ratPicker.style.display = 'none';
 }
 
 export function setHint(text) {
   hintText.textContent = text || '';
 }
 
-export function showResult(outcome, score, parScore, actClear = false) {
+export function showResult(outcome, score, parScore, actClear = false, gameClear = false) {
   resultPanel.classList.remove('hidden');
 
   let outcomeText, outcomeClass;
-  if (actClear) {
+  if (gameClear) {
+    outcomeText = 'ALL SMASHED!';
+    outcomeClass = 'outcome-gameclear';
+  } else if (actClear) {
     outcomeText = 'ACT CLEAR!';
     outcomeClass = 'outcome-actclear';
   } else {

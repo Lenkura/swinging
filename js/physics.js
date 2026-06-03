@@ -1,10 +1,10 @@
 import { MATERIALS, evaluateImpact, generateCrackPattern } from './target.js';
-import { YOYO_VARIANTS } from './yoyo.js';
+import { RAT_VARIANTS } from './rat.js';
 
 const { Engine, Bodies, Body, Composite, Constraint, Events, World } = Matter;
 
 let engine, world;
-let yoyoBody = null;
+let ratBody = null;
 let stringConstraint = null;
 let targetBodies = [];
 let fragmentBodies = [];
@@ -47,8 +47,8 @@ export function init(width, height) {
 function onCollision(event) {
   for (const pair of event.pairs) {
     const { bodyA, bodyB } = pair;
-    const isYoyoA = bodyA.label === 'yoyo';
-    const isYoyoB = bodyB.label === 'yoyo';
+    const isYoyoA = bodyA.label === 'rat';
+    const isYoyoB = bodyB.label === 'rat';
     const isTargetA = bodyA.label === 'target';
     const isTargetB = bodyB.label === 'target';
 
@@ -84,58 +84,34 @@ export function step(delta) {
   Engine.update(engine, delta);
 }
 
-export function spawnYoyo(x, y, variantKey, asStatic = false) {
-  if (yoyoBody) Composite.remove(world, yoyoBody);
-  const v = YOYO_VARIANTS[variantKey];
-  yoyoBody = Bodies.circle(x, y, v.radius, {
-    label: 'yoyo',
+export function spawnRat(x, y, variantKey, asStatic = false) {
+  if (ratBody) Composite.remove(world, ratBody);
+  const v = RAT_VARIANTS[variantKey];
+  ratBody = Bodies.circle(x, y, v.radius, {
+    label: 'rat',
     restitution: v.restitution,
     friction: v.friction,
     frictionAir: v.frictionAir,
     collisionFilter: { category: 0x0001, mask: 0x0002 | 0x0004 },
     plugin: { impactMultiplier: v.impactMultiplier, variantKey, radius: v.radius, fragmentsSpawned: false },
   });
-  Body.setMass(yoyoBody, v.mass);
-  if (asStatic) Body.setStatic(yoyoBody, true);
-  Composite.add(world, yoyoBody);
-  return yoyoBody;
+  Body.setMass(ratBody, v.mass);
+  if (asStatic) Body.setStatic(ratBody, true);
+  Composite.add(world, ratBody);
+  return ratBody;
 }
 
 export function attachString(pivotX, pivotY, length, stiffness = 1.0) {
   if (stringConstraint) Composite.remove(world, stringConstraint);
   stringConstraint = Constraint.create({
     pointA: { x: pivotX, y: pivotY },
-    bodyB: yoyoBody,
+    bodyB: ratBody,
     pointB: { x: 0, y: 0 },
     length,
     stiffness,
     damping: 0.0,
   });
   Composite.add(world, stringConstraint);
-}
-
-let pendingRelease = false;
-let releaseVx = 0, releaseVy = 0;
-
-export function scheduleRelease(vx, vy) {
-  pendingRelease = true;
-  releaseVx = vx;
-  releaseVy = vy;
-}
-
-export function installReleaseHook() {
-  Events.on(engine, 'beforeUpdate', () => {
-    if (!pendingRelease) return;
-    pendingRelease = false;
-    if (stringConstraint) {
-      Composite.remove(world, stringConstraint);
-      stringConstraint = null;
-    }
-    if (yoyoBody) {
-      Body.setVelocity(yoyoBody, { x: releaseVx, y: releaseVy });
-      Body.setStatic(yoyoBody, false);
-    }
-  });
 }
 
 export function spawnTargets(levelTargets) {
@@ -220,9 +196,9 @@ export function removeTarget(body) {
 export function applyBreak(yoyo, outcome, hitPoint, blastBonus) {
   if (outcome === 'SHATTER' && !yoyo.plugin.fragmentsSpawned) {
     yoyo.plugin.fragmentsSpawned = true;
-    spawnYoyoFragments(yoyo, hitPoint, blastBonus);
+    spawnRatFragments(yoyo, hitPoint, blastBonus);
     Composite.remove(world, yoyo);
-    yoyoBody = null;
+    ratBody = null;
     detachString();
   } else if (outcome === 'CRACK') {
     yoyo.plugin.cracked = true;
@@ -230,7 +206,7 @@ export function applyBreak(yoyo, outcome, hitPoint, blastBonus) {
   }
 }
 
-function spawnYoyoFragments(yoyo, hitPoint, blastBonus = 1) {
+function spawnRatFragments(yoyo, hitPoint, blastBonus = 1) {
   const r = yoyo.plugin.radius || 18;
   const cx = yoyo.position.x;
   const cy = yoyo.position.y;
@@ -273,16 +249,6 @@ function spawnYoyoFragments(yoyo, hitPoint, blastBonus = 1) {
   }, 4000);
 }
 
-export function attachStringToMouse(mouseX, mouseY) {
-  if (!yoyoBody) return;
-  Body.setStatic(yoyoBody, false);
-  Body.setVelocity(yoyoBody, { x: 0, y: 0 });
-  const dx = mouseX - yoyoBody.position.x;
-  const dy = mouseY - yoyoBody.position.y;
-  const length = Math.max(Math.sqrt(dx * dx + dy * dy), 20);
-  attachString(mouseX, mouseY, length, 0.85);
-}
-
 export function updatePivot(x, y) {
   if (stringConstraint) stringConstraint.pointA = { x, y };
 }
@@ -294,26 +260,7 @@ export function detachString() {
   }
 }
 
-export function setYoyoPosition(x, y) {
-  if (yoyoBody) Body.setPosition(yoyoBody, { x, y });
-}
-
-export function setYoyoVelocity(vx, vy) {
-  if (yoyoBody) Body.setVelocity(yoyoBody, { x: vx, y: vy });
-}
-
-export function clampYoyoSpeed(maxSpeed) {
-  if (!yoyoBody) return;
-  const spd = Math.sqrt(yoyoBody.velocity.x ** 2 + yoyoBody.velocity.y ** 2);
-  if (spd > maxSpeed) {
-    Body.setVelocity(yoyoBody, {
-      x: (yoyoBody.velocity.x / spd) * maxSpeed,
-      y: (yoyoBody.velocity.y / spd) * maxSpeed,
-    });
-  }
-}
-
-export function getYoyoBody() { return yoyoBody; }
+export function getRatBody() { return ratBody; }
 export function getTargetBodies() { return targetBodies; }
 export function getFragmentBodies() { return fragmentBodies; }
 export function getBumperBodies() { return bumperBodies; }
@@ -322,18 +269,17 @@ export function getStringConstraint() { return stringConstraint; }
 export function reset() {
   World.clear(world, false);
   Composite.add(world, [groundBody, leftWall, rightWall]);
-  yoyoBody = null;
+  ratBody = null;
   stringConstraint = null;
   targetBodies = [];
   fragmentBodies = [];
   bumperBodies = [];
-  pendingRelease = false;
 }
 
-export function removeYoyo() {
-  if (yoyoBody) {
-    Composite.remove(world, yoyoBody);
-    yoyoBody = null;
+export function removeRat() {
+  if (ratBody) {
+    Composite.remove(world, ratBody);
+    ratBody = null;
   }
   if (stringConstraint) {
     Composite.remove(world, stringConstraint);

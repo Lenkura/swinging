@@ -1,9 +1,9 @@
 {
   "project_name": "Yoyo Smash (swinging)",
   "created_date": "2026-05-20",
-  "last_session_date": "2026-05-21",
-  "last_session_summary_path": "history/session-001-summary.md",
-  "current_activity": "Level redesign: 9 levels across 3 acts with shields and bumpers",
+  "last_session_date": "2026-05-30",
+  "last_session_summary_path": "history/session-002-summary.md",
+  "current_activity": "Balance pass complete \u2014 DAMAGE_SCALE=1200 needs real-play verification",
   "action_plan": [
     {
       "id": 1,
@@ -49,13 +49,13 @@
     },
     {
       "id": 8,
-      "description": "Update CLAUDE.md — test framework (Vitest) is already set up; CLAUDE.md incorrectly says it isn't",
+      "description": "Update CLAUDE.md \u2014 test framework (Vitest) is already set up; CLAUDE.md incorrectly says it isn't",
       "priority": "medium",
       "status": "completed"
     },
     {
       "id": 9,
-      "description": "Verify fragmentsSpawned fix in physics.js — browser test shatter, confirm fragment count is correct",
+      "description": "Verify fragmentsSpawned fix in physics.js \u2014 browser test shatter, confirm fragment count is correct",
       "priority": "high",
       "status": "completed"
     },
@@ -67,31 +67,31 @@
     },
     {
       "id": 11,
-      "description": "Run npx vitest run and record pass/fail result — 51/51 passing",
+      "description": "Run npx vitest run and record pass/fail result \u2014 51/51 passing",
       "priority": "high",
       "status": "completed"
     },
     {
       "id": 12,
-      "description": "Update TEST_SPEC.md for push mode — push-mode input, HP drain, hit cooldown, combo system",
+      "description": "Update TEST_SPEC.md for push mode \u2014 push-mode input, HP drain, hit cooldown, combo system",
       "priority": "medium",
       "status": "completed"
     },
     {
       "id": 13,
-      "description": "Update CLAUDE.md — push mode as primary mechanic, state machine paths, combo system, Tech Stack section",
+      "description": "Update CLAUDE.md \u2014 push mode as primary mechanic, state machine paths, combo system, Tech Stack section",
       "priority": "medium",
       "status": "completed"
     },
     {
       "id": 14,
-      "description": "Remove fling mode entirely — delete RELEASED state, fling input, mode UI",
+      "description": "Remove fling mode entirely \u2014 delete RELEASED state, fling input, mode UI",
       "priority": "medium",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 15,
-      "description": "Fix .gitignore — add .env, *.env.*, secrets/, *.key, *.pem, credentials*",
+      "description": "Fix .gitignore \u2014 add .env, *.env.*, secrets/, *.key, *.pem, credentials*",
       "priority": "low",
       "status": "completed"
     },
@@ -103,121 +103,199 @@
     },
     {
       "id": 17,
-      "description": "renderer.js — replace yoyo drawing with procedural rat; 4 damage states; giblet fragment colours",
+      "description": "renderer.js \u2014 replace yoyo drawing with procedural rat; 4 damage states; giblet fragment colours",
       "priority": "high",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 18,
-      "description": "yoyo.js — update variant display names (Brown Rat / Sewer Rat), descriptions, colours",
+      "description": "yoyo.js \u2014 update variant display names (Brown Rat / Sewer Rat), descriptions, colours",
       "priority": "high",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 19,
-      "description": "index.html — title → Rat Smash, picker label, variant button text",
+      "description": "index.html \u2014 title \u2192 Rat Smash, picker label, variant button text",
       "priority": "high",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 20,
-      "description": "levels.js + ui.js — replace yoyo copy in hint text and UI strings",
+      "description": "levels.js + ui.js \u2014 replace yoyo copy in hint text and UI strings",
       "priority": "medium",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 21,
       "description": "Browser-test commit 1: verify rat renders at all damage states, giblets on shatter, both variants distinct",
       "priority": "high",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 22,
-      "description": "Rename yoyo.js → rat.js, export RAT_VARIANTS; update all imports",
+      "description": "Rename yoyo.js \u2192 rat.js, export RAT_VARIANTS; update all imports",
       "priority": "medium",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 23,
-      "description": "physics.js — internal symbol renames (yoyoBody → ratBody, spawnYoyo → spawnRat, etc.)",
+      "description": "physics.js \u2014 internal symbol renames (yoyoBody \u2192 ratBody, spawnYoyo \u2192 spawnRat, etc.)",
       "priority": "medium",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 24,
-      "description": "main.js — internal symbol renames (yoyoHp → ratHp, YOYO_MAX_HP → RAT_MAX_HP, etc.)",
+      "description": "main.js \u2014 internal symbol renames (yoyoHp \u2192 ratHp, YOYO_MAX_HP \u2192 RAT_MAX_HP, etc.)",
       "priority": "medium",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 25,
-      "description": "index.html + css/style.css — CSS class renames (yoyo-btn → rat-btn, etc.)",
+      "description": "index.html + css/style.css \u2014 CSS class renames (yoyo-btn \u2192 rat-btn, etc.)",
       "priority": "medium",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 26,
-      "description": "CLAUDE.md — update project overview, architecture table, key concepts for rat retheme",
+      "description": "CLAUDE.md \u2014 update project overview, architecture table, key concepts for rat retheme",
       "priority": "medium",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 27,
-      "description": "Run npx vitest run — confirm all 51 tests still pass after internal renames",
+      "description": "Run npx vitest run \u2014 confirm all tests pass",
       "priority": "high",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 28,
-      "description": "Design 9 level configs in levels.js — 3 acts, shapes, shield/bumper placement, themes",
+      "description": "Design 9 level configs in levels.js \u2014 3 acts, shapes, shield/bumper placement, themes",
       "priority": "high",
-      "status": "in_progress"
+      "status": "completed"
     },
     {
       "id": 29,
-      "description": "physics.js — circle/angle support in spawnTargets; isShield tag; spawnBumpers; getBumperBodies export",
+      "description": "physics.js \u2014 circle/angle support in spawnTargets; isShield tag; spawnBumpers; getBumperBodies export",
       "priority": "high",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 30,
-      "description": "main.js — shield collision branch; spawnBumpers in startLevel; pass bumpers to renderer",
+      "description": "main.js \u2014 shield collision branch; spawnBumpers in startLevel; pass bumpers to renderer",
       "priority": "high",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 31,
-      "description": "renderer.js — circle target rendering; shield visuals; drawBumpers",
+      "description": "renderer.js \u2014 circle target rendering; shield visuals; drawBumpers",
       "priority": "high",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 32,
-      "description": "ui.js — act-grouped level select with section headers; ACT CLEAR result state",
+      "description": "ui.js \u2014 act-grouped level select with section headers; ACT CLEAR result state",
       "priority": "medium",
-      "status": "pending"
+      "status": "completed"
     },
     {
       "id": 33,
-      "description": "Balance pass — playtest shield break thresholds, bumper placement, par scores",
+      "description": "Balance pass \u2014 speed\u00b2 damage formula (DAMAGE_SCALE=1200), shield breakSpeeds lowered, par scores recalibrated",
       "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 34,
+      "description": "Fix picker/level-select overlap: hide #rat-picker when level select is visible so lower level cards (7-9) are clickable",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 35,
+      "description": "Mobile/touch support \u2014 PointerEvents API replaces mouse listeners in input.js; touch-action:none on canvas attach",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 36,
+      "description": "Canvas scaling \u2014 fitToViewport() in main.js applies translate(-50%,-50%) scale(s) to #game-container on load and resize",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 37,
+      "description": "Remove calcScore dead code from main.js (fling-mode scoring function, now unreachable)",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 38,
+      "description": "Shield audio \u2014 playShieldBlock() for TOO SLOW!, playShieldBreak() for SHIELD BREAK!",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 39,
+      "description": "End-game state \u2014 ALL SMASHED! screen with gold glow on level 9 clear",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 40,
+      "description": "Fix picker icon colors \u2014 .standard-icon and .heavy-icon now match actual rat colors",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 41,
+      "description": "Delete stale PLAN.md (superseded by project-state.json)",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 42,
+      "description": "Unit tests \u2014 scoring.js extracted; calcPushScore + comboMultiplier tested (11 tests)",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 43,
+      "description": "Fix drawCracks for circle targets \u2014 maxR now uses plugin.radius for circles",
+      "priority": "low",
+      "status": "completed"
+    }
+  ],
+  "recently_updated_files": [
+    "js/main.js",
+    "js/levels.js"
+  ],
+  "open_questions": [],
+  "milestones": [
+    {
+      "name": "Push mode playable",
+      "status": "completed"
+    },
+    {
+      "name": "Fling mode decision made",
+      "status": "completed"
+    },
+    {
+      "name": "Push mode polished (balance + levels + feedback)",
+      "status": "completed"
+    },
+    {
+      "name": "Mobile / HiDPI support",
       "status": "pending"
     }
   ],
-  "recently_updated_files": ["index.html", "js/main.js", "js/physics.js", "js/ui.js", "js/levels.js", "js/renderer.js", "css/style.css"],
-  "open_questions": [
-    "drawCracks in renderer.js: wired in or removed? Investigate during fling-removal pass."
-  ],
-  "milestones": [
-    { "name": "Push mode playable", "status": "completed" },
-    { "name": "Fling mode decision made", "status": "completed" },
-    { "name": "Push mode polished (balance + levels + feedback)", "status": "completed" },
-    { "name": "Mobile / HiDPI support", "status": "pending" }
-  ],
   "decisions": [
     {
+      "date": "2026-06-02",
+      "decision": "Items 35+36 combined: PointerEvents API in input.js + CSS transform scaling via fitToViewport() in main.js",
+      "rationale": "Single codepath for mouse and touch; getBoundingClientRect in getCanvasXY automatically compensates for CSS scale transform, so no coordinate math changes needed anywhere"
+    },
+    {
       "date": "2026-05-20",
-      "decision": "Push mode only for now — fling mode UI hidden, selectedMode hardcoded to 'push'",
+      "decision": "Push mode only for now \u2014 fling mode UI hidden, selectedMode hardcoded to 'push'",
       "rationale": "Ship a polished single mode rather than two half-finished modes"
     },
     {
@@ -228,21 +306,21 @@
     {
       "date": "2026-05-20",
       "decision": "Test framework: Vitest (already set up)",
-      "rationale": "Modern, fast, ESM-native — compatible with the project's ES6 module structure"
+      "rationale": "Modern, fast, ESM-native \u2014 compatible with the project's ES6 module structure"
     },
     {
       "date": "2026-05-20",
-      "decision": "Add hit combo multiplier to push mode: each hit within 1s raises damage by 0.5×, capped at 3.0×",
+      "decision": "Add hit combo multiplier to push mode: each hit within 1s raises damage by 0.5\u00d7, capped at 3.0\u00d7",
       "rationale": "Rewards skilled rapid swinging without changing the core one-hit-ideal scoring loop"
     },
     {
       "date": "2026-05-20",
       "decision": "Keep fling mode as a selectable second mode; push mode is the default and primary",
-      "rationale": "Both mechanics are worth keeping — push for sustained swinging, fling for projectile precision"
+      "rationale": "Both mechanics are worth keeping \u2014 push for sustained swinging, fling for projectile precision"
     },
     {
       "date": "2026-05-24",
-      "decision": "Remove fling mode entirely — delete RELEASED state, fling input handling, and mode picker UI",
+      "decision": "Remove fling mode entirely \u2014 delete RELEASED state, fling input handling, and mode picker UI",
       "rationale": "Simplify the codebase to a single polished mode; fling was never the primary experience and adds dead code"
     },
     {
@@ -254,7 +332,12 @@
       "date": "2026-05-26",
       "decision": "Redesign levels as 9 levels in 3 acts (Sewer/Warehouse/Lab); Act 2 introduces destructible shields; Act 3 introduces bumpers; act-grouped level select with ACT CLEAR screen",
       "rationale": "Levels felt samey with no new mechanics; acts provide structure and escalation; shields/bumpers implementable with existing physics primitives"
+    },
+    {
+      "date": "2026-06-03",
+      "decision": "Damage formula: speed*speed \u00d7 yoyoDamage \u00d7 impactMultiplier \u00d7 cm / DAMAGE_SCALE (1200), replacing linear speed/15",
+      "rationale": "Speed-squared creates a meaningful skill ceiling: 1-hit possible at max speed (~450 px/step), 3 hits at good play (~250 px/step), casual players take 5-9 hits. Glass/wood shield breakSpeeds lowered from 140/300 to 100/180 \u2014 wood shield at 300 was unreachable. DAMAGE_SCALE is a single named constant for easy post-play tuning."
     }
   ],
-  "notes": "CLAUDE.md says no test framework yet — this is incorrect. Vitest is set up (vitest.config.js, tests/ dir, TEST_SPEC.md). Update CLAUDE.md."
+  "notes": "CLAUDE.md says no test framework yet \u2014 this is incorrect. Vitest is set up (vitest.config.js, tests/ dir, TEST_SPEC.md). Update CLAUDE.md."
 }

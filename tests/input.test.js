@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import * as Input from '../js/input.js'
-import { YOYO_VARIANTS } from '../js/yoyo.js'
 
 const PIVOT = { x: 162, y: 270 }  // 0.18 * 900, 0.5 * 540
-const STRING_LEN = 130
 
 function makeCanvas() {
   const c = document.createElement('canvas')
@@ -13,127 +11,123 @@ function makeCanvas() {
   return c
 }
 
-function fireMouseEvent(canvas, type, clientX, clientY, button = 0) {
-  const e = new MouseEvent(type, { bubbles: true, clientX, clientY, button })
+function firePointerEvent(canvas, type, clientX, clientY) {
+  const e = new PointerEvent(type, { bubbles: true, clientX, clientY })
   canvas.dispatchEvent(e)
 }
 
+let canvas
+
 beforeEach(() => {
-  Input.init(makeCanvas(), PIVOT, STRING_LEN, 'standard')
+  canvas = makeCanvas()
+  Input.init(canvas, PIVOT)
 })
 
 afterEach(() => {
+  Input.detachFromCanvas()
   vi.restoreAllMocks()
 })
 
 // -------------------------------------------------------------------
-// State after init
+// pivotMove callback — mousemove
 // -------------------------------------------------------------------
-describe('init', () => {
-  it('getAngularSpeed returns 0 immediately after init', () => {  // spec row 1
-    expect(Input.getAngularSpeed()).toBe(0)
+describe('pivotMove on mousemove', () => {
+  it('fires onPivotMove with correct x, y on mousemove', () => {  // spec row 1
+    Input.attachToCanvas(canvas)
+    const cb = vi.fn()
+    Input.onPivotMove(cb)
+    firePointerEvent(canvas, 'pointermove', 300, 400)
+    expect(cb).toHaveBeenCalledOnce()
+    const pos = cb.mock.calls[0][0]
+    expect(pos.x).toBeCloseTo(300)
+    expect(pos.y).toBeCloseTo(400)
   })
 
-  it('isMouseDown returns false immediately after init', () => {  // spec row 2
-    expect(Input.isMouseDown()).toBe(false)
+  it('fires onPivotMove on every mousemove', () => {  // spec row 2
+    Input.attachToCanvas(canvas)
+    const cb = vi.fn()
+    Input.onPivotMove(cb)
+    firePointerEvent(canvas, 'pointermove', 100, 200)
+    firePointerEvent(canvas, 'pointermove', 150, 250)
+    firePointerEvent(canvas, 'pointermove', 200, 300)
+    expect(cb).toHaveBeenCalledTimes(3)
   })
 
-  it('getCurrentAngle returns π/2 (start below pivot)', () => {  // spec row 3
-    expect(Input.getCurrentAngle()).toBeCloseTo(Math.PI / 2, 5)
+  it('does not require mousedown — fires on mousemove alone', () => {  // spec row 3
+    Input.attachToCanvas(canvas)
+    const cb = vi.fn()
+    Input.onPivotMove(cb)
+    // no mousedown fired — pivot should still update
+    firePointerEvent(canvas, 'pointermove', 400, 300)
+    expect(cb).toHaveBeenCalledOnce()
   })
 })
 
 // -------------------------------------------------------------------
-// Mouse down / up state
+// pivotMove callback — mousedown
 // -------------------------------------------------------------------
-describe('mouse state', () => {
-  it('isMouseDown returns true after mousedown on canvas', () => {  // spec row 4
-    const canvas = makeCanvas()
-    Input.init(canvas, PIVOT, STRING_LEN, 'standard')
+describe('pivotMove on mousedown', () => {
+  it('fires onPivotMove on mousedown', () => {  // spec row 4
     Input.attachToCanvas(canvas)
-    fireMouseEvent(canvas, 'mousedown', 300, 400)
-    expect(Input.isMouseDown()).toBe(true)
+    const cb = vi.fn()
+    Input.onPivotMove(cb)
+    firePointerEvent(canvas, 'pointerdown', 300, 400)
+    expect(cb).toHaveBeenCalledOnce()
+    const pos = cb.mock.calls[0][0]
+    expect(pos.x).toBeCloseTo(300)
+    expect(pos.y).toBeCloseTo(400)
   })
+})
 
-  it('isMouseDown returns false after mousedown then mouseup', () => {  // spec row 5
-    const canvas = makeCanvas()
-    Input.init(canvas, PIVOT, STRING_LEN, 'standard')
+// -------------------------------------------------------------------
+// detachFromCanvas
+// -------------------------------------------------------------------
+describe('detachFromCanvas', () => {
+  it('stops mousemove callbacks after detach', () => {  // spec row 5
     Input.attachToCanvas(canvas)
-    fireMouseEvent(canvas, 'mousedown', 300, 400)
-    fireMouseEvent(canvas, 'mouseup', 300, 400)
-    expect(Input.isMouseDown()).toBe(false)
-  })
-
-  it('release callback is called with vx, vy, speed, angle fields', () => {  // spec row 6
-    const canvas = makeCanvas()
-    Input.init(canvas, PIVOT, STRING_LEN, 'standard')
-    Input.attachToCanvas(canvas)
-
-    const released = vi.fn()
-    Input.onRelease(released)
-
-    fireMouseEvent(canvas, 'mousedown', 300, 400)
-    fireMouseEvent(canvas, 'mouseup', 300, 400)
-
-    expect(released).toHaveBeenCalledOnce()
-    const payload = released.mock.calls[0][0]
-    expect(typeof payload.vx).toBe('number')
-    expect(typeof payload.vy).toBe('number')
-    expect(typeof payload.speed).toBe('number')
-    expect(typeof payload.angle).toBe('number')
-  })
-
-  it('release speed is clamped to variant maxSpeed', () => {  // spec row 7
-    const canvas = makeCanvas()
-    Input.init(canvas, PIVOT, STRING_LEN, 'standard')
-    Input.attachToCanvas(canvas)
-
-    const released = vi.fn()
-    Input.onRelease(released)
-
-    // Spin many rapid moves to build extreme velocity
-    fireMouseEvent(canvas, 'mousedown', PIVOT.x + STRING_LEN, PIVOT.y)
-    for (let i = 0; i < 20; i++) {
-      const angle = (i / 20) * Math.PI * 2
-      fireMouseEvent(canvas, 'mousemove',
-        PIVOT.x + STRING_LEN * Math.cos(angle),
-        PIVOT.y + STRING_LEN * Math.sin(angle))
-    }
-    fireMouseEvent(canvas, 'mouseup', PIVOT.x, PIVOT.y - STRING_LEN)
-
-    const { speed } = released.mock.calls[0][0]
-    expect(speed).toBeLessThanOrEqual(YOYO_VARIANTS.standard.maxSpeed)
-  })
-
-  it('getAngularSpeed returns value in [0, 1] range', () => {  // spec row 8
-    const canvas = makeCanvas()
-    Input.init(canvas, PIVOT, STRING_LEN, 'standard')
-    Input.attachToCanvas(canvas)
-
-    fireMouseEvent(canvas, 'mousedown', PIVOT.x + STRING_LEN, PIVOT.y)
-    for (let i = 0; i < 10; i++) {
-      const angle = (i / 10) * Math.PI * 2
-      fireMouseEvent(canvas, 'mousemove',
-        PIVOT.x + STRING_LEN * Math.cos(angle),
-        PIVOT.y + STRING_LEN * Math.sin(angle))
-    }
-    const spd = Input.getAngularSpeed()
-    expect(spd).toBeGreaterThanOrEqual(0)
-    expect(spd).toBeLessThanOrEqual(1)
-  })
-
-  it('detachFromCanvas removes listeners — no callback after detach', () => {  // spec row 9
-    const canvas = makeCanvas()
-    Input.init(canvas, PIVOT, STRING_LEN, 'standard')
-    Input.attachToCanvas(canvas)
+    const cb = vi.fn()
+    Input.onPivotMove(cb)
     Input.detachFromCanvas()
+    firePointerEvent(canvas, 'pointermove', 300, 400)
+    expect(cb).not.toHaveBeenCalled()
+  })
 
-    const released = vi.fn()
-    Input.onRelease(released)
+  it('stops mousedown callbacks after detach', () => {  // spec row 6
+    Input.attachToCanvas(canvas)
+    const cb = vi.fn()
+    Input.onPivotMove(cb)
+    Input.detachFromCanvas()
+    firePointerEvent(canvas, 'pointerdown', 300, 400)
+    expect(cb).not.toHaveBeenCalled()
+  })
 
-    fireMouseEvent(canvas, 'mousedown', 300, 400)
-    fireMouseEvent(canvas, 'mouseup', 300, 400)
-    expect(released).not.toHaveBeenCalled()
-    expect(Input.isMouseDown()).toBe(false)
+  it('can re-attach after detach', () => {  // spec row 7
+    Input.attachToCanvas(canvas)
+    const cb = vi.fn()
+    Input.onPivotMove(cb)
+    Input.detachFromCanvas()
+    Input.attachToCanvas(canvas)
+    firePointerEvent(canvas, 'pointermove', 200, 300)
+    expect(cb).toHaveBeenCalledOnce()
+  })
+})
+
+// -------------------------------------------------------------------
+// coordinate scaling
+// -------------------------------------------------------------------
+describe('coordinate scaling', () => {
+  it('scales clientX/Y to canvas coordinates when canvas is scaled', () => {  // spec row 8
+    const scaled = makeCanvas()
+    // Canvas is 900x540 logical but displayed at 450x270 (half size)
+    scaled.getBoundingClientRect = () => ({ left: 0, top: 0, width: 450, height: 270, right: 450, bottom: 270 })
+    Input.init(scaled, PIVOT)
+    Input.attachToCanvas(scaled)
+    const cb = vi.fn()
+    Input.onPivotMove(cb)
+    firePointerEvent(scaled, 'pointermove', 225, 135)  // midpoint in display coords
+    const pos = cb.mock.calls[0][0]
+    // Should map to 450, 270 in canvas coords (2× scale factor)
+    expect(pos.x).toBeCloseTo(450)
+    expect(pos.y).toBeCloseTo(270)
   })
 })

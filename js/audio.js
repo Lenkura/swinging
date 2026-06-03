@@ -158,6 +158,76 @@ export function playShatter() {
   squeal.start(); squeal.stop(t + 0.24);
 }
 
+// dull metallic clang — used for shield hits that don't break (TOO SLOW!)
+export function playShieldBlock() {
+  const ac = ctx();
+  const t = ac.currentTime;
+
+  // Short bandpass noise: the hollow thud of glass that didn't break
+  const thud = noise(0.14);
+  const bpf = ac.createBiquadFilter();
+  bpf.type = 'bandpass';
+  bpf.frequency.setValueAtTime(420, t);
+  bpf.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+  bpf.Q.value = 1.8;
+  const thudGain = ac.createGain();
+  thudGain.gain.setValueAtTime(0.45, t);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  thud.connect(bpf); bpf.connect(thudGain); thudGain.connect(ac.destination);
+  thud.start(t); thud.stop(t + 0.15);
+
+  // Descending tone: the "not enough" deflection feel
+  const osc = ac.createOscillator();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(520, t);
+  osc.frequency.exponentialRampToValueAtTime(95, t + 0.13);
+  const oscGain = ac.createGain();
+  oscGain.gain.setValueAtTime(0.18, t);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+  osc.connect(oscGain); oscGain.connect(ac.destination);
+  osc.start(t); osc.stop(t + 0.14);
+}
+
+// bright glass shatter — used when a shield breaks
+export function playShieldBreak() {
+  const ac = ctx();
+  const t = ac.currentTime;
+
+  // High-frequency crack burst — the glass fracturing
+  const crack = noise(0.12);
+  const hpf = ac.createBiquadFilter();
+  hpf.type = 'highpass';
+  hpf.frequency.value = 2800;
+  const crackGain = ac.createGain();
+  crackGain.gain.setValueAtTime(0.85, t);
+  crackGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+  crack.connect(hpf); hpf.connect(crackGain); crackGain.connect(ac.destination);
+  crack.start(t); crack.stop(t + 0.13);
+
+  // Ringing glass tone — sustained ring after the crack
+  const ring = ac.createOscillator();
+  ring.type = 'sine';
+  ring.frequency.setValueAtTime(1200, t);
+  ring.frequency.exponentialRampToValueAtTime(680, t + 0.28);
+  const ringGain = ac.createGain();
+  ringGain.gain.setValueAtTime(0.22, t);
+  ringGain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+  ring.connect(ringGain); ringGain.connect(ac.destination);
+  ring.start(t); ring.stop(t + 0.30);
+
+  // Low impact thud underneath
+  const thud = noise(0.08);
+  const lpf = ac.createBiquadFilter();
+  lpf.type = 'lowpass';
+  lpf.frequency.setValueAtTime(180, t);
+  lpf.frequency.exponentialRampToValueAtTime(60, t + 0.08);
+  const thudGain = ac.createGain();
+  thudGain.gain.setValueAtTime(0.55, t);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+  thud.connect(lpf); lpf.connect(thudGain); thudGain.connect(ac.destination);
+  thud.start(t); thud.stop(t + 0.09);
+}
+
 // escalating squeaks per combo tier — square wave for a ratty bite
 export function playComboTone(comboCount) {
   if (comboCount < 2) return;

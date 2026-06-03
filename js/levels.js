@@ -18,7 +18,7 @@ export const LEVELS = [
       { shape: 'rectangle', w: 60, h: 90, x: 0.66, y: 0.57, material: 'glass' },
     ],
     parScore: 1200,
-    pushParScore: 2500,
+    pushParScore: 1800,
     hint: 'Swing the rat into the target. Cleaner hits deal more damage!',
   },
   {
@@ -35,7 +35,7 @@ export const LEVELS = [
       { shape: 'rectangle', w: 55, h: 72, x: 0.76, y: 0.60, material: 'wood' },
     ],
     parScore: 1400,
-    pushParScore: 2000,
+    pushParScore: 1800,
     hint: 'Glass shatters fast. Wood takes more hits — keep the combo going!',
   },
   {
@@ -72,10 +72,10 @@ export const LEVELS = [
     pushStringLength: 140,
     targets: [
       { shape: 'rectangle', w: 70, h: 92, x: 0.72, y: 0.56, material: 'wood' },
-      { shape: 'rectangle', w: 14, h: 104, x: 0.58, y: 0.56, material: 'glass', isShield: true, breakSpeed: 140 },
+      { shape: 'rectangle', w: 14, h: 104, x: 0.58, y: 0.56, material: 'glass', isShield: true, breakSpeed: 100 },
     ],
     parScore: 2000,
-    pushParScore: 2000,
+    pushParScore: 1200,
     hint: 'A glass shield blocks the target. Hit it fast to smash through!',
   },
   {
@@ -89,12 +89,12 @@ export const LEVELS = [
     pushStringLength: 130,
     targets: [
       { shape: 'rectangle', w: 56, h: 76, x: 0.68, y: 0.54, material: 'wood' },
-      { shape: 'rectangle', w: 12, h: 88, x: 0.57, y: 0.54, material: 'glass', isShield: true, breakSpeed: 140 },
+      { shape: 'rectangle', w: 12, h: 88, x: 0.57, y: 0.54, material: 'glass', isShield: true, breakSpeed: 100 },
       { shape: 'rectangle', w: 56, h: 76, x: 0.82, y: 0.54, material: 'steel' },
-      { shape: 'rectangle', w: 14, h: 88, x: 0.74, y: 0.54, material: 'wood', isShield: true, breakSpeed: 300 },
+      { shape: 'rectangle', w: 14, h: 88, x: 0.74, y: 0.54, material: 'wood', isShield: true, breakSpeed: 180 },
     ],
     parScore: 2400,
-    pushParScore: 2200,
+    pushParScore: 800,
     hint: 'Two shields, two targets. Break the wood shield with a big swing!',
   },
   {
@@ -108,11 +108,11 @@ export const LEVELS = [
     pushStringLength: 120,
     targets: [
       { shape: 'rectangle', w: 82, h: 102, x: 0.78, y: 0.53, material: 'steel' },
-      { shape: 'rectangle', w: 12, h: 114, x: 0.60, y: 0.53, material: 'glass', isShield: true, breakSpeed: 140 },
-      { shape: 'rectangle', w: 14, h: 114, x: 0.68, y: 0.53, material: 'wood', isShield: true, breakSpeed: 300 },
+      { shape: 'rectangle', w: 12, h: 114, x: 0.60, y: 0.53, material: 'glass', isShield: true, breakSpeed: 100 },
+      { shape: 'rectangle', w: 14, h: 114, x: 0.68, y: 0.53, material: 'wood', isShield: true, breakSpeed: 180 },
     ],
     parScore: 2800,
-    pushParScore: 2500,
+    pushParScore: 1200,
     hint: 'Two shields guard the steel vault. Combo up and punch through!',
   },
 
@@ -136,7 +136,7 @@ export const LEVELS = [
       { x: 0.50, y: 0.60, radius: 22 },
     ],
     parScore: 1800,
-    pushParScore: 2000,
+    pushParScore: 1200,
     hint: 'A bumper deflects the rat. Find the angle that lets you slip past!',
   },
   {
@@ -157,7 +157,7 @@ export const LEVELS = [
       { x: 0.62, y: 0.66, radius: 18 },
     ],
     parScore: 2200,
-    pushParScore: 2000,
+    pushParScore: 800,
     hint: 'Use the bumpers! A well-timed ricochet can chain hits on both targets.',
   },
   {
@@ -173,14 +173,14 @@ export const LEVELS = [
       { shape: 'rectangle', w: 55, h: 76, x: 0.74, y: 0.52, material: 'wood' },
       { shape: 'circle', r: 28, x: 0.66, y: 0.66, material: 'glass' },
       { shape: 'rectangle', w: 60, h: 86, x: 0.86, y: 0.56, material: 'steel' },
-      { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.52, material: 'glass', isShield: true, breakSpeed: 140 },
+      { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.52, material: 'glass', isShield: true, breakSpeed: 100 },
     ],
     bumpers: [
       { x: 0.48, y: 0.54, radius: 22 },
       { x: 0.70, y: 0.38, radius: 18 },
     ],
     parScore: 2800,
-    pushParScore: 2500,
+    pushParScore: 600,
     hint: 'Everything at once. Break the shield, route past the bumpers, chain the targets.',
   },
 ];

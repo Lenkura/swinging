@@ -1,4 +1,4 @@
-export const YOYO_VARIANTS = {
+export const RAT_VARIANTS = {
   standard: {
     label: 'Brown Rat',
     desc: 'Quick & nimble',

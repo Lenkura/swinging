@@ -1,4 +1,4 @@
-# CLAUDE.md — swinging (Yoyo Smash)
+# CLAUDE.md — swinging (Rat Smash)
 
 See [../CLAUDE.md](../CLAUDE.md) for workspace-wide standards.
 
@@ -6,7 +6,7 @@ See [../CLAUDE.md](../CLAUDE.md) for workspace-wide standards.
 
 ## Project Overview
 
-**Yoyo Smash** — a browser physics game with two modes. **Push mode** (default): the pivot follows the mouse; swing the yoyo repeatedly into targets to deplete its HP and shatter it in as few hits as possible. **Fling mode**: build angular speed then release the yoyo as a projectile to smash targets. No build system. Vanilla JS with ES6 modules, Matter.js for physics, Canvas 2D for rendering.
+**Rat Smash** — a browser physics game. The pivot follows the mouse; swing the rat repeatedly into targets to deplete its HP and shatter it in as few hits as possible. Nine levels across three acts, each introducing new mechanics (shields in Act 2, bumpers in Act 3). No build system. Vanilla JS with ES6 modules, Matter.js for physics, Canvas 2D for rendering.
 
 ---
 
@@ -17,17 +17,15 @@ See [../CLAUDE.md](../CLAUDE.md) for workspace-wide standards.
 | `js/main.js` | Game loop, state machine, event wiring |
 | `js/physics.js` | Matter.js wrapper — bodies, constraints, collisions, fragments |
 | `js/renderer.js` | Canvas 2D drawing |
-| `js/input.js` | Mouse input — push mode pivot-follow, swing tracking, release detection (fling mode) |
-| `js/ui.js` | DOM panel management (picker, result, hints) |
+| `js/input.js` | Mouse input — pivot-follow on `mousemove` and `mousedown` |
+| `js/ui.js` | DOM panel management (picker, result, level select) |
 | `js/levels.js` | Level data, localStorage progress save/load |
-| `js/yoyo.js` | Yoyo variant definitions (standard, heavy) |
+| `js/rat.js` | Rat variant definitions (Brown Rat, Sewer Rat) |
 | `js/target.js` | Material definitions, impact evaluation, crack/fragment generation |
 | `js/particles.js` | Particle system |
 | `js/audio.js` | Web Audio API sound synthesis — hit, shatter, combo tone |
 
-**State machine** (in `main.js`):
-- Push mode: `PICKER → SWINGING → IMPACT → RESULT`
-- Fling mode: `PICKER → SWINGING → RELEASED → IMPACT → RESULT`
+**State machine** (in `main.js`): `PICKER → SWINGING → IMPACT → RESULT`
 
 **External deps (CDN, no install):**
 - Matter.js 0.19.0 — physics engine
@@ -50,24 +48,35 @@ Or use any static file server (`npx serve`, `caddy`, etc.).
 
 ## Key Concepts
 
-- **Pivot**: fixed point the string attaches to; defined per-level as `{x, y}` fractions of canvas size.
-- **String**: a Matter.js `Constraint`; in fling mode `stiffness: 1.0`, in push mode `stiffness: 0.65`. Removed on release via `scheduleRelease` (deferred to `beforeUpdate` to avoid mid-step mutation).
-- **Push mode**: The pivot follows the mouse every frame (no button hold required). The yoyo stays attached and accumulates damage on each hit. `yoyoHp` starts at 100; damage per hit = `speed × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / 15`. HP floor is 0; the yoyo shatters when HP reaches 0.
-- **Hit cooldown**: 0.35s lock-out after each registered push-mode hit. Prevents the physics engine from double-counting a single contact as multiple hits.
-- **Combo system**: In push mode, each hit within `COMBO_WINDOW` (1.0s) increments `comboCount`. Multiplier = `min(1 + comboCount × 0.5, 3.0)` applied to the next hit's damage. Resets if no hit lands before the window expires.
-- **calcPushScore**: `max(200, 3000 − (hits − 1) × 500)` — 1 hit = 3000, each additional hit costs 500, floor = 200.
-- **Fling mode outcomes**: `evaluateImpact` returns `SHATTER` (yoyo destroyed, spawns fragments), `CRACK` (yoyo cracked, visual only), or `SURVIVE`. Triggered on first collision after release.
+- **Pivot**: the string attachment point; follows the mouse every frame (no button hold required). Defined per-level as `{x, y}` fractions of canvas size; overridden to the constraint anchor position during play.
+- **String**: a Matter.js `Constraint` with `stiffness: 0.65`. Never released — the rat stays attached until it shatters.
+- **HP system**: `ratHp` starts at 100. Damage per hit = `speed × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / 15`. HP floors at 0; the rat shatters (giblets) when HP reaches 0.
+- **Hit cooldown**: 0.35s lock-out after each registered hit. Prevents the physics engine from double-counting a single contact.
+- **Combo system**: Each hit within `COMBO_WINDOW` (1.0s) increments `comboCount`. Multiplier = `min(1 + comboCount × 0.5, 3.0)`. Resets if the window expires before the next hit.
+- **calcPushScore**: `max(200, 3000 − (hits − 1) × 500)` — 1 hit = 3000, each extra hit costs 500, floor = 200.
+- **Shields** (`isShield: true` on a target): blocked unless rat speed ≥ `breakSpeed`. On break, the shield body is removed; no HP damage is dealt. On a too-slow hit, a "TOO SLOW!" label is shown.
+- **Bumpers**: static circular bodies with high restitution (0.9). Deflect the rat without dealing HP damage. Spawned from the level's `bumpers[]` array.
 - **Materials**: defined in `target.js` — glass, wood, steel each have `shatterThreshold`, `crackThreshold`, `fragmentCount`, `fragmentSpread`, `yoyoDamage`.
-- **Fragment cleanup**: setTimeout 4000ms removes fragment bodies from world after they settle.
+- **Damage states**: four visual states driven by `ratHp / RAT_MAX_HP` — healthy (≥ 75%), dazed (50–75%, orbiting stars), injured (25–50%, wound marks + blood drips), critical (< 25%, red stars + more drips + × eyes).
+- **Giblets**: on shatter, 8 elliptical fragment bodies spawn with radial velocity; removed from the world after 4000ms.
+- **Act structure**: 9 levels in 3 acts. Act 1 (The Sewer) — varied shapes, no new mechanics. Act 2 (The Warehouse) — introduces shields. Act 3 (The Lab) — introduces bumpers. An ACT CLEAR screen appears when the last level of an act is shattered.
 - **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel`.
 
 ---
 
 ## Adding Content
 
-**New level**: add an entry to `LEVELS` in `levels.js`. Required fields: `id`, `name`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`. Optional: `hint`, `yoyoType`, `pushStringLength` (overrides `stringLength` in push mode), `pushParScore` (par score for push mode; default 1500).
+**New level**: add an entry to `LEVELS` in `levels.js`.
 
-**New yoyo variant**: add to `YOYO_VARIANTS` in `yoyo.js` and add a picker button in `index.html`.
+Required fields: `id`, `act`, `name`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`.
+
+Optional fields: `hint`, `pushStringLength` (overrides `stringLength`), `pushParScore` (default 1500), `bumpers[]`.
+
+Target fields: `shape` (`'rectangle'` or `'circle'`), `x`, `y`, `material`, and for rectangles `w`/`h`, for circles `r`. Shield targets add `isShield: true` and `breakSpeed` (minimum rat speed to break).
+
+Bumper fields: `x`, `y`, `radius`.
+
+**New rat variant**: add to `RAT_VARIANTS` in `rat.js` and add a picker button in `index.html` with class `rat-btn`.
 
 **New material**: add to `MATERIALS` in `target.js`.
 

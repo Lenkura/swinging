@@ -1,4 +1,4 @@
-import { YOYO_VARIANTS } from './yoyo.js';
+import { RAT_VARIANTS } from './rat.js';
 import { MATERIALS } from './target.js';
 import * as Particles from './particles.js';
 
@@ -41,7 +41,6 @@ export function updateSpin(angularVelocity, dt) {
 
 export function draw({
   state,
-  mode = 'swing',
   level,
   pivot,
   yoyoBody,
@@ -50,7 +49,6 @@ export function draw({
   fragmentBodies,
   stringConstraint,
   angularSpeed,
-  aimPoints,
   hpFraction = 1.0,
   hitCount = 0,
   comboCount = 0,
@@ -79,21 +77,17 @@ export function draw({
   drawTargets(targetBodies);
 
   if (yoyoBody) {
-    const v = YOYO_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'];
+    const v = RAT_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'];
     drawRat(yoyoBody, v, hpFraction);
   }
-
-  if (aimPoints && aimPoints.length > 1) drawAimGuide(aimPoints);
 
   Particles.draw(ctx);
 
   drawSpeedMeter(angularSpeed);
-  if (mode === 'swing' || stringConstraint) drawPivotHand(pivot, state);
-  if (mode === 'push') {
-    drawHpBar(hpFraction);
-    drawHitCounter(hitCount);
-    drawCombo(comboCount);
-  }
+  if (stringConstraint) drawPivotHand(pivot, state);
+  drawHpBar(hpFraction);
+  drawHitCounter(hitCount);
+  drawCombo(comboCount);
   if (hitLabel && hitLabel.alpha > 0) drawHitLabel(hitLabel);
   ctx.restore();
 }
@@ -200,7 +194,7 @@ function drawString(pivot, yoyo, normalizedSpeed, constraint) {
 
 function drawTrail(yoyo, level) {
   if (!yoyo || trail.length < 2) return;
-  const v = YOYO_VARIANTS[yoyo.plugin?.variantKey || 'standard'];
+  const v = RAT_VARIANTS[yoyo.plugin?.variantKey || 'standard'];
   for (let i = 1; i < trail.length; i++) {
     const alpha = (i / trail.length) * 0.45;
     const r = v.radius * (i / trail.length) * 0.7;
@@ -515,9 +509,9 @@ function drawBumpers(bumpers) {
 
 function drawCracks(body, pattern) {
   const { x, y } = body.position;
-  const w = body.plugin.width;
-  const h = body.plugin.height;
-  const maxR = Math.min(w, h) * 0.45;
+  const maxR = body.plugin.isCircle
+    ? body.plugin.radius * 0.85
+    : Math.min(body.plugin.width, body.plugin.height) * 0.45;
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(body.angle);
@@ -574,19 +568,6 @@ function drawPhysicsBody(body, fill, stroke) {
   ctx.lineWidth = 3;
   ctx.lineJoin = 'round';
   ctx.stroke();
-}
-
-function drawAimGuide(points) {
-  ctx.save();
-  ctx.setLineDash([6, 8]);
-  ctx.strokeStyle = 'rgba(255,255,200,0.45)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.restore();
 }
 
 function drawSpeedMeter(normalizedSpeed) {
