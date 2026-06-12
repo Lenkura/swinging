@@ -1,10 +1,21 @@
+# Dependencies
 node_modules/
 package-lock.json
-.env
-*.env.*
+
+# Secrets
+*.env
+.env.*
 secrets/
+secrets.*
 *.key
 *.pem
+*.pfx
+*.p12
 credentials*
+
+# Session runtime files
 history/*.jsonl
-history/pending-summary.flag
+history/*.flag
+
+# Local Claude settings
+.claude/settings.local.json

@@ -1,4 +1,4 @@
-# TEST_SPEC.md — Yoyo Smash
+# TEST_SPEC.md — Rat Smash
 
 **Framework:** Vitest (vanilla JS, ESM)
 **Run command:** `npm test` (runs `vitest run`)
