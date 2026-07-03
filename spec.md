@@ -39,7 +39,7 @@ with zero build step keeps it instantly playable via any static file server.
 - [x] Push-mode swing mechanic — combo multiplier, HP-based shatter, giblet
       fragments — fully retheme'd to Rat Smash
 - [x] Mobile/touch support via Pointer Events + `fitToViewport` CSS scaling
-- [ ] Vitest suite re-verified passing (51/51 at last recorded run) in the migrated
+- [x] Vitest suite re-verified passing (61/61 on 2026-07-03) in the migrated
       frameworklite scaffold
 - [ ] Full 9-level playthrough smoke-tested end-to-end post-migration, including
       localStorage progress persistence

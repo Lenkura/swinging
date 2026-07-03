@@ -2,479 +2,18 @@
   "project_name": "swinging",
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
-  "last_session_date": "2026-06-12",
+  "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-002-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 75 (DAMAGE_SCALE 2000->200 correction + paired constant rescale) implemented and documented in CLAUDE.md; 61/61 Vitest tests pass. Awaiting browser playtest of Level 1 hit-count (~3-4 hits expected), then task 45 (full 9-level smoke-test playthrough) resumes.",
+  "current_activity": "Hygiene pass done (2026-07-03): tasks 49-75 committed, completed action items archived to history/action-plan-archive.md, spec.md Vitest criterion ticked (61/61), graphics/sound polish backlog added as tasks 77-92. Next: task 76 (Level 1 playtest of DAMAGE_SCALE=200), then task 45 (full 9-level smoke test).",
   "action_plan": [
-    {
-      "id": 1,
-      "task": "Decide what to do with fling mode: keep as second mode, repurpose as level variant, or cut. Document the decision.",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 2,
-      "task": "Balance pass on damage values (the '/ 50' divisor in main.js) once more levels exist",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 3,
-      "task": "Add more push mode levels with varied pushStringLength and target layouts",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 4,
-      "task": "Visual feedback on near-miss angles (e.g. 'Glancing blow!' flash)",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 5,
-      "task": "Screen shake on high-damage hits",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 6,
-      "task": "Sound effects",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 7,
-      "task": "Level select screen (unlockedLevel already tracked in localStorage but no UI)",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 8,
-      "task": "Update CLAUDE.md — test framework (Vitest) is already set up; CLAUDE.md incorrectly says it isn't",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 9,
-      "task": "Verify fragmentsSpawned fix in physics.js — browser test shatter, confirm fragment count is correct",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 10,
-      "task": "Confirm SRI hashes in index.html are valid (not placeholders) for Matter.js 0.19.0 and poly-decomp 0.3.0",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 11,
-      "task": "Run npx vitest run and record pass/fail result — 51/51 passing",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 12,
-      "task": "Update TEST_SPEC.md for push mode — push-mode input, HP drain, hit cooldown, combo system",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 13,
-      "task": "Update CLAUDE.md — push mode as primary mechanic, state machine paths, combo system, Tech Stack section",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 14,
-      "task": "Remove fling mode entirely — delete RELEASED state, fling input, mode UI",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 15,
-      "task": "Fix .gitignore — add .env, *.env.*, secrets/, *.key, *.pem, credentials*",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 16,
-      "task": "Commit post-review hygiene branch",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 17,
-      "task": "renderer.js — replace yoyo drawing with procedural rat; 4 damage states; giblet fragment colours",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 18,
-      "task": "yoyo.js — update variant display names (Brown Rat / Sewer Rat), descriptions, colours",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 19,
-      "task": "index.html — title → Rat Smash, picker label, variant button text",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 20,
-      "task": "levels.js + ui.js — replace yoyo copy in hint text and UI strings",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 21,
-      "task": "Browser-test commit 1: verify rat renders at all damage states, giblets on shatter, both variants distinct",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 22,
-      "task": "Rename yoyo.js → rat.js, export RAT_VARIANTS; update all imports",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 23,
-      "task": "physics.js — internal symbol renames (yoyoBody → ratBody, spawnYoyo → spawnRat, etc.)",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 24,
-      "task": "main.js — internal symbol renames (yoyoHp → ratHp, YOYO_MAX_HP → RAT_MAX_HP, etc.)",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 25,
-      "task": "index.html + css/style.css — CSS class renames (yoyo-btn → rat-btn, etc.)",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 26,
-      "task": "CLAUDE.md — update project overview, architecture table, key concepts for rat retheme",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 27,
-      "task": "Run npx vitest run — confirm all tests pass",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 28,
-      "task": "Design 9 level configs in levels.js — 3 acts, shapes, shield/bumper placement, themes",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 29,
-      "task": "physics.js — circle/angle support in spawnTargets; isShield tag; spawnBumpers; getBumperBodies export",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 30,
-      "task": "main.js — shield collision branch; spawnBumpers in startLevel; pass bumpers to renderer",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 31,
-      "task": "renderer.js — circle target rendering; shield visuals; drawBumpers",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 32,
-      "task": "ui.js — act-grouped level select with section headers; ACT CLEAR result state",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 33,
-      "task": "Balance pass — speed² damage formula (DAMAGE_SCALE=1200), shield breakSpeeds lowered, par scores recalibrated",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 34,
-      "task": "Fix picker/level-select overlap: hide #rat-picker when level select is visible so lower level cards (7-9) are clickable",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 35,
-      "task": "Mobile/touch support — PointerEvents API replaces mouse listeners in input.js; touch-action:none on canvas attach",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 36,
-      "task": "Canvas scaling — fitToViewport() in main.js applies translate(-50%,-50%) scale(s) to #game-container on load and resize",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 37,
-      "task": "Remove calcScore dead code from main.js (fling-mode scoring function, now unreachable)",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 38,
-      "task": "Shield audio — playShieldBlock() for TOO SLOW!, playShieldBreak() for SHIELD BREAK!",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 39,
-      "task": "End-game state — ALL SMASHED! screen with gold glow on level 9 clear",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 40,
-      "task": "Fix picker icon colors — .standard-icon and .heavy-icon now match actual rat colors",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 41,
-      "task": "Delete stale PLAN.md (superseded by project-state.json)",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 42,
-      "task": "Unit tests — scoring.js extracted; calcPushScore + comboMultiplier tested (11 tests)",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 43,
-      "task": "Fix drawCracks for circle targets — maxR now uses plugin.radius for circles",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 44,
-      "task": "Re-verify the Vitest suite passes in the migrated frameworklite scaffold",
-      "priority": "high",
-      "status": "completed",
-      "done_when": "`npm install` then `npx vitest run` reports 51/51 tests passing with no path or import errors from the new D:\\Frameworkspace\\swinging location"
-    },
     {
       "id": 45,
       "task": "Smoke-test a full 9-level playthrough post-migration via a local static server",
       "priority": "medium",
       "status": "pending",
       "done_when": "All 9 levels across 3 acts (Sewer/Warehouse/Lab) can be completed in sequence with no console errors, the CDN-loaded Matter.js/poly-decomp scripts load successfully, and `yoyo_progress` in localStorage reflects updated high scores and unlockedLevel",
-      "context": "Paused mid-playthrough — that session surfaced the tuning/feature feedback in tasks 63-74 (speed/damage recalibration, shape variety, moving targets, giblet blobs, trail tone-down). Resume the full playthrough once those land."
-    },
-    {
-      "id": 46,
-      "task": "Rework rat attachment: hold the rat by the tail instead of a string constraint (replaces the 'String' key concept — affects physics.js constraint setup and renderer.js tail drawing)",
-      "priority": "high",
-      "status": "superseded",
-      "done_when": "/brainstorm has been run to settle the constraint/visual approach before implementation"
-    },
-    {
-      "id": 47,
-      "task": "Tune rat physics so the rat feels less weightless — more effort/momentum-building required to get it up to speed (mass, drag, or constraint stiffness adjustments)",
-      "priority": "high",
-      "status": "superseded",
-      "done_when": "/brainstorm has been run to settle the tuning approach before implementation"
-    },
-    {
-      "id": 48,
-      "task": "Heavier impact feedback: more red splash particles and chunk/fragment debris on each hit, not just on shatter",
-      "priority": "medium",
-      "status": "superseded",
-      "done_when": "/brainstorm has been run to settle the particles.js/renderer.js approach before implementation"
-    },
-    {
-      "id": 49,
-      "task": "physics.js — move attachString's pointB from rat center {x:0,y:0} to a tail-base offset derived from ratBody.plugin.radius (matching the tail-start position in drawRat, ~{x: -r*0.85, y: r*0.22})",
-      "priority": "high",
-      "status": "completed",
-      "context": "First step of the approved tail-attachment redesign (combined #46/#47 brainstorm) — the off-center anchor lets gravity torque the rat to hang below the grip point, giving both the 'held by the tail' feel and a heavier swing."
-    },
-    {
-      "id": 50,
-      "task": "rat.js — tune mass/frictionAir for standard and heavy variants for added swing weight; main.js — adjust constraint stiffness passed to attachString if needed",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 51,
-      "task": "renderer.js — remove drawString(); add a tail-stretch draw routine anchored at the tail base, reusing the existing sag/bow curve math, rendered as a tapered tail",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 52,
-      "task": "renderer.js + main.js — switch rat rotation from accumulated spinAngle/updateSpin to physics-driven body.angle; remove the now-unused spin-tracking code",
-      "priority": "medium",
-      "status": "completed",
-      "context": "Depends on task 49 — once the off-center constraint drives real torque on the rat body, body.angle reflects the natural hang/rotation and the old manually-accumulated spin angle becomes redundant."
-    },
-    {
-      "id": 53,
-      "task": "Browser-test commit — verify swing feel (weight, tail-hold visual, natural hang orientation) across both rat variants and a sample of levels (level 1, a shield level, a bumper level); rebalance par scores/shield breakSpeeds if regressions surface",
-      "priority": "high",
-      "status": "completed",
-      "context": "User playtested manually and iterated on rat.js/main.js tuning directly (4 rounds) rather than touching levels.js — final values logged in the 2026-06-14 tuning decision. Par score / shield breakSpeed rebalance was not flagged as needed, but watch for it if task 45's full playthrough surfaces issues."
-    },
-    {
-      "id": 54,
-      "task": "CLAUDE.md — rewrite the 'String' key concept to describe the new tail-attachment physics (off-center constraint, gravity-driven hang/rotation)",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 55,
-      "task": "particles.js — add shape: 'chunk' to emit() (random rotation + angularVelocity per particle); update() advances rotation; draw() renders chunks as small rotated rectangles instead of circles. Circular particles unchanged.",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 56,
-      "task": "rat.js — add two new per-variant color fields: a worn/scuffed body tone (for HP-based color blend) and a fur-chunk debris tone (for the new rat-chunk particle burst)",
-      "priority": "medium",
-      "status": "completed",
-      "context": "Prep step for tasks 58 and 60, which reference these new fields when emitting rat-chunk particles and blending the body's worn color."
-    },
-    {
-      "id": 57,
-      "task": "physics.js — add isCircle: true to the rat body's plugin object in spawnRat(), so drawCracks() works on it",
-      "priority": "medium",
-      "status": "completed",
-      "context": "main.js already generates crackPattern/cracked data for the rat body based on HP (lines ~152-154) but drawCracks() requires plugin.isCircle to compute maxR — this is the missing piece that lets task 60 render that dormant data as body scuff marks."
-    },
-    {
-      "id": 58,
-      "task": "main.js — add a damage → intensity helper; in the HP-damage hit branch, replace the single existing Particles.emit() with three calls (red blood splash, target chunk debris via material.crackedColor, rat chunk debris via the new fur tone), all scaled by intensity",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 59,
-      "task": "main.js — apply the same three-burst treatment at a larger scale to the existing SHATTER particle emit",
-      "priority": "medium",
-      "status": "completed",
-      "context": "Depends on task 58's intensity helper and three-burst structure — reapplies it at shatter time with larger scale multipliers."
-    },
-    {
-      "id": 60,
-      "task": "renderer.js — in drawRat(), render body.plugin.crackPattern as scuff marks via drawCracks() when body.plugin.cracked is true, and blend the body fill color toward the new worn tone based on hpFraction",
-      "priority": "high",
-      "status": "completed",
-      "context": "Depends on tasks 56 (worn-tone color field) and 57 (isCircle fix) — activates the per-hit crackPattern data main.js already generates but currently discards."
-    },
-    {
-      "id": 61,
-      "task": "Browser-test — verify splash/chunk/body-wear visuals across materials, both rat variants, and HP tiers; check for particle-count/perf issues during rapid combo chains (no cap currently exists in particles.js)",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 62,
-      "task": "CLAUDE.md — update Key Concepts to document the new particle shapes, rat body-wear rendering, and the new rat.js color fields",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 63,
-      "task": "rat.js — recalibrate pushMaxSpeed: standard 600→750, heavy 500→625 (both ×1.25), so the realistic top swing speed (~450/375) reads as 60% on the speed meter instead of ~75%",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 64,
-      "task": "main.js — recalibrate DAMAGE_SCALE 1200→2000, so a clean realistic-top-speed hit no longer guarantees a 1-hit shatter on most materials, raising the skill ceiling for the ideal (1-hit) score",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 65,
-      "task": "main.js — rescale the two damage-derived visual-feedback constants by the same 0.6× factor as DAMAGE_SCALE: shake threshold `damage > 20` → `> 12`, and damageIntensity saturation `damage / 40` → `damage / 24`",
-      "priority": "medium",
-      "status": "completed",
-      "context": "Depends on task 64 — without this, screen-shake and impact-burst intensity would trigger at higher real speeds than before, even though the underlying hit feels the same."
-    },
-    {
-      "id": 66,
-      "task": "levels.js — shape variety: convert the single rectangle target in level 1 ('Pipe Dreams') and level 7 ('Deflection') to circles, and the top glass block in level 3 ('The Stack') to a circle",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 67,
-      "task": "levels.js — add a `movement` field to the steel vault in level 6 ({ axis: 'y', range: 0.04, period: 2.5 }) and the steel target in level 9 ({ axis: 'x', range: 0.03, period: 2.0 })",
-      "priority": "medium",
-      "status": "completed",
-      "context": "Depends on tasks 68-69 to actually move the targets — the field is inert schema until physics.js/main.js read it."
-    },
-    {
-      "id": 68,
-      "task": "physics.js — in spawnTargets, store plugin.movement (rangePx + basePos) for targets with a `movement` field; add exported updateMovingTargets(elapsed) that repositions those bodies via Body.setPosition along a sine wave",
-      "priority": "high",
-      "status": "completed"
-    },
-    {
-      "id": 69,
-      "task": "main.js — track an `elapsed` time accumulator (reset in startLevel, advanced by dt during SWINGING) and call Physics.updateMovingTargets(elapsed) each frame",
-      "priority": "high",
-      "status": "completed",
-      "context": "Depends on task 68's updateMovingTargets export."
-    },
-    {
-      "id": 70,
-      "task": "physics.js — in spawnRatFragments, replace the shapeType field with a blobVerts array (8-9 vertices, jittered radius 0.7-1.2×) generated once per fragment for organic 'flesh chunk' shapes",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 71,
-      "task": "renderer.js — rewrite drawFragments to render blobVerts as a closed, quadratic-curve-smoothed lumpy outline instead of the shapeType switch",
-      "priority": "medium",
-      "status": "completed",
-      "context": "Depends on task 70's blobVerts data."
-    },
-    {
-      "id": 72,
-      "task": "renderer.js — updateTrail(x, y, maxLen) caps the trail buffer at maxLen (default TRAIL_MAX=30); lower drawTrail's per-segment alpha multiplier from 0.45 to 0.25",
-      "priority": "low",
-      "status": "completed"
-    },
-    {
-      "id": 73,
-      "task": "main.js — pass RAT_VARIANTS[selectedVariant].trailLength (20 standard / 12 heavy) as maxLen to Renderer.updateTrail, activating the previously-dormant per-variant trail length",
-      "priority": "low",
-      "status": "completed",
-      "context": "Depends on task 72's updateTrail signature change."
-    },
-    {
-      "id": 74,
-      "task": "CLAUDE.md — update DAMAGE_SCALE/damageIntensity values in Key Concepts, add a 'Moving targets' Key Concept, update 'Giblets' to describe blob shapes, and document the new `movement` field in 'Adding Content'",
-      "priority": "medium",
-      "status": "completed"
-    },
-    {
-      "id": 75,
-      "task": "main.js — correct DAMAGE_SCALE 2000->200, damageIntensity saturation 24->240, shake threshold 12->120 (shakeIntensity divisor 8->80); update CLAUDE.md HP system and Impact feedback bullets accordingly",
-      "priority": "high",
-      "status": "completed",
-      "context": "Playtest of tasks 63-74 found Level 1 took 30-40 hits instead of the targeted ~2-3; the task-63 calibration assumption (real swings reach ~60% of pushMaxSpeed) was wrong. This is a direct 10x correction to bring Level 1 to ~3-4 hits."
+      "context": "Paused mid-playthrough — that session surfaced the tuning/feature feedback in tasks 63-74 (speed/damage recalibration, shape variety, moving targets, giblet blobs, trail tone-down). Resume the full playthrough once those land. NOTE: a DevTools screenshot from a prior debug session (blobcheck.png, since deleted) showed decomp.min.js failing to load with a CORS error (0 bytes transferred) while matter.min.js loaded fine — explicitly verify poly-decomp loads (SRI/crossorigin intact) during this playthrough."
     },
     {
       "id": 76,
@@ -483,6 +22,113 @@
       "status": "pending",
       "done_when": "Level 1 clears in roughly 3-4 hits, particle bursts scale visibly with hit strength rather than always appearing at full size, and shake fires only on stronger/combo hits",
       "context": "Validation step for task 75's correction before resuming task 45's full playthrough."
+    },
+    {
+      "id": 77,
+      "task": "Add a ?debug=1 overlay that records and displays peak swing speed per swing, to ground the next pushMaxSpeed / speed-meter / DAMAGE_SCALE calibration in real data instead of assumptions",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Real swing-speed distribution (typical and peak) is captured from playtesting and logged in a decisions entry",
+      "context": "Root-cause fix for the task 63->75 miscalibration: the ~60%-of-pushMaxSpeed assumption was never measured. CLAUDE.md still flags pushMaxSpeed (750/625) and the meter as unvalidated."
+    },
+    {
+      "id": 78,
+      "task": "target.js — evaluate lowering steel restitution (0.55): Matter.js resolves collision restitution as max(rat, target), so steel targets still bounce the rat despite its near-zero restitution",
+      "priority": "low",
+      "status": "pending",
+      "context": "Caveat recorded in the 2026-06-14 tail-attachment rebalance decision; promote to a fix if bounce feel surfaces during task 45."
+    },
+    {
+      "id": 79,
+      "task": "renderer.js — per-act ground detail: replace the universal green grass tufts in drawGround with act-appropriate detail (sewer slime/moss, warehouse planks/debris, lab tile seams), keeping the offscreen-canvas cache",
+      "priority": "medium",
+      "status": "pending",
+      "context": "Act theming pass (graphics) — run /brainstorm on the bundle (79, 80, 92) before implementing."
+    },
+    {
+      "id": 80,
+      "task": "renderer.js — cached per-act background set dressing (sewer pipes/brick arcs, warehouse shelving silhouettes, lab grid/beakers) plus a subtle radial vignette, rendered once per level to an offscreen canvas",
+      "priority": "medium",
+      "status": "pending",
+      "context": "Act theming pass (graphics) — same offscreen pattern as cachedGroundCanvas, zero per-frame cost."
+    },
+    {
+      "id": 81,
+      "task": "main.js — hit-stop: freeze the simulation ~40-80ms on high-damage hits, scaled by damageIntensity, composing with the existing screen shake",
+      "priority": "medium",
+      "status": "pending",
+      "context": "Game-feel pass — run /brainstorm on the bundle (81, 82, 83, 87, 89) before implementing."
+    },
+    {
+      "id": 82,
+      "task": "renderer.js — one-frame white impact flash on the rat at hit time, plus squash-and-stretch (scale along velocity vector, brief squash at impact) in drawRat",
+      "priority": "medium",
+      "status": "pending",
+      "context": "Game-feel pass."
+    },
+    {
+      "id": 83,
+      "task": "renderer.js — persistent blood-splatter decal canvas: paint splats on hit/shatter into an offscreen layer drawn under targets, cleared only on level restart",
+      "priority": "medium",
+      "status": "pending",
+      "context": "Game-feel pass."
+    },
+    {
+      "id": 84,
+      "task": "renderer.js — draw the trail as a single tapered ribbon path instead of 30 discrete fading circles; optionally additive (lighter) glow at high speed-meter values",
+      "priority": "low",
+      "status": "pending"
+    },
+    {
+      "id": 85,
+      "task": "particles.js/main.js — additive spark particles (bright streaks, globalCompositeOperation lighter) for steel, bumper, and shield impacts to differentiate them from the organic blood/chunk bursts",
+      "priority": "low",
+      "status": "pending"
+    },
+    {
+      "id": 86,
+      "task": "renderer.js/main.js — perf pass: replace per-frame shadowBlur (rat body, tail, targets) with baked shadows, and verify fitToViewport scales the canvas backing store by devicePixelRatio (blurry on HiDPI if not)",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 87,
+      "task": "audio.js — route all nodes through a shared master GainNode -> DynamicsCompressorNode instead of ac.destination directly (playShatter stacks gain 1.3 and combo hits reach 2.8x — currently hard-clips); expose volume/mute",
+      "priority": "high",
+      "status": "pending",
+      "context": "Game-feel pass. Biggest single audio-quality fix; also enables the currently-missing volume/mute control."
+    },
+    {
+      "id": 88,
+      "task": "audio.js — add +/-5-10% random pitch/gain jitter (and slight filter-cutoff jitter) per call in playHit and friends so repeated hits do not sound machine-gun identical",
+      "priority": "low",
+      "status": "pending"
+    },
+    {
+      "id": 89,
+      "task": "audio.js/main.js — speed-driven swing whoosh: looping filtered-noise node whose gain and lowpass cutoff track normalizedSpeed each frame, making the wind-up audible before contact",
+      "priority": "medium",
+      "status": "pending",
+      "context": "Game-feel pass."
+    },
+    {
+      "id": 90,
+      "task": "audio.js — material voices on ordinary hits: sine ping for glass, woody knock (short low bandpass) for wood, metallic clang (detuned high oscillators, as in playShieldBreak) for steel — currently only the thud lowpass cutoff differs",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 91,
+      "task": "audio.js/main.js — cover the silent events: bumper hit (pitch-rising boing), giblet ground-impact wet ticks, tiered level-clear / ACT CLEAR / ALL SMASHED fanfares, UI button clicks",
+      "priority": "medium",
+      "status": "pending"
+    },
+    {
+      "id": 92,
+      "task": "audio.js — per-act ambience at low gain: sparse lowpassed sine plinks for sewer drips, room tone for the warehouse, low hum + filtered noise for the lab",
+      "priority": "low",
+      "status": "pending",
+      "context": "Act theming pass (audio)."
     }
   ],
   "recently_updated_files": [
@@ -509,6 +155,10 @@
     {
       "name": "Mobile / HiDPI support",
       "status": "completed"
+    },
+    {
+      "name": "Game-feel & act-theming polish (tasks 77-92)",
+      "status": "pending"
     }
   ],
   "decisions": [
@@ -596,7 +246,12 @@
       "date": "2026-06-14",
       "decision": "Corrected the task-63 damage recalibration: DAMAGE_SCALE 2000→200 (a 10x cut), with damageIntensity's saturation point (24→240) and the screen-shake damage threshold (12→120, shakeIntensity divisor 8→80) scaled by the same factor to preserve their relative tuning; CLAUDE.md's HP system and Impact feedback bullets updated, and the now-disproven '~450px/60%=realistic ceiling' claim removed pending real swing-speed data.",
       "rationale": "Playtesting the tasks 63-74 round found Level 1 took 30-40 hits to clear versus the ~2-3 hits the task-63 calibration targeted — the underlying assumption (real swings reach ~60% of the new 750 pushMaxSpeed, i.e. ~450 px/step) was wrong; actual swings land far slower. DAMAGE_SCALE is the direct lever (damage is linear in 1/DAMAGE_SCALE, so hit-count scales ~linearly with it), and a straight 10x cut maps 30-40 hits to the requested ~3-4. damageIntensity and the shake threshold were tuned as a set with DAMAGE_SCALE=2000 last round, so scaling them by the same 10x keeps particle-burst and shake feel consistent with that pass's intent rather than maxing out on every routine hit. pushMaxSpeed/meter calibration is left untouched — it doesn't feed the damage formula, so it's an independent follow-up once real speed data exists."
+    },
+    {
+      "date": "2026-07-03",
+      "decision": "Archived all 74 completed/superseded action items to history/action-plan-archive.md, keeping only open items in project-state.json; queued a 16-item graphics/sound polish backlog (tasks 77-92) from the 2026-07-03 project review",
+      "rationale": "project-state.json is re-read at every session briefing, and frameworklite’s token economy favours keeping only live items in context — the plan had grown to ~600 lines, mostly history duplicated by the decisions log. The backlog captures the review’s graphics suggestions (act theming, hit-stop/flash/decals, ribbon trail, sparks, shadow/DPR perf) and sound suggestions (master bus + compressor, jitter, whoosh, material voices, missing events, ambience), with the two big bundles gated on /brainstorm per the design gate."
     }
   ],
-  "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. project_name and TEST_SPEC.md title updated from 'Yoyo Smash' to 'swinging'/'Rat Smash' to match the completed retheme. The prior note about CLAUDE.md test-framework drift no longer applies — the Testing section is current."
+  "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log."
 }
