@@ -5,7 +5,7 @@
   "last_session_date": "2026-06-12",
   "last_session_summary_path": "history/session-002-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Migrated to the frameworklite scaffold; verify the Vitest suite and smoke-test a full playthrough in the new location (tasks 44-45)",
+  "current_activity": "Task 75 (DAMAGE_SCALE 2000->200 correction + paired constant rescale) implemented and documented in CLAUDE.md; 61/61 Vitest tests pass. Awaiting browser playtest of Level 1 hit-count (~3-4 hits expected), then task 45 (full 9-level smoke-test playthrough) resumes.",
   "action_plan": [
     {
       "id": 1,
@@ -269,7 +269,7 @@
       "id": 44,
       "task": "Re-verify the Vitest suite passes in the migrated frameworklite scaffold",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "`npm install` then `npx vitest run` reports 51/51 tests passing with no path or import errors from the new D:\\Frameworkspace\\swinging location"
     },
     {
@@ -277,7 +277,212 @@
       "task": "Smoke-test a full 9-level playthrough post-migration via a local static server",
       "priority": "medium",
       "status": "pending",
-      "done_when": "All 9 levels across 3 acts (Sewer/Warehouse/Lab) can be completed in sequence with no console errors, the CDN-loaded Matter.js/poly-decomp scripts load successfully, and `yoyo_progress` in localStorage reflects updated high scores and unlockedLevel"
+      "done_when": "All 9 levels across 3 acts (Sewer/Warehouse/Lab) can be completed in sequence with no console errors, the CDN-loaded Matter.js/poly-decomp scripts load successfully, and `yoyo_progress` in localStorage reflects updated high scores and unlockedLevel",
+      "context": "Paused mid-playthrough — that session surfaced the tuning/feature feedback in tasks 63-74 (speed/damage recalibration, shape variety, moving targets, giblet blobs, trail tone-down). Resume the full playthrough once those land."
+    },
+    {
+      "id": 46,
+      "task": "Rework rat attachment: hold the rat by the tail instead of a string constraint (replaces the 'String' key concept — affects physics.js constraint setup and renderer.js tail drawing)",
+      "priority": "high",
+      "status": "superseded",
+      "done_when": "/brainstorm has been run to settle the constraint/visual approach before implementation"
+    },
+    {
+      "id": 47,
+      "task": "Tune rat physics so the rat feels less weightless — more effort/momentum-building required to get it up to speed (mass, drag, or constraint stiffness adjustments)",
+      "priority": "high",
+      "status": "superseded",
+      "done_when": "/brainstorm has been run to settle the tuning approach before implementation"
+    },
+    {
+      "id": 48,
+      "task": "Heavier impact feedback: more red splash particles and chunk/fragment debris on each hit, not just on shatter",
+      "priority": "medium",
+      "status": "superseded",
+      "done_when": "/brainstorm has been run to settle the particles.js/renderer.js approach before implementation"
+    },
+    {
+      "id": 49,
+      "task": "physics.js — move attachString's pointB from rat center {x:0,y:0} to a tail-base offset derived from ratBody.plugin.radius (matching the tail-start position in drawRat, ~{x: -r*0.85, y: r*0.22})",
+      "priority": "high",
+      "status": "completed",
+      "context": "First step of the approved tail-attachment redesign (combined #46/#47 brainstorm) — the off-center anchor lets gravity torque the rat to hang below the grip point, giving both the 'held by the tail' feel and a heavier swing."
+    },
+    {
+      "id": 50,
+      "task": "rat.js — tune mass/frictionAir for standard and heavy variants for added swing weight; main.js — adjust constraint stiffness passed to attachString if needed",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 51,
+      "task": "renderer.js — remove drawString(); add a tail-stretch draw routine anchored at the tail base, reusing the existing sag/bow curve math, rendered as a tapered tail",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 52,
+      "task": "renderer.js + main.js — switch rat rotation from accumulated spinAngle/updateSpin to physics-driven body.angle; remove the now-unused spin-tracking code",
+      "priority": "medium",
+      "status": "completed",
+      "context": "Depends on task 49 — once the off-center constraint drives real torque on the rat body, body.angle reflects the natural hang/rotation and the old manually-accumulated spin angle becomes redundant."
+    },
+    {
+      "id": 53,
+      "task": "Browser-test commit — verify swing feel (weight, tail-hold visual, natural hang orientation) across both rat variants and a sample of levels (level 1, a shield level, a bumper level); rebalance par scores/shield breakSpeeds if regressions surface",
+      "priority": "high",
+      "status": "completed",
+      "context": "User playtested manually and iterated on rat.js/main.js tuning directly (4 rounds) rather than touching levels.js — final values logged in the 2026-06-14 tuning decision. Par score / shield breakSpeed rebalance was not flagged as needed, but watch for it if task 45's full playthrough surfaces issues."
+    },
+    {
+      "id": 54,
+      "task": "CLAUDE.md — rewrite the 'String' key concept to describe the new tail-attachment physics (off-center constraint, gravity-driven hang/rotation)",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 55,
+      "task": "particles.js — add shape: 'chunk' to emit() (random rotation + angularVelocity per particle); update() advances rotation; draw() renders chunks as small rotated rectangles instead of circles. Circular particles unchanged.",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 56,
+      "task": "rat.js — add two new per-variant color fields: a worn/scuffed body tone (for HP-based color blend) and a fur-chunk debris tone (for the new rat-chunk particle burst)",
+      "priority": "medium",
+      "status": "completed",
+      "context": "Prep step for tasks 58 and 60, which reference these new fields when emitting rat-chunk particles and blending the body's worn color."
+    },
+    {
+      "id": 57,
+      "task": "physics.js — add isCircle: true to the rat body's plugin object in spawnRat(), so drawCracks() works on it",
+      "priority": "medium",
+      "status": "completed",
+      "context": "main.js already generates crackPattern/cracked data for the rat body based on HP (lines ~152-154) but drawCracks() requires plugin.isCircle to compute maxR — this is the missing piece that lets task 60 render that dormant data as body scuff marks."
+    },
+    {
+      "id": 58,
+      "task": "main.js — add a damage → intensity helper; in the HP-damage hit branch, replace the single existing Particles.emit() with three calls (red blood splash, target chunk debris via material.crackedColor, rat chunk debris via the new fur tone), all scaled by intensity",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 59,
+      "task": "main.js — apply the same three-burst treatment at a larger scale to the existing SHATTER particle emit",
+      "priority": "medium",
+      "status": "completed",
+      "context": "Depends on task 58's intensity helper and three-burst structure — reapplies it at shatter time with larger scale multipliers."
+    },
+    {
+      "id": 60,
+      "task": "renderer.js — in drawRat(), render body.plugin.crackPattern as scuff marks via drawCracks() when body.plugin.cracked is true, and blend the body fill color toward the new worn tone based on hpFraction",
+      "priority": "high",
+      "status": "completed",
+      "context": "Depends on tasks 56 (worn-tone color field) and 57 (isCircle fix) — activates the per-hit crackPattern data main.js already generates but currently discards."
+    },
+    {
+      "id": 61,
+      "task": "Browser-test — verify splash/chunk/body-wear visuals across materials, both rat variants, and HP tiers; check for particle-count/perf issues during rapid combo chains (no cap currently exists in particles.js)",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 62,
+      "task": "CLAUDE.md — update Key Concepts to document the new particle shapes, rat body-wear rendering, and the new rat.js color fields",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 63,
+      "task": "rat.js — recalibrate pushMaxSpeed: standard 600→750, heavy 500→625 (both ×1.25), so the realistic top swing speed (~450/375) reads as 60% on the speed meter instead of ~75%",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 64,
+      "task": "main.js — recalibrate DAMAGE_SCALE 1200→2000, so a clean realistic-top-speed hit no longer guarantees a 1-hit shatter on most materials, raising the skill ceiling for the ideal (1-hit) score",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 65,
+      "task": "main.js — rescale the two damage-derived visual-feedback constants by the same 0.6× factor as DAMAGE_SCALE: shake threshold `damage > 20` → `> 12`, and damageIntensity saturation `damage / 40` → `damage / 24`",
+      "priority": "medium",
+      "status": "completed",
+      "context": "Depends on task 64 — without this, screen-shake and impact-burst intensity would trigger at higher real speeds than before, even though the underlying hit feels the same."
+    },
+    {
+      "id": 66,
+      "task": "levels.js — shape variety: convert the single rectangle target in level 1 ('Pipe Dreams') and level 7 ('Deflection') to circles, and the top glass block in level 3 ('The Stack') to a circle",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 67,
+      "task": "levels.js — add a `movement` field to the steel vault in level 6 ({ axis: 'y', range: 0.04, period: 2.5 }) and the steel target in level 9 ({ axis: 'x', range: 0.03, period: 2.0 })",
+      "priority": "medium",
+      "status": "completed",
+      "context": "Depends on tasks 68-69 to actually move the targets — the field is inert schema until physics.js/main.js read it."
+    },
+    {
+      "id": 68,
+      "task": "physics.js — in spawnTargets, store plugin.movement (rangePx + basePos) for targets with a `movement` field; add exported updateMovingTargets(elapsed) that repositions those bodies via Body.setPosition along a sine wave",
+      "priority": "high",
+      "status": "completed"
+    },
+    {
+      "id": 69,
+      "task": "main.js — track an `elapsed` time accumulator (reset in startLevel, advanced by dt during SWINGING) and call Physics.updateMovingTargets(elapsed) each frame",
+      "priority": "high",
+      "status": "completed",
+      "context": "Depends on task 68's updateMovingTargets export."
+    },
+    {
+      "id": 70,
+      "task": "physics.js — in spawnRatFragments, replace the shapeType field with a blobVerts array (8-9 vertices, jittered radius 0.7-1.2×) generated once per fragment for organic 'flesh chunk' shapes",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 71,
+      "task": "renderer.js — rewrite drawFragments to render blobVerts as a closed, quadratic-curve-smoothed lumpy outline instead of the shapeType switch",
+      "priority": "medium",
+      "status": "completed",
+      "context": "Depends on task 70's blobVerts data."
+    },
+    {
+      "id": 72,
+      "task": "renderer.js — updateTrail(x, y, maxLen) caps the trail buffer at maxLen (default TRAIL_MAX=30); lower drawTrail's per-segment alpha multiplier from 0.45 to 0.25",
+      "priority": "low",
+      "status": "completed"
+    },
+    {
+      "id": 73,
+      "task": "main.js — pass RAT_VARIANTS[selectedVariant].trailLength (20 standard / 12 heavy) as maxLen to Renderer.updateTrail, activating the previously-dormant per-variant trail length",
+      "priority": "low",
+      "status": "completed",
+      "context": "Depends on task 72's updateTrail signature change."
+    },
+    {
+      "id": 74,
+      "task": "CLAUDE.md — update DAMAGE_SCALE/damageIntensity values in Key Concepts, add a 'Moving targets' Key Concept, update 'Giblets' to describe blob shapes, and document the new `movement` field in 'Adding Content'",
+      "priority": "medium",
+      "status": "completed"
+    },
+    {
+      "id": 75,
+      "task": "main.js — correct DAMAGE_SCALE 2000->200, damageIntensity saturation 24->240, shake threshold 12->120 (shakeIntensity divisor 8->80); update CLAUDE.md HP system and Impact feedback bullets accordingly",
+      "priority": "high",
+      "status": "completed",
+      "context": "Playtest of tasks 63-74 found Level 1 took 30-40 hits instead of the targeted ~2-3; the task-63 calibration assumption (real swings reach ~60% of pushMaxSpeed) was wrong. This is a direct 10x correction to bring Level 1 to ~3-4 hits."
+    },
+    {
+      "id": 76,
+      "task": "Playtest Level 1 (and a few other levels) with DAMAGE_SCALE=200 to confirm hit-count lands around 3-4 and that particle bursts / screen shake feel proportionate, not maxed-out on every hit",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Level 1 clears in roughly 3-4 hits, particle bursts scale visibly with hit strength rather than always appearing at full size, and shake fires only on stronger/combo hits",
+      "context": "Validation step for task 75's correction before resuming task 45's full playthrough."
     }
   ],
   "recently_updated_files": [
@@ -361,6 +566,36 @@
       "date": "2026-06-12",
       "decision": "Migrated project management files (spec.md, CLAUDE.md, project-state.json, .gitignore, TEST_SPEC.md) to the frameworklite scaffold, preserving existing git history and game code as-is — no game files moved or renamed",
       "rationale": "Project was feature-complete (43/43 prior action items done); frameworklite's session-briefing/action-plan conventions add continuity without disrupting the working game or its commit history on origin/main"
+    },
+    {
+      "date": "2026-06-14",
+      "decision": "Tail-attachment redesign (combined #46+#47): move the rat's swing constraint from its center to a tail-base anchor point, paired with mass/frictionAir tuning on both variants; the rope visual (drawString) is replaced by the rat's own tail stretching to the pivot, and rotation switches from accumulated spinAngle to physics-driven body.angle",
+      "rationale": "An off-center attachment lets gravity naturally torque the rat to hang below the grip point — literally 'held by the tail' — while also being the most direct, lowest-risk lever for the weightless feel (#47), since it doesn't touch collision detection, fragment spawning, or the damage formula. A two-body ragdoll rat was considered and rejected as architecturally oversized for this scope."
+    },
+    {
+      "date": "2026-06-14",
+      "decision": "Tail-attachment rebalance settled after 4 rounds of playtesting. Final values — standard rat: mass 1.0→4.5, frictionAir 0.005→0.025, restitution 0.35→0.05; heavy rat: mass 3.5→11.5, frictionAir 0.003→0.015, restitution 0.1→0.02; constraint stiffness 0.65→0.35",
+      "rationale": "The first two tuning passes (mass/frictionAir increases, stiffness decreases) weren't enough — user reported no major difference. The decisive change was reversing frictionAir direction to a sharp ~5x increase (faster momentum decay, more effort to reach top speed) and dropping rat restitution near zero (less bounce, more hit-and-slide). Accepted as good for now. Caveat: Matter.js resolves collision restitution as max(rat, target), so steel targets (restitution 0.55 in target.js) will still bounce regardless of the rat's value — a target.js follow-up if that surfaces during task 45's full playthrough."
+    },
+    {
+      "date": "2026-06-14",
+      "decision": "Heavier impact feedback (supersedes #48, expanded to include rat body-wear): extend particles.js with a rotating 'chunk' shape; on every HP-damage hit, fire three damage-scaled bursts (red blood splash, target-material chunk debris via material.crackedColor, rat-fur chunk debris via a new variant color); reuse the already-generated-but-unrendered yoyo.plugin.crackPattern to draw scuff marks on the rat's body via drawCracks(), plus an HP-based body color blend toward a new worn tone",
+      "rationale": "Builds entirely on existing systems — particles.js's emit/update/draw loop, target.js's crackedColor palette, and main.js's dormant per-hit crackPattern generation for the rat body — so no new physics bodies or rendering pipelines are needed. This keeps the change low-risk and avoids the perf cost of spawning Matter.js fragments on every combo hit (a physics-debris approach was considered and rejected for that reason). The new 'chunk' particle shape gives debris a distinct angular silhouette from the round blood splashes."
+    },
+    {
+      "date": "2026-06-14",
+      "decision": "Heavier impact feedback rebalanced after playtesting: chunk/debris particle radius now scales from 1x (current size, at damageIntensity 0) up to 3x (at damageIntensity 1) instead of a fixed size; chunk-shaped particles also have an 8% chance to spawn 2.5x-4x oversized for rare visual variety; SHATTER-time giblet fragments render as one of 4 random shapes (blob/triangle/rect/diamond) instead of always ellipses",
+      "rationale": "First playtesting pass found the fixed debris size didn't read as more impactful on harder hits, and the uniform ellipse giblets looked repetitive on shatter. Scaling radius with damageIntensity (already used for particle count) ties debris size directly to hit strength with no new state; the 8% oversized roll and shapeType variety (physics.js fragment plugin field, consumed in renderer.js drawFragments) add visual variance cheaply since both reuse existing per-particle/per-fragment data."
+    },
+    {
+      "date": "2026-06-14",
+      "decision": "Four-part tuning/feature round (tasks 63-74), surfaced during task 45's playthrough: (1) recalibrate speed meter + damage formula — pushMaxSpeed ×1.25 (standard 600→750, heavy 500→625) and DAMAGE_SCALE 1200→2000, with the shake-threshold and damageIntensity-saturation constants rescaled ×0.6 to match — so the realistic top swing speed reads as 60% on the meter and 1-hit shatters require near-max effort/combo; (2) shape variety — convert 3 rectangle targets (levels 1, 3, 7) to circles; (3) a new moving-target mechanic — static bodies repositioned via Body.setPosition along a sine wave, driven by a `movement: { axis, range, period }` level schema field, applied to levels 6 and 9; (4) replace the 4 geometric giblet fragment shapes with organic jittered-radius 'flesh chunk' blobs; (5) shorten/soften the rat's swing trail by activating the previously-dormant per-variant trailLength field (20/12 vs the global cap of 30) and lowering the trail's alpha multiplier",
+      "rationale": "Recalibration keeps the meter/damage relationship internally consistent (pushMaxSpeed and DAMAGE_SCALE scaled by inverse factors) while raising the skill ceiling, rather than just rescaling the HUD. Moving targets reuse static bodies + Body.setPosition so collision/damage formulas need no changes — a dynamic-body approach was rejected as unnecessary complexity. Giblet blobs and trail tone-down both activate/reuse existing per-fragment and per-variant data rather than adding new state, consistent with this project's preference for repurposing dormant fields."
+    },
+    {
+      "date": "2026-06-14",
+      "decision": "Corrected the task-63 damage recalibration: DAMAGE_SCALE 2000→200 (a 10x cut), with damageIntensity's saturation point (24→240) and the screen-shake damage threshold (12→120, shakeIntensity divisor 8→80) scaled by the same factor to preserve their relative tuning; CLAUDE.md's HP system and Impact feedback bullets updated, and the now-disproven '~450px/60%=realistic ceiling' claim removed pending real swing-speed data.",
+      "rationale": "Playtesting the tasks 63-74 round found Level 1 took 30-40 hits to clear versus the ~2-3 hits the task-63 calibration targeted — the underlying assumption (real swings reach ~60% of the new 750 pushMaxSpeed, i.e. ~450 px/step) was wrong; actual swings land far slower. DAMAGE_SCALE is the direct lever (damage is linear in 1/DAMAGE_SCALE, so hit-count scales ~linearly with it), and a straight 10x cut maps 30-40 hits to the requested ~3-4. damageIntensity and the shake threshold were tuned as a set with DAMAGE_SCALE=2000 last round, so scaling them by the same 10x keeps particle-burst and shake feel consistent with that pass's intent rather than maxing out on every routine hit. pushMaxSpeed/meter calibration is left untouched — it doesn't feed the damage formula, so it's an independent follow-up once real speed data exists."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. project_name and TEST_SPEC.md title updated from 'Yoyo Smash' to 'swinging'/'Rat Smash' to match the completed retheme. The prior note about CLAUDE.md test-framework drift no longer applies — the Testing section is current."

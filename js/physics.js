@@ -93,7 +93,7 @@ export function spawnRat(x, y, variantKey, asStatic = false) {
     friction: v.friction,
     frictionAir: v.frictionAir,
     collisionFilter: { category: 0x0001, mask: 0x0002 | 0x0004 },
-    plugin: { impactMultiplier: v.impactMultiplier, variantKey, radius: v.radius, fragmentsSpawned: false },
+    plugin: { impactMultiplier: v.impactMultiplier, variantKey, radius: v.radius, isCircle: true, fragmentsSpawned: false },
   });
   Body.setMass(ratBody, v.mass);
   if (asStatic) Body.setStatic(ratBody, true);
@@ -103,10 +103,13 @@ export function spawnRat(x, y, variantKey, asStatic = false) {
 
 export function attachString(pivotX, pivotY, length, stiffness = 1.0) {
   if (stringConstraint) Composite.remove(world, stringConstraint);
+  // Grip the tail base, not the body center — matches the tail-start point
+  // drawn in renderer's drawRat, so the rat hangs from its tail.
+  const r = ratBody.plugin.radius;
   stringConstraint = Constraint.create({
     pointA: { x: pivotX, y: pivotY },
     bodyB: ratBody,
-    pointB: { x: 0, y: 0 },
+    pointB: { x: -r * 0.85, y: r * 0.22 },
     length,
     stiffness,
     damping: 0.0,
@@ -140,6 +143,7 @@ export function spawnTargets(levelTargets) {
           fragmentsSpawned: false,
           isShield: td.isShield || false,
           breakSpeed: td.breakSpeed || 0,
+          movement: makeMovementPlugin(td.movement, x, y),
         },
       });
     } else {
@@ -158,6 +162,7 @@ export function spawnTargets(levelTargets) {
           fragmentsSpawned: false,
           isShield: td.isShield || false,
           breakSpeed: td.breakSpeed || 0,
+          movement: makeMovementPlugin(td.movement, x, y),
         },
       });
     }
@@ -165,6 +170,27 @@ export function spawnTargets(levelTargets) {
     targetBodies.push(body);
   }
   return targetBodies;
+}
+
+function makeMovementPlugin(movement, x, y) {
+  if (!movement) return null;
+  return {
+    axis: movement.axis,
+    rangePx: movement.range * (movement.axis === 'x' ? canvasW : canvasH),
+    period: movement.period,
+    basePos: { x, y },
+  };
+}
+
+export function updateMovingTargets(elapsed) {
+  for (const body of targetBodies) {
+    const m = body.plugin.movement;
+    if (!m) continue;
+    const offset = Math.sin((elapsed / m.period) * Math.PI * 2) * m.rangePx;
+    const pos = { x: m.basePos.x, y: m.basePos.y };
+    if (m.axis === 'x') pos.x += offset; else pos.y += offset;
+    Body.setPosition(body, pos);
+  }
 }
 
 export function spawnBumpers(levelBumpers = []) {
@@ -206,6 +232,17 @@ export function applyBreak(yoyo, outcome, hitPoint, blastBonus) {
   }
 }
 
+function generateBlobVerts(count = 9) {
+  const verts = [];
+  for (let i = 0; i < count; i++) {
+    verts.push({
+      angle: (i / count) * Math.PI * 2,
+      radiusMul: 0.7 + Math.random() * 0.5,
+    });
+  }
+  return verts;
+}
+
 function spawnRatFragments(yoyo, hitPoint, blastBonus = 1) {
   const r = yoyo.plugin.radius || 18;
   const cx = yoyo.position.x;
@@ -227,7 +264,7 @@ function spawnRatFragments(yoyo, hitPoint, blastBonus = 1) {
         friction: 0.4,
         frictionAir: 0.01,
         collisionFilter: { category: 0x0004, mask: 0x0002 | 0x0004 | 0x0008 },
-        plugin: { variantKey: yoyo.plugin.variantKey, born: Date.now() },
+        plugin: { variantKey: yoyo.plugin.variantKey, born: Date.now(), blobVerts: generateBlobVerts() },
       }
     );
     const dx = frag.position.x - hitPoint.x;

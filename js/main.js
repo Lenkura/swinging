@@ -27,7 +27,7 @@ fitToViewport();
 // --- State machine ---
 // States: PICKER | SWINGING | IMPACT | RESULT
 const RAT_MAX_HP = 100;
-const DAMAGE_SCALE = 1200; // px²·step⁻² per HP — raise to nerf damage, lower to buff
+const DAMAGE_SCALE = 200; // px²·step⁻² per HP — raise to nerf damage, lower to buff
 
 let gameState = 'PICKER';
 let currentLevelId = 1;
@@ -50,6 +50,7 @@ let lastOutcome = null;
 let lastScore = 0;
 let impactTimer = 0;
 let spinAccum = 0; // accumulated spin angle for renderer
+let elapsed = 0; // seconds since level start, drives moving-target oscillation
 
 function currentLevel() {
   return getLevel(currentLevelId);
@@ -60,6 +61,38 @@ function computePivot(level) {
     x: level.pivot.x * CANVAS_W,
     y: level.pivot.y * CANVAS_H,
   };
+}
+
+function damageIntensity(damage) {
+  return Math.min(damage / 240, 1);
+}
+
+// Three-part impact burst: red blood splash (rat), material-colored chunk
+// debris (target), and fur-colored chunk debris (rat). scale=2 is used for
+// the bigger SHATTER-time burst.
+function emitImpactBurst(x, y, intensity, material, variant, scale = 1) {
+  Particles.emit(x, y, {
+    count: Math.round((4 + intensity * 8) * scale),
+    color: '#b0202a',
+    speed: 140 + intensity * 120,
+    radius: (2.5 + intensity * 1.5) * scale,
+  });
+
+  Particles.emit(x, y, {
+    count: Math.round((2 + intensity * 6) * scale),
+    color: material.crackedColor,
+    speed: 120 + intensity * 140,
+    radius: 3 * (1 + intensity * 2) * scale,
+    shape: 'chunk',
+  });
+
+  Particles.emit(x, y, {
+    count: Math.round((2 + intensity * 5) * scale),
+    color: variant.chunkColor,
+    speed: 120 + intensity * 120,
+    radius: 2.5 * (1 + intensity * 2) * scale,
+    shape: 'chunk',
+  });
 }
 
 // --- Setup ---
@@ -142,8 +175,8 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
       hitLabel = { text: 'CLEAN HIT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#80ffdb' };
     }
 
-    if (damage > 20) {
-      shakeIntensity = Math.min(damage / 8, 10);
+    if (damage > 120) {
+      shakeIntensity = Math.min(damage / 80, 10);
       shakeTimer = SHAKE_DURATION;
     }
 
@@ -153,12 +186,8 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     const crackCount = hpFrac < 0.25 ? 12 : hpFrac < 0.5 ? 8 : hpFrac < 0.75 ? 4 : 0;
     if (crackCount > 0) yoyo.plugin.crackPattern = generateCrackPattern(crackCount);
 
-    Particles.emit(hitPoint.x, hitPoint.y, {
-      count: 6,
-      color: variant.color,
-      speed: 180,
-      radius: 3,
-    });
+    const intensity = damageIntensity(damage);
+    emitImpactBurst(hitPoint.x, hitPoint.y, intensity, material, variant);
 
     if (ratHp <= 0) {
       gameState = 'IMPACT';
@@ -166,7 +195,7 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
       lastScore = calcPushScore(hitCount);
       playShatter();
       Physics.applyBreak(yoyo, 'SHATTER', hitPoint, variant.blastBonus);
-      Particles.emit(hitPoint.x, hitPoint.y, { count: 20, color: variant.color, speed: 350, radius: 5 });
+      emitImpactBurst(hitPoint.x, hitPoint.y, 1, material, variant, 2);
       impactTimer = 0.85;
     }
 });
@@ -182,6 +211,7 @@ function startLevel() {
   pivot = computePivot(level);
   stringLength = level.stringLength;
   spinAccum = 0;
+  elapsed = 0;
 
   ratHp = RAT_MAX_HP;
   hitCount = 0;
@@ -203,7 +233,7 @@ function startLevel() {
   // Spawn rat and setup push-mode input
   const psl = level.pushStringLength || stringLength;
   Physics.spawnRat(pivot.x, pivot.y + psl, selectedVariant);
-  Physics.attachString(pivot.x, pivot.y, psl, 0.65);
+  Physics.attachString(pivot.x, pivot.y, psl, 0.35);
   Input.init(canvas, pivot);
   Input.attachToCanvas(canvas);
 
@@ -226,6 +256,10 @@ function gameLoop(timestamp) {
 
   // Physics step (all states except PICKER/RESULT where physics needn't run)
   if (gameState !== 'PICKER' && gameState !== 'RESULT') {
+    if (gameState === 'SWINGING') {
+      elapsed += dt;
+      Physics.updateMovingTargets(elapsed);
+    }
     Physics.step(dt * 1000);
     Particles.update(dt);
     if (hitCooldown > 0) hitCooldown -= dt;
@@ -246,12 +280,11 @@ function gameLoop(timestamp) {
     }
   }
 
-  // Update trail and spin from physics body during swing
+  // Update trail from physics body during swing
   if (gameState === 'SWINGING') {
     const yb = Physics.getRatBody();
     if (yb) {
-      Renderer.updateTrail(yb.position.x, yb.position.y);
-      Renderer.updateSpin(yb.angularVelocity * 60, 1 / 60);
+      Renderer.updateTrail(yb.position.x, yb.position.y, RAT_VARIANTS[selectedVariant].trailLength);
     }
   }
 

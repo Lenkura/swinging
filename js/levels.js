@@ -15,7 +15,7 @@ export const LEVELS = [
     stringLength: 140,
     pushStringLength: 130,
     targets: [
-      { shape: 'rectangle', w: 60, h: 90, x: 0.66, y: 0.57, material: 'glass' },
+      { shape: 'circle', r: 36, x: 0.66, y: 0.57, material: 'glass' },
     ],
     parScore: 1200,
     pushParScore: 1800,
@@ -48,7 +48,7 @@ export const LEVELS = [
     stringLength: 130,
     pushStringLength: 140,
     targets: [
-      { shape: 'rectangle', w: 52, h: 38, x: 0.64, y: 0.42, material: 'glass' },
+      { shape: 'circle', r: 26, x: 0.64, y: 0.42, material: 'glass' },
       { shape: 'rectangle', w: 60, h: 42, x: 0.64, y: 0.54, material: 'wood' },
       { shape: 'rectangle', w: 68, h: 42, x: 0.64, y: 0.66, material: 'steel' },
     ],
@@ -107,7 +107,7 @@ export const LEVELS = [
     stringLength: 140,
     pushStringLength: 120,
     targets: [
-      { shape: 'rectangle', w: 82, h: 102, x: 0.78, y: 0.53, material: 'steel' },
+      { shape: 'rectangle', w: 82, h: 102, x: 0.78, y: 0.53, material: 'steel', movement: { axis: 'y', range: 0.04, period: 2.5 } },
       { shape: 'rectangle', w: 12, h: 114, x: 0.60, y: 0.53, material: 'glass', isShield: true, breakSpeed: 100 },
       { shape: 'rectangle', w: 14, h: 114, x: 0.68, y: 0.53, material: 'wood', isShield: true, breakSpeed: 180 },
     ],
@@ -130,7 +130,7 @@ export const LEVELS = [
     stringLength: 150,
     pushStringLength: 150,
     targets: [
-      { shape: 'rectangle', w: 65, h: 86, x: 0.72, y: 0.56, material: 'wood' },
+      { shape: 'circle', r: 40, x: 0.72, y: 0.56, material: 'wood' },
     ],
     bumpers: [
       { x: 0.50, y: 0.60, radius: 22 },
@@ -172,7 +172,7 @@ export const LEVELS = [
     targets: [
       { shape: 'rectangle', w: 55, h: 76, x: 0.74, y: 0.52, material: 'wood' },
       { shape: 'circle', r: 28, x: 0.66, y: 0.66, material: 'glass' },
-      { shape: 'rectangle', w: 60, h: 86, x: 0.86, y: 0.56, material: 'steel' },
+      { shape: 'rectangle', w: 60, h: 86, x: 0.86, y: 0.56, material: 'steel', movement: { axis: 'x', range: 0.03, period: 2.0 } },
       { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.52, material: 'glass', isShield: true, breakSpeed: 100 },
     ],
     bumpers: [

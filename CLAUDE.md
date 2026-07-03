@@ -156,17 +156,19 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 
 ## Key Concepts
 
-- **Pivot**: the string attachment point; follows the pointer every frame (no button hold required). Defined per-level as `{x, y}` fractions of canvas size; overridden to the constraint anchor position during play.
-- **String**: a Matter.js `Constraint` with `stiffness: 0.65`. Never released — the rat stays attached until it shatters.
-- **HP system**: `ratHp` starts at 100. Damage per hit = `speed² × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / DAMAGE_SCALE` (`DAMAGE_SCALE = 1200`). HP floors at 0; the rat shatters (giblets) when HP reaches 0.
+- **Pivot**: the hand/grip point; follows the pointer every frame (no button hold required). Defined per-level as `{x, y}` fractions of canvas size; overridden to the constraint anchor position during play.
+- **Tail attachment**: a Matter.js `Constraint` with `stiffness: 0.35`, anchored to the rat's tail base (`pointB` offset from body center) rather than its center — gravity torques the off-center body to hang and rotate below the grip point, so the rat is held by the tail, not a string. Never released — the rat stays attached until it shatters. Rendered as the rat's own tail stretching to the pivot using a sag/bow curve, replacing the old rope visual; the rat's rotation (`ctx.rotate`) follows the physics body's `angle` directly.
+- **HP system**: `ratHp` starts at 100. Damage per hit = `speed² × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / DAMAGE_SCALE` (`DAMAGE_SCALE = 200`). HP floors at 0; the rat shatters (giblets) when HP reaches 0. `DAMAGE_SCALE` was raised to 2000 in an earlier pass on the (incorrect) assumption that real swings reach ~60% of `pushMaxSpeed`; playtesting showed actual swing speeds land far below that, producing 30-40 hits to clear Level 1, so it was corrected back down to 200 (~3-4 hits on Level 1 for a typical swing). The `pushMaxSpeed` values (750 standard / 625 heavy) and the speed-meter calibration remain unvalidated against real swing data and may need their own pass.
 - **Hit cooldown**: 0.35s lock-out after each registered hit. Prevents the physics engine from double-counting a single contact.
 - **Combo system**: Each hit within `COMBO_WINDOW` (1.0s) increments `comboCount`. Multiplier = `min(1 + comboCount × 0.5, 3.0)`. Resets if the window expires before the next hit.
 - **calcPushScore**: `max(200, 3000 − (hits − 1) × 500)` — 1 hit = 3000, each extra hit costs 500, floor = 200.
 - **Shields** (`isShield: true` on a target): blocked unless rat speed ≥ `breakSpeed`. On break, the shield body is removed; no HP damage is dealt. On a too-slow hit, a "TOO SLOW!" label is shown.
 - **Bumpers**: static circular bodies with high restitution (0.9). Deflect the rat without dealing HP damage. Spawned from the level's `bumpers[]` array.
 - **Materials**: defined in `target.js` — glass, wood, steel each have `shatterThreshold`, `crackThreshold`, `fragmentCount`, `fragmentSpread`, `yoyoDamage`.
-- **Damage states**: four visual states driven by `ratHp / RAT_MAX_HP` — healthy (≥ 75%), dazed (50–75%, orbiting stars), injured (25–50%, wound marks + blood drips), critical (< 25%, red stars + more drips + × eyes).
-- **Giblets**: on shatter, 8 elliptical fragment bodies spawn with radial velocity; removed from the world after 4000ms.
+- **Damage states**: four overlay states driven by `ratHp / RAT_MAX_HP` — healthy (≥ 75%), dazed (50–75%, orbiting stars), injured (25–50%, wound marks + blood drips), critical (< 25%, red stars + more drips + × eyes). Independently, the rat's body/head fill blends from `variant.color` toward `variant.wornColor` as HP drops, and the per-hit `crackPattern` (generated once HP < 75%) renders as scuff marks on the rat's body via `drawCracks()`.
+- **Impact feedback**: every HP-damaging hit fires three `particles.js` bursts via `emitImpactBurst` — a red blood splash (circle), target-material chunk debris (`material.crackedColor`), and rat-fur chunk debris (`variant.chunkColor`), the latter two using the `shape: 'chunk'` (rotating rectangle) particle type. Burst size/count scale with `damageIntensity(damage)` (0–1, saturating at `damage = 240`): chunk radii range from their base size up to 3× at full intensity, and ~8% of chunks spawn 2.5–4× oversized for variety. SHATTER reuses the same burst at `scale: 2`.
+- **Giblets**: on shatter, 8 fragment bodies (circular Matter.js bodies) spawn with radial velocity, each rendered as an organic "flesh chunk" blob — a closed, quadratic-curve-smoothed outline through 8-9 vertices with jittered radii (`plugin.blobVerts`, generated once per fragment); removed from the world after 4000ms.
+- **Moving targets**: a target with a `movement: { axis, range, period }` field oscillates sinusoidally around its spawn position along `axis` (`'x'` or `'y'`), `range` (fraction of canvas width/height) wide, over `period` seconds — driven by `Physics.updateMovingTargets(elapsed)`, called each frame during SWINGING. The body stays `isStatic`; only its position is repositioned via `Body.setPosition`, so collision/damage formulas are unaffected.
 - **Act structure**: 9 levels in 3 acts. Act 1 (The Sewer) — varied shapes, no new mechanics. Act 2 (The Warehouse) — introduces shields. Act 3 (The Lab) — introduces bumpers. An ACT CLEAR screen appears when the last level of an act is shattered.
 - **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel`.
 
@@ -180,11 +182,11 @@ Required fields: `id`, `act`, `name`, `background`, `groundColor`, `pivot`, `tar
 
 Optional fields: `hint`, `pushStringLength` (overrides `stringLength`), `pushParScore` (default 1500), `bumpers[]`.
 
-Target fields: `shape` (`'rectangle'` or `'circle'`), `x`, `y`, `material`, and for rectangles `w`/`h`, for circles `r`. Shield targets add `isShield: true` and `breakSpeed` (minimum rat speed to break).
+Target fields: `shape` (`'rectangle'` or `'circle'`), `x`, `y`, `material`, and for rectangles `w`/`h`, for circles `r`. Shield targets add `isShield: true` and `breakSpeed` (minimum rat speed to break). Optional `movement: { axis: 'x'|'y', range, period }` makes the target oscillate — `range` is a fraction of canvas width (`axis: 'x'`) or height (`axis: 'y'`), `period` is the full oscillation in seconds.
 
 Bumper fields: `x`, `y`, `radius`.
 
-**New rat variant**: add to `RAT_VARIANTS` in `rat.js` and add a picker button in `index.html` with class `rat-btn`.
+**New rat variant**: add to `RAT_VARIANTS` in `rat.js` and add a picker button in `index.html` with class `rat-btn`. Color fields `wornColor` (body-wear blend target) and `chunkColor` (fur-debris particle color) are required — `renderer.js`'s `blendHexColors` and `main.js`'s `emitImpactBurst` read them unconditionally.
 
 **New material**: add to `MATERIALS` in `target.js`.
 
