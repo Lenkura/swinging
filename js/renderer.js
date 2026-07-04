@@ -15,6 +15,35 @@ let cachedGradientKey = '';
 let cachedGroundCanvas = null;
 let cachedGroundKey = '';
 
+// Persistent ground decal layer — blood splats accumulate across the whole
+// attempt and are cleared on level restart.
+let decalCanvas = null;
+let decalCtx = null;
+
+export function paintSplat(x, intensity, scale = 1) {
+  if (!decalCanvas) {
+    decalCanvas = document.createElement('canvas');
+    decalCanvas.width = canvasW;
+    decalCanvas.height = canvasH;
+    decalCtx = decalCanvas.getContext('2d');
+  }
+  const groundTop = canvasH - 40; // surface line drawn by drawGround
+  const count = Math.round((3 + intensity * 5) * scale);
+  for (let i = 0; i < count; i++) {
+    const sx = x + (Math.random() - 0.5) * (70 + intensity * 90) * scale;
+    const sy = groundTop + 4 + Math.random() * 26;
+    const r = (2 + Math.random() * 3.5 * (0.5 + intensity)) * scale;
+    decalCtx.beginPath();
+    decalCtx.ellipse(sx, sy, r * (1.3 + Math.random() * 0.8), r * 0.55, 0, 0, Math.PI * 2);
+    decalCtx.fillStyle = `rgba(${110 + Math.floor(Math.random() * 40)},8,14,${0.45 + Math.random() * 0.3})`;
+    decalCtx.fill();
+  }
+}
+
+export function clearDecals() {
+  if (decalCtx) decalCtx.clearRect(0, 0, decalCanvas.width, decalCanvas.height);
+}
+
 export function init(canvasEl) {
   canvas = canvasEl;
   ctx = canvas.getContext('2d');
@@ -49,6 +78,8 @@ export function draw({
   comboCount = 0,
   hitLabel = null,
   shake = 0,
+  flash = false,
+  squash = 0,
 }) {
   ctx.clearRect(0, 0, canvasW, canvasH);
   ctx.save();
@@ -61,6 +92,7 @@ export function draw({
 
   drawBackground(level);
   drawGround(level);
+  if (decalCanvas) ctx.drawImage(decalCanvas, 0, 0);
 
   const ratVariant = yoyoBody ? RAT_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'] : null;
 
@@ -74,7 +106,7 @@ export function draw({
   drawTargets(targetBodies);
 
   if (yoyoBody) {
-    drawRat(yoyoBody, ratVariant, hpFraction);
+    drawRat(yoyoBody, ratVariant, hpFraction, flash, squash);
     if (yoyoBody.plugin.cracked && yoyoBody.plugin.crackPattern) {
       drawCracks(yoyoBody, yoyoBody.plugin.crackPattern);
     }
@@ -218,12 +250,26 @@ function blendHexColors(hexA, hexB, t) {
   return `rgb(${r},${g},${bl})`;
 }
 
-function drawRat(body, variant, hpFraction) {
+function drawRat(body, variant, hpFraction, flash = false, squash = 0) {
   const { x, y } = body.position;
   const r = variant.radius;
   const bodyColor = blendHexColors(variant.color, variant.wornColor, 1 - hpFraction);
   ctx.save();
   ctx.translate(x, y);
+
+  // Squash-and-stretch along the travel direction: subtle stretch with
+  // speed, compression pulse on impact while squash outweighs it.
+  const vx = body.velocity.x, vy = body.velocity.y;
+  const speed = Math.hypot(vx, vy);
+  const stretch = Math.min(speed / 120, 1) * 0.14;
+  const net = stretch - squash * 0.3;
+  if (speed > 0.5 && Math.abs(net) > 0.005) {
+    const va = Math.atan2(vy, vx);
+    ctx.rotate(va);
+    ctx.scale(1 + net, 1 - net * 0.7);
+    ctx.rotate(-va);
+  }
+
   ctx.rotate(body.angle);
 
   // Body
@@ -325,6 +371,27 @@ function drawRat(body, variant, hpFraction) {
 
   // Damage state overlays
   if (hpFraction < 0.75) drawRatDamage(hpFraction, hx, hy - hr * 0.6, r);
+
+  // Impact flash — white blink over the rat silhouette for a couple frames
+  if (flash) {
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.92, r * 0.65, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+    ctx.fill();
+    for (const [ex, ey, er] of [
+      [hx - r * 0.12, hy - hr * 0.85, r * 0.22],
+      [hx + r * 0.22, hy - hr * 0.72, r * 0.18],
+    ]) {
+      ctx.beginPath();
+      ctx.arc(ex, ey, er, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   ctx.restore();
 }

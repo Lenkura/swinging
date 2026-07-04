@@ -1,4 +1,5 @@
 import { ACT_NAMES } from './levels.js';
+import { setMuted, isMuted } from './audio.js';
 
 const resultPanel = document.getElementById('result-panel');
 const resultOutcome = document.getElementById('result-outcome');
@@ -13,6 +14,7 @@ const startBtn = document.getElementById('start-btn');
 const ratBtns = document.querySelectorAll('.rat-btn');
 const lsPanel = document.getElementById('level-select');
 const lsGrid = document.getElementById('ls-grid');
+const muteBtn = document.getElementById('mute-btn');
 
 let selectedVariant = 'standard';
 let scoreInterval = null;
@@ -42,6 +44,12 @@ export function init() {
 
   lsBtn.addEventListener('click', () => {
     if (callbacks.levelSelectBack) callbacks.levelSelectBack();
+  });
+
+  muteBtn.textContent = isMuted() ? '🔇' : '🔊';
+  muteBtn.addEventListener('click', () => {
+    setMuted(!isMuted());
+    muteBtn.textContent = isMuted() ? '🔇' : '🔊';
   });
 }
 
