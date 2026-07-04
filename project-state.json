@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-002-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Hygiene pass done (2026-07-03): tasks 49-75 committed, completed action items archived to history/action-plan-archive.md, spec.md Vitest criterion ticked (61/61), graphics/sound polish backlog added as tasks 77-92. Next: task 76 (Level 1 playtest of DAMAGE_SCALE=200), then task 45 (full 9-level smoke test).",
+  "current_activity": "Game-feel bundle (tasks 93-97) implemented on swinging/feat/game-feel-bundle (branched off tail-attachment-weight, whose code it depends on); syntax-checked and 61/61 Vitest tests pass. Remaining: task 98's browser playtest to perceptually verify all five effects (and tune FLASH/SQUASH durations, whoosh curve, splat sizes if needed), plus the still-pending tasks 76 and 45 playtests.",
   "action_plan": [
     {
       "id": 45,
@@ -56,22 +56,22 @@
       "id": 81,
       "task": "main.js — hit-stop: freeze the simulation ~40-80ms on high-damage hits, scaled by damageIntensity, composing with the existing screen shake",
       "priority": "medium",
-      "status": "pending",
-      "context": "Game-feel pass — run /brainstorm on the bundle (81, 82, 83, 87, 89) before implementing."
+      "status": "superseded",
+      "context": "Superseded by task 95 (2026-07-03 game-feel design)."
     },
     {
       "id": 82,
       "task": "renderer.js — one-frame white impact flash on the rat at hit time, plus squash-and-stretch (scale along velocity vector, brief squash at impact) in drawRat",
       "priority": "medium",
-      "status": "pending",
-      "context": "Game-feel pass."
+      "status": "superseded",
+      "context": "Superseded by task 96 (2026-07-03 game-feel design)."
     },
     {
       "id": 83,
       "task": "renderer.js — persistent blood-splatter decal canvas: paint splats on hit/shatter into an offscreen layer drawn under targets, cleared only on level restart",
       "priority": "medium",
-      "status": "pending",
-      "context": "Game-feel pass."
+      "status": "superseded",
+      "context": "Superseded by task 97 (2026-07-03 game-feel design)."
     },
     {
       "id": 84,
@@ -95,8 +95,8 @@
       "id": 87,
       "task": "audio.js — route all nodes through a shared master GainNode -> DynamicsCompressorNode instead of ac.destination directly (playShatter stacks gain 1.3 and combo hits reach 2.8x — currently hard-clips); expose volume/mute",
       "priority": "high",
-      "status": "pending",
-      "context": "Game-feel pass. Biggest single audio-quality fix; also enables the currently-missing volume/mute control."
+      "status": "superseded",
+      "context": "Superseded by task 93 (2026-07-03 game-feel design)."
     },
     {
       "id": 88,
@@ -108,8 +108,8 @@
       "id": 89,
       "task": "audio.js/main.js — speed-driven swing whoosh: looping filtered-noise node whose gain and lowpass cutoff track normalizedSpeed each frame, making the wind-up audible before contact",
       "priority": "medium",
-      "status": "pending",
-      "context": "Game-feel pass."
+      "status": "superseded",
+      "context": "Superseded by task 94 (2026-07-03 game-feel design)."
     },
     {
       "id": 90,
@@ -129,6 +129,53 @@
       "priority": "low",
       "status": "pending",
       "context": "Act theming pass (audio)."
+    },
+    {
+      "id": 93,
+      "task": "audio.js + index.html/ui.js/css — master bus: lazy GainNode -> DynamicsCompressorNode chain, reroute all ~12 connect(ac.destination) sites through it; setMuted/isMuted persisted under localStorage key yoyo_muted; mute toggle button wired in ui.js",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Shatter and 4+-combo hits no longer crackle/clip; the toggle silences everything mid-sound and survives a page reload",
+      "context": "First step of the 2026-07-03 game-feel design (approach A, inline integration) — the bus is the foundation the whoosh (94) connects through. audio.js owns mute state; UI reads through it."
+    },
+    {
+      "id": 94,
+      "task": "audio.js + main.js — swing whoosh: one persistent looping noise source -> lowpass -> gain, parameters ramped each frame from the 0-1 normalizedSpeed (angularSpeed already computed in gameLoop); startWhoosh in startLevel, stopWhoosh in showResult",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Audible swell tracks swing speed, silent when the rat hangs idle, no whoosh on the result screen",
+      "context": "Tracks the normalized 0-1 meter value, not absolute speed — the meter calibration is unvalidated until task 77, so the whoosh must not bake in new absolute-speed assumptions."
+    },
+    {
+      "id": 95,
+      "task": "main.js — hit-stop: hitStopTimer set in the collision handler alongside the shake trigger (damage > 120, duration 40 + 40*damageIntensity ms), gating Physics.step/updateMovingTargets/hitCooldown/comboTimer in gameLoop while particles, shake, and hit-label timers keep updating",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Heavy hits freeze rat and targets for a visible beat while blood keeps flying; weak hits produce no stutter; the combo window is not shortened by the pause",
+      "context": "Timer set in handler, consumed in loop — never pause the engine mid-callback (deferred-mutation learning). Shares the damage > 120 threshold with screen shake so the feedback constants stay one tuning group."
+    },
+    {
+      "id": 96,
+      "task": "renderer.js + main.js — impact flash + squash-stretch: flash timer whitens the rat's fills for ~2 frames on every damaging hit; body scales along the velocity angle (stretch with speed, squash pulse on impact) applied before the existing body.angle rotation in drawRat",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Visible white blink and squash on every damaging hit; damage overlays, cracks, and tail still render correctly while squashed"
+    },
+    {
+      "id": 97,
+      "task": "renderer.js + main.js — ground blood decals: module-level offscreen decal canvas (cachedGroundCanvas pattern) with exported paintSplat(x, intensity)/clearDecals(); painted on every damaging hit and larger at shatter, blitted each frame between drawGround and drawTargets; clearDecals() in startLevel",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Splats accumulate on the floor across an attempt, sit under targets and rat, and are gone after Retry",
+      "context": "Ground only — target stains were rejected: targets already carry crack/crackedColor state, shields get removed, and moving targets would leave stains floating."
+    },
+    {
+      "id": 98,
+      "task": "Game-feel bundle regression pass: npx vitest run stays 61/61, then browser playtest of both rat variants across a normal, shield, and bumper level with all five effects active",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "61/61 tests pass and all five effects read correctly together with no core-loop regressions",
+      "context": "Perceptual acceptance is the bar (green tests cannot judge feel) — the playtest is the real gate."
     }
   ],
   "recently_updated_files": [
@@ -251,6 +298,11 @@
       "date": "2026-07-03",
       "decision": "Archived all 74 completed/superseded action items to history/action-plan-archive.md, keeping only open items in project-state.json; queued a 16-item graphics/sound polish backlog (tasks 77-92) from the 2026-07-03 project review",
       "rationale": "project-state.json is re-read at every session briefing, and frameworklite’s token economy favours keeping only live items in context — the plan had grown to ~600 lines, mostly history duplicated by the decisions log. The backlog captures the review’s graphics suggestions (act theming, hit-stop/flash/decals, ribbon trail, sparks, shadow/DPR perf) and sound suggestions (master bus + compressor, jitter, whoosh, material voices, missing events, ambience), with the two big bundles gated on /brainstorm per the design gate."
+    },
+    {
+      "date": "2026-07-03",
+      "decision": "Game-feel bundle design (supersedes tasks 81/82/83/87/89 with tasks 93-98): inline integration (approach A) — hit-stop as a main.js timer gating the sim block (physics + gameplay timers pause, particles/shake/render continue) on the shared damage > 120 threshold, 40-80ms scaled by damageIntensity; ~2-frame white flash + velocity-aligned squash-stretch in drawRat; ground-only blood decal offscreen canvas cleared on restart; audio master GainNode -> DynamicsCompressor bus with a persisted mute toggle (no volume slider); looping whoosh tracking the 0-1 normalizedSpeed. Implementation gated behind tasks 76/45 playtests validating the current branch.",
+      "rationale": "Approach A (inline, no new module) chosen for smallest blast radius over a dedicated juice.js module (abstraction ahead of need — one collision event, one consumer) and an event bus (oversized). Physics-only freeze chosen because a full render freeze reads as a dropped frame; threshold-gating avoids micro-stutter on weak hits and keeps feedback constants one tuning group. Target stains rejected (conflicts with crack overlays, removed shields, and moving targets). Mute-only chosen over a slider — the master bus makes a slider trivial later. Whoosh tracks normalized speed so it inherits rather than duplicates the unvalidated meter calibration (task 77)."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log."
