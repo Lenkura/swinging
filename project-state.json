@@ -3,9 +3,9 @@
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
   "last_session_date": "2026-07-03",
-  "last_session_summary_path": "history/session-002-summary.md",
+  "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Game-feel bundle (tasks 93-97) implemented on swinging/feat/game-feel-bundle (branched off tail-attachment-weight, whose code it depends on); syntax-checked and 61/61 Vitest tests pass. Remaining: task 98's browser playtest to perceptually verify all five effects (and tune FLASH/SQUASH durations, whoosh curve, splat sizes if needed), plus the still-pending tasks 76 and 45 playtests.",
+  "current_activity": "Game-feel bundle (tasks 93-97) implemented on swinging/feat/game-feel-bundle (branched off tail-attachment-weight, whose code it depends on); syntax-checked and 61/61 Vitest tests pass. Remaining: task 98's browser playtest to perceptually verify all five effects (and tune FLASH/SQUASH durations, whoosh curve, splat sizes if needed), then task 99's CLAUDE.md Key Concepts write-up for the bundle (never queued — the code shipped in d771795 without a doc subtask), plus the still-pending tasks 76 and 45 playtests.",
   "action_plan": [
     {
       "id": 45,
@@ -176,6 +176,14 @@
       "status": "pending",
       "done_when": "61/61 tests pass and all five effects read correctly together with no core-loop regressions",
       "context": "Perceptual acceptance is the bar (green tests cannot judge feel) — the playtest is the real gate."
+    },
+    {
+      "id": 99,
+      "task": "CLAUDE.md — document the game-feel bundle in Key Concepts: hit-stop (sim-freeze timer, damage>120 threshold), impact flash + velocity-aligned squash-stretch in drawRat, ground-only blood decals (offscreen canvas, paintSplat/clearDecals), audio master GainNode->DynamicsCompressor bus + persisted mute (yoyo_muted), and the speed-tracking swing whoosh",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Key Concepts describes all five committed game-feel effects with their tuning constants, matching the pattern of the tail-attachment (#54), impact-feedback (#62), and moving-target (#74) doc passes",
+      "context": "Documentation gap found 2026-07-06: tasks 93-97 shipped in commit d771795 but no CLAUDE.md doc subtask was ever queued (the 2026-07-03 docs commit only touched project-state.json). Sequenced after task 98 so any playtest tuning (flash/squash durations, whoosh curve, splat sizes) is captured with final values rather than documenting constants that may still move."
     }
   ],
   "recently_updated_files": [
@@ -305,5 +313,5 @@
       "rationale": "Approach A (inline, no new module) chosen for smallest blast radius over a dedicated juice.js module (abstraction ahead of need — one collision event, one consumer) and an event bus (oversized). Physics-only freeze chosen because a full render freeze reads as a dropped frame; threshold-gating avoids micro-stutter on weak hits and keeps feedback constants one tuning group. Target stains rejected (conflicts with crack overlays, removed shields, and moving targets). Mute-only chosen over a slider — the master bus makes a slider trivial later. Whoosh tracks normalized speed so it inherits rather than duplicates the unvalidated meter calibration (task 77)."
     }
   ],
-  "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log."
+  "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
 }
