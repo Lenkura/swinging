@@ -6,7 +6,7 @@ import * as UI from './ui.js';
 import { RAT_VARIANTS } from './rat.js';
 import { LEVELS, getLevel, saveProgress, loadProgress } from './levels.js';
 import { generateCrackPattern } from './target.js';
-import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak } from './audio.js';
+import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak, startWhoosh, updateWhoosh, stopWhoosh } from './audio.js';
 import { calcPushScore, comboMultiplier } from './scoring.js';
 
 
@@ -27,7 +27,7 @@ fitToViewport();
 // --- State machine ---
 // States: PICKER | SWINGING | IMPACT | RESULT
 const RAT_MAX_HP = 100;
-const DAMAGE_SCALE = 1200; // px²·step⁻² per HP — raise to nerf damage, lower to buff
+const DAMAGE_SCALE = 200; // px²·step⁻² per HP — raise to nerf damage, lower to buff
 
 let gameState = 'PICKER';
 let currentLevelId = 1;
@@ -43,6 +43,11 @@ const HIT_LABEL_DURATION = 0.7;
 let shakeTimer = 0;
 let shakeIntensity = 0;
 const SHAKE_DURATION = 0.3;
+let hitStopTimer = 0; // sim freeze on heavy hits; render/particles keep running
+let flashTimer = 0;
+let squashTimer = 0;
+const FLASH_DURATION = 0.05;
+const SQUASH_DURATION = 0.12;
 let lastTime = null;
 let pivot = { x: 0, y: 0 };
 let stringLength = 130;
@@ -50,6 +55,7 @@ let lastOutcome = null;
 let lastScore = 0;
 let impactTimer = 0;
 let spinAccum = 0; // accumulated spin angle for renderer
+let elapsed = 0; // seconds since level start, drives moving-target oscillation
 
 function currentLevel() {
   return getLevel(currentLevelId);
@@ -60,6 +66,38 @@ function computePivot(level) {
     x: level.pivot.x * CANVAS_W,
     y: level.pivot.y * CANVAS_H,
   };
+}
+
+function damageIntensity(damage) {
+  return Math.min(damage / 240, 1);
+}
+
+// Three-part impact burst: red blood splash (rat), material-colored chunk
+// debris (target), and fur-colored chunk debris (rat). scale=2 is used for
+// the bigger SHATTER-time burst.
+function emitImpactBurst(x, y, intensity, material, variant, scale = 1) {
+  Particles.emit(x, y, {
+    count: Math.round((4 + intensity * 8) * scale),
+    color: '#b0202a',
+    speed: 140 + intensity * 120,
+    radius: (2.5 + intensity * 1.5) * scale,
+  });
+
+  Particles.emit(x, y, {
+    count: Math.round((2 + intensity * 6) * scale),
+    color: material.crackedColor,
+    speed: 120 + intensity * 140,
+    radius: 3 * (1 + intensity * 2) * scale,
+    shape: 'chunk',
+  });
+
+  Particles.emit(x, y, {
+    count: Math.round((2 + intensity * 5) * scale),
+    color: variant.chunkColor,
+    speed: 120 + intensity * 120,
+    radius: 2.5 * (1 + intensity * 2) * scale,
+    shape: 'chunk',
+  });
 }
 
 // --- Setup ---
@@ -142,9 +180,14 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
       hitLabel = { text: 'CLEAN HIT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#80ffdb' };
     }
 
-    if (damage > 20) {
-      shakeIntensity = Math.min(damage / 8, 10);
+    const intensity = damageIntensity(damage);
+    flashTimer = FLASH_DURATION;
+    squashTimer = SQUASH_DURATION;
+
+    if (damage > 120) {
+      shakeIntensity = Math.min(damage / 80, 10);
       shakeTimer = SHAKE_DURATION;
+      hitStopTimer = 0.04 + 0.04 * intensity; // 40-80ms, same threshold as shake
     }
 
     // Progressive crack visuals
@@ -153,12 +196,8 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     const crackCount = hpFrac < 0.25 ? 12 : hpFrac < 0.5 ? 8 : hpFrac < 0.75 ? 4 : 0;
     if (crackCount > 0) yoyo.plugin.crackPattern = generateCrackPattern(crackCount);
 
-    Particles.emit(hitPoint.x, hitPoint.y, {
-      count: 6,
-      color: variant.color,
-      speed: 180,
-      radius: 3,
-    });
+    emitImpactBurst(hitPoint.x, hitPoint.y, intensity, material, variant);
+    Renderer.paintSplat(hitPoint.x, intensity);
 
     if (ratHp <= 0) {
       gameState = 'IMPACT';
@@ -166,7 +205,8 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
       lastScore = calcPushScore(hitCount);
       playShatter();
       Physics.applyBreak(yoyo, 'SHATTER', hitPoint, variant.blastBonus);
-      Particles.emit(hitPoint.x, hitPoint.y, { count: 20, color: variant.color, speed: 350, radius: 5 });
+      emitImpactBurst(hitPoint.x, hitPoint.y, 1, material, variant, 2);
+      Renderer.paintSplat(hitPoint.x, 1, 2);
       impactTimer = 0.85;
     }
 });
@@ -182,6 +222,7 @@ function startLevel() {
   pivot = computePivot(level);
   stringLength = level.stringLength;
   spinAccum = 0;
+  elapsed = 0;
 
   ratHp = RAT_MAX_HP;
   hitCount = 0;
@@ -191,10 +232,14 @@ function startLevel() {
   hitLabel = { text: '', x: 0, y: 0, timer: 0, color: '#fff' };
   shakeTimer = 0;
   shakeIntensity = 0;
+  hitStopTimer = 0;
+  flashTimer = 0;
+  squashTimer = 0;
 
   Physics.reset();
   Particles.clear();
   Renderer.clearTrail();
+  Renderer.clearDecals();
 
   // Spawn targets and bumpers
   Physics.spawnTargets(level.targets);
@@ -203,13 +248,14 @@ function startLevel() {
   // Spawn rat and setup push-mode input
   const psl = level.pushStringLength || stringLength;
   Physics.spawnRat(pivot.x, pivot.y + psl, selectedVariant);
-  Physics.attachString(pivot.x, pivot.y, psl, 0.65);
+  Physics.attachString(pivot.x, pivot.y, psl, 0.35);
   Input.init(canvas, pivot);
   Input.attachToCanvas(canvas);
 
   UI.hidePicker();
   UI.setHint(level.hint || 'Move the mouse to swing the rat! Chain hits for a combo bonus.');
 
+  startWhoosh();
   gameState = 'SWINGING';
   lastOutcome = null;
   lastScore = 0;
@@ -224,17 +270,30 @@ function gameLoop(timestamp) {
   const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
   lastTime = timestamp;
 
-  // Physics step (all states except PICKER/RESULT where physics needn't run)
+  // Physics step (all states except PICKER/RESULT where physics needn't run).
+  // During hit-stop the sim block (physics + gameplay timers) holds, while
+  // particles, shake, and labels keep running so the world visibly "stops
+  // for the hit" without the frame reading as dropped.
   if (gameState !== 'PICKER' && gameState !== 'RESULT') {
-    Physics.step(dt * 1000);
-    Particles.update(dt);
-    if (hitCooldown > 0) hitCooldown -= dt;
-    if (comboTimer > 0) {
-      comboTimer -= dt;
-      if (comboTimer <= 0) comboCount = 0;
+    if (hitStopTimer > 0) {
+      hitStopTimer -= dt;
+    } else {
+      if (gameState === 'SWINGING') {
+        elapsed += dt;
+        Physics.updateMovingTargets(elapsed);
+      }
+      Physics.step(dt * 1000);
+      if (hitCooldown > 0) hitCooldown -= dt;
+      if (comboTimer > 0) {
+        comboTimer -= dt;
+        if (comboTimer <= 0) comboCount = 0;
+      }
     }
+    Particles.update(dt);
     if (hitLabel.timer > 0) hitLabel.timer -= dt;
     if (shakeTimer > 0) shakeTimer -= dt;
+    if (flashTimer > 0) flashTimer -= dt;
+    if (squashTimer > 0) squashTimer -= dt;
   }
 
   // State-specific logic
@@ -246,12 +305,11 @@ function gameLoop(timestamp) {
     }
   }
 
-  // Update trail and spin from physics body during swing
+  // Update trail from physics body during swing
   if (gameState === 'SWINGING') {
     const yb = Physics.getRatBody();
     if (yb) {
-      Renderer.updateTrail(yb.position.x, yb.position.y);
-      Renderer.updateSpin(yb.angularVelocity * 60, 1 / 60);
+      Renderer.updateTrail(yb.position.x, yb.position.y, RAT_VARIANTS[selectedVariant].trailLength);
     }
   }
 
@@ -265,6 +323,7 @@ function gameLoop(timestamp) {
       angularSpeed = Math.min(spd / RAT_VARIANTS[selectedVariant].pushMaxSpeed, 1);
     }
   }
+  updateWhoosh(angularSpeed);
 
   // Pass constraint anchor as pivot so string + hand draw at mouse position
   const constraint = Physics.getStringConstraint();
@@ -285,10 +344,13 @@ function gameLoop(timestamp) {
     comboCount,
     hitLabel: { ...hitLabel, alpha: hitLabel.timer / HIT_LABEL_DURATION },
     shake: shakeTimer > 0 ? shakeIntensity * (shakeTimer / SHAKE_DURATION) : 0,
+    flash: flashTimer > 0,
+    squash: squashTimer > 0 ? squashTimer / SQUASH_DURATION : 0,
   });
 }
 
 function showResult() {
+  stopWhoosh();
   Renderer.clearTrail();
   Input.detachFromCanvas();
   Physics.removeRat();

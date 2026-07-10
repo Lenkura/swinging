@@ -8,13 +8,41 @@ let canvasW, canvasH;
 // Trail ring buffer
 const TRAIL_MAX = 30;
 const trail = [];
-let spinAngle = 0;
 
 // Per-level render caches (invalidated when level identity changes)
 let cachedGradient = null;
 let cachedGradientKey = '';
 let cachedGroundCanvas = null;
 let cachedGroundKey = '';
+
+// Persistent ground decal layer — blood splats accumulate across the whole
+// attempt and are cleared on level restart.
+let decalCanvas = null;
+let decalCtx = null;
+
+export function paintSplat(x, intensity, scale = 1) {
+  if (!decalCanvas) {
+    decalCanvas = document.createElement('canvas');
+    decalCanvas.width = canvasW;
+    decalCanvas.height = canvasH;
+    decalCtx = decalCanvas.getContext('2d');
+  }
+  const groundTop = canvasH - 40; // surface line drawn by drawGround
+  const count = Math.round((3 + intensity * 5) * scale);
+  for (let i = 0; i < count; i++) {
+    const sx = x + (Math.random() - 0.5) * (70 + intensity * 90) * scale;
+    const sy = groundTop + 4 + Math.random() * 26;
+    const r = (2 + Math.random() * 3.5 * (0.5 + intensity)) * scale;
+    decalCtx.beginPath();
+    decalCtx.ellipse(sx, sy, r * (1.3 + Math.random() * 0.8), r * 0.55, 0, 0, Math.PI * 2);
+    decalCtx.fillStyle = `rgba(${110 + Math.floor(Math.random() * 40)},8,14,${0.45 + Math.random() * 0.3})`;
+    decalCtx.fill();
+  }
+}
+
+export function clearDecals() {
+  if (decalCtx) decalCtx.clearRect(0, 0, decalCanvas.width, decalCanvas.height);
+}
 
 export function init(canvasEl) {
   canvas = canvasEl;
@@ -28,16 +56,12 @@ export function resize(w, h) {
   canvasH = h;
 }
 
-export function updateTrail(x, y) {
+export function updateTrail(x, y, maxLen = TRAIL_MAX) {
   trail.push({ x, y });
-  if (trail.length > TRAIL_MAX) trail.shift();
+  if (trail.length > maxLen) trail.shift();
 }
 
 export function clearTrail() { trail.length = 0; }
-
-export function updateSpin(angularVelocity, dt) {
-  spinAngle += angularVelocity * dt;
-}
 
 export function draw({
   state,
@@ -54,6 +78,8 @@ export function draw({
   comboCount = 0,
   hitLabel = null,
   shake = 0,
+  flash = false,
+  squash = 0,
 }) {
   ctx.clearRect(0, 0, canvasW, canvasH);
   ctx.save();
@@ -66,9 +92,12 @@ export function draw({
 
   drawBackground(level);
   drawGround(level);
+  if (decalCanvas) ctx.drawImage(decalCanvas, 0, 0);
 
-  if (stringConstraint && (state === 'SWINGING' || state === 'IDLE_ARMED')) {
-    drawString(pivot, yoyoBody, angularSpeed, stringConstraint);
+  const ratVariant = yoyoBody ? RAT_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'] : null;
+
+  if (stringConstraint && yoyoBody && (state === 'SWINGING' || state === 'IDLE_ARMED')) {
+    drawTail(pivot, yoyoBody, angularSpeed, stringConstraint, ratVariant);
   }
 
   drawTrail(yoyoBody, level);
@@ -77,8 +106,10 @@ export function draw({
   drawTargets(targetBodies);
 
   if (yoyoBody) {
-    const v = RAT_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'];
-    drawRat(yoyoBody, v, hpFraction);
+    drawRat(yoyoBody, ratVariant, hpFraction, flash, squash);
+    if (yoyoBody.plugin.cracked && yoyoBody.plugin.crackPattern) {
+      drawCracks(yoyoBody, yoyoBody.plugin.crackPattern);
+    }
   }
 
   Particles.draw(ctx);
@@ -135,11 +166,17 @@ function drawGround(level) {
   ctx.drawImage(cachedGroundCanvas, 0, canvasH - 49);
 }
 
-function drawString(pivot, yoyo, normalizedSpeed, constraint) {
-  if (!yoyo) return;
-  const px = pivot.x, py = pivot.y;
-  const ex = yoyo.position.x, ey = yoyo.position.y;
+function drawTail(pivot, body, normalizedSpeed, constraint, variant) {
+  const r = body.plugin.radius;
+  const angle = body.angle;
+  const cos = Math.cos(angle), sin = Math.sin(angle);
 
+  // Tail base in body-local space — matches attachString's pointB and drawRat's tail start
+  const baseLocalX = -r * 0.85, baseLocalY = r * 0.22;
+  const ex = body.position.x + baseLocalX * cos - baseLocalY * sin;
+  const ey = body.position.y + baseLocalX * sin + baseLocalY * cos;
+
+  const px = pivot.x, py = pivot.y;
   const dx = ex - px;
   const dy = ey - py;
   const dist = Math.sqrt(dx * dx + dy * dy);
@@ -148,11 +185,11 @@ function drawString(pivot, yoyo, normalizedSpeed, constraint) {
   const perpX = -dy / dist;
   const perpY = dx / dist;
 
-  // Gravity sag: stronger when rope is horizontal, zero when vertical
+  // Gravity sag: stronger when the tail is horizontal, zero when vertical
   const horizontalFraction = Math.abs(dx) / dist;
   const gravSag = horizontalFraction * dist * 0.18;
 
-  // Extra sag when rope is slack (yoyo closer than constraint length)
+  // Extra sag when the tail is slack (rat closer than constraint length)
   const slack = Math.max(0, (constraint?.length ?? dist) - dist);
   const slackSag = slack * 0.4;
 
@@ -161,7 +198,7 @@ function drawString(pivot, yoyo, normalizedSpeed, constraint) {
   // Lateral bow from swing speed
   const speedBow = normalizedSpeed * 16;
 
-  // Build 8 rope points with parabolic gravity + speed bow
+  // Build 8 tail points with parabolic gravity + speed bow
   const N = 8;
   const pts = [];
   for (let i = 0; i <= N; i++) {
@@ -173,22 +210,19 @@ function drawString(pivot, yoyo, normalizedSpeed, constraint) {
     });
   }
 
-  // Draw smooth curve through points (Catmull-Rom style via quadratic beziers)
+  // Draw a tapered tail — thin at the hand (t=0), thick where it meets the body (t=1)
   ctx.shadowColor = 'rgba(0,0,0,0.25)';
   ctx.shadowBlur = 3;
-  ctx.strokeStyle = '#3d2b1f';
-  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = variant.tailColor;
   ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length - 1; i++) {
-    const mx = (pts[i].x + pts[i + 1].x) / 2;
-    const my = (pts[i].y + pts[i + 1].y) / 2;
-    ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const t = i / (pts.length - 1);
+    ctx.lineWidth = r * (0.08 + 0.22 * t);
+    ctx.beginPath();
+    ctx.moveTo(pts[i].x, pts[i].y);
+    ctx.lineTo(pts[i + 1].x, pts[i + 1].y);
+    ctx.stroke();
   }
-  ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-  ctx.stroke();
   ctx.shadowBlur = 0;
 }
 
@@ -196,7 +230,7 @@ function drawTrail(yoyo, level) {
   if (!yoyo || trail.length < 2) return;
   const v = RAT_VARIANTS[yoyo.plugin?.variantKey || 'standard'];
   for (let i = 1; i < trail.length; i++) {
-    const alpha = (i / trail.length) * 0.45;
+    const alpha = (i / trail.length) * 0.25;
     const r = v.radius * (i / trail.length) * 0.7;
     ctx.beginPath();
     ctx.arc(trail[i].x, trail[i].y, Math.max(1, r), 0, Math.PI * 2);
@@ -205,12 +239,38 @@ function drawTrail(yoyo, level) {
   }
 }
 
-function drawRat(body, variant, hpFraction) {
+function blendHexColors(hexA, hexB, t) {
+  const a = parseInt(hexA.slice(1), 16);
+  const b = parseInt(hexB.slice(1), 16);
+  const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+  const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return `rgb(${r},${g},${bl})`;
+}
+
+function drawRat(body, variant, hpFraction, flash = false, squash = 0) {
   const { x, y } = body.position;
   const r = variant.radius;
+  const bodyColor = blendHexColors(variant.color, variant.wornColor, 1 - hpFraction);
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(spinAngle);
+
+  // Squash-and-stretch along the travel direction: subtle stretch with
+  // speed, compression pulse on impact while squash outweighs it.
+  const vx = body.velocity.x, vy = body.velocity.y;
+  const speed = Math.hypot(vx, vy);
+  const stretch = Math.min(speed / 120, 1) * 0.14;
+  const net = stretch - squash * 0.3;
+  if (speed > 0.5 && Math.abs(net) > 0.005) {
+    const va = Math.atan2(vy, vx);
+    ctx.rotate(va);
+    ctx.scale(1 + net, 1 - net * 0.7);
+    ctx.rotate(-va);
+  }
+
+  ctx.rotate(body.angle);
 
   // Body
   ctx.shadowColor = 'rgba(0,0,0,0.4)';
@@ -218,7 +278,7 @@ function drawRat(body, variant, hpFraction) {
   ctx.shadowOffsetY = 3;
   ctx.beginPath();
   ctx.ellipse(0, 0, r * 0.92, r * 0.65, 0, 0, Math.PI * 2);
-  ctx.fillStyle = variant.color;
+  ctx.fillStyle = bodyColor;
   ctx.fill();
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
@@ -236,7 +296,7 @@ function drawRat(body, variant, hpFraction) {
   const hx = r * 0.68, hy = -r * 0.08, hr = r * 0.46;
   ctx.beginPath();
   ctx.arc(hx, hy, hr, 0, Math.PI * 2);
-  ctx.fillStyle = variant.color;
+  ctx.fillStyle = bodyColor;
   ctx.fill();
   ctx.strokeStyle = variant.outlineColor;
   ctx.lineWidth = 2;
@@ -309,17 +369,29 @@ function drawRat(body, variant, hpFraction) {
     ctx.stroke();
   }
 
-  // Tail
-  ctx.beginPath();
-  ctx.moveTo(-r * 0.85, r * 0.22);
-  ctx.bezierCurveTo(-r * 1.15, r * 0.58, -r * 1.55, -r * 0.22, -r * 1.82, r * 0.12);
-  ctx.strokeStyle = variant.tailColor;
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
   // Damage state overlays
   if (hpFraction < 0.75) drawRatDamage(hpFraction, hx, hy - hr * 0.6, r);
+
+  // Impact flash — white blink over the rat silhouette for a couple frames
+  if (flash) {
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.92, r * 0.65, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+    ctx.fill();
+    for (const [ex, ey, er] of [
+      [hx - r * 0.12, hy - hr * 0.85, r * 0.22],
+      [hx + r * 0.22, hy - hr * 0.72, r * 0.18],
+    ]) {
+      ctx.beginPath();
+      ctx.arc(ex, ey, er, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   ctx.restore();
 }
@@ -539,8 +611,23 @@ function drawFragments(frags) {
     ctx.save();
     ctx.translate(body.position.x, body.position.y);
     ctx.rotate(body.angle);
+
+    // Organic flesh-chunk blob: smooth a closed curve through jittered-radius
+    // vertices by quadratic-curving toward each edge's midpoint.
+    const verts = body.plugin.blobVerts.map(v => ({
+      x: Math.cos(v.angle) * r * v.radiusMul,
+      y: Math.sin(v.angle) * r * v.radiusMul,
+    }));
+    const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
     ctx.beginPath();
-    ctx.ellipse(0, 0, r, r * 0.55, 0, 0, Math.PI * 2);
+    const startMid = mid(verts[verts.length - 1], verts[0]);
+    ctx.moveTo(startMid.x, startMid.y);
+    for (let i = 0; i < verts.length; i++) {
+      const next = verts[(i + 1) % verts.length];
+      const m = mid(verts[i], next);
+      ctx.quadraticCurveTo(verts[i].x, verts[i].y, m.x, m.y);
+    }
+    ctx.closePath();
     ctx.fillStyle = GIBLET_COLORS[ci];
     ctx.fill();
     ctx.strokeStyle = '#660000';
