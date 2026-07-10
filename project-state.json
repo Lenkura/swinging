@@ -311,6 +311,11 @@
       "date": "2026-07-03",
       "decision": "Game-feel bundle design (supersedes tasks 81/82/83/87/89 with tasks 93-98): inline integration (approach A) — hit-stop as a main.js timer gating the sim block (physics + gameplay timers pause, particles/shake/render continue) on the shared damage > 120 threshold, 40-80ms scaled by damageIntensity; ~2-frame white flash + velocity-aligned squash-stretch in drawRat; ground-only blood decal offscreen canvas cleared on restart; audio master GainNode -> DynamicsCompressor bus with a persisted mute toggle (no volume slider); looping whoosh tracking the 0-1 normalizedSpeed. Implementation gated behind tasks 76/45 playtests validating the current branch.",
       "rationale": "Approach A (inline, no new module) chosen for smallest blast radius over a dedicated juice.js module (abstraction ahead of need — one collision event, one consumer) and an event bus (oversized). Physics-only freeze chosen because a full render freeze reads as a dropped frame; threshold-gating avoids micro-stutter on weak hits and keeps feedback constants one tuning group. Target stains rejected (conflicts with crack overlays, removed shields, and moving targets). Mute-only chosen over a slider — the master bus makes a slider trivial later. Whoosh tracks normalized speed so it inherits rather than duplicates the unvalidated meter calibration (task 77)."
+    },
+    {
+      "date": "2026-07-10",
+      "decision": "Merged branch swinging/feat/game-feel-bundle into main",
+      "rationale": "807fb04da3c71153a38a1cd6029b4e1b736b8ad5"
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
