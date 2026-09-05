@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Game-feel bundle (tasks 93-97) implemented on swinging/feat/game-feel-bundle (branched off tail-attachment-weight, whose code it depends on); syntax-checked and 61/61 Vitest tests pass. Remaining: task 98's browser playtest to perceptually verify all five effects (and tune FLASH/SQUASH durations, whoosh curve, splat sizes if needed), then task 99's CLAUDE.md Key Concepts write-up for the bundle (never queued — the code shipped in d771795 without a doc subtask), plus the still-pending tasks 76 and 45 playtests.",
+  "current_activity": "On swinging/feat/realistic-giblets implementing the 2026-07-11 gore-variety design (tasks 101-104): typed giblet pieces (bone/organ/gut/flesh), floor landing via the fragment-mask fix, landing splats into the decal layer, airborne drips. Starting with task 101 (physics.js roster + mask + fragment-landed event). Background: game-feel bundle merged to main 807fb04; task 98's mechanical half passed via automated playtest 2026-07-10 (perceptual half still needs a human pass); task 100 (dead poly-decomp tag) queued from that playtest.",
   "action_plan": [
     {
       "id": 45,
@@ -184,6 +184,43 @@
       "status": "pending",
       "done_when": "Key Concepts describes all five committed game-feel effects with their tuning constants, matching the pattern of the tail-attachment (#54), impact-feedback (#62), and moving-target (#74) doc passes",
       "context": "Documentation gap found 2026-07-06: tasks 93-97 shipped in commit d771795 but no CLAUDE.md doc subtask was ever queued (the 2026-07-03 docs commit only touched project-state.json). Sequenced after task 98 so any playtest tuning (flash/squash durations, whoosh curve, splat sizes) is captured with final values rather than documenting constants that may still move."
+    },
+    {
+      "id": 100,
+      "task": "index.html — remove the dead poly-decomp CDN <script> tag (or repoint to jsDelivr/unpkg with a regenerated SRI hash if concave decomposition is ever needed)",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Page loads with zero console errors; no game code references decomp (verified 2026-07-10: no decomp/setDecomp/Common.setDecomp match anywhere in js/), and CLAUDE.md's External deps section is updated to drop poly-decomp",
+      "context": "Found during the 2026-07-10 automated playtest: cdnjs returns 404 for poly-decomp/0.3.0/decomp.min.js, producing two console errors on every page load (404 + SRI/MIME refusal). The library is entirely unused — fragments are circular Matter.js bodies; blobVerts is render-only — so Matter.js never calls window.decomp. This also resolves the CORS/0-byte load flagged in task 45's context. Removal preferred over repointing; the CLAUDE.md SRI-preservation rule applies to tags that stay, not to deleting a dead tag."
+    },
+    {
+      "id": 101,
+      "task": "physics.js — giblet piece roster + landing: add 0x0001 to the fragment collision mask (fixes giblets falling through the floor — they currently collide only with each other); assign plugin.pieceType in spawnRatFragments (guaranteed bone/organ/gut + weighted flesh) with per-type precomputed geometry and dripInterval; onCollision branch emits fragment-landed {x, size} once per fragment on first ground contact",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "Giblets visibly bounce and come to rest on the floor in a browser shatter with no console errors",
+      "context": "First step of the 2026-07-11 gore-variety design. The mask omission made fragment restitution/friction dead values; landing contact is the prerequisite for task 103's splats. Implementation also required retuning the launch velocity (x80 -> x10 multiplier): the old burst speed was tuned for non-colliding giblets and both tunneled through the 50px walls/floor and froze pieces off-canvas-top at the 0.85s RESULT physics freeze. Verified 2026-07-11 in Playwright screenshots, zero game errors."
+    },
+    {
+      "id": 102,
+      "task": "renderer.js — per-type giblet painters in drawFragments: flesh (red blob, ragged fur edge from variant color), bone (elongated off-white shard, knobbed ends), organ (glossy maroon lump, baked highlight), gut (pink undulating tube); all geometry from plugin, no per-frame randomness or shadowBlur; keep the 4000ms fade",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "Shatter screenshot shows at least 3 visually distinct piece types, and the two rat variants show different fur-edge tones"
+    },
+    {
+      "id": 103,
+      "task": "main.js — giblet splats + drips: subscribe to fragment-landed -> Renderer.paintSplat(x, intensity scaled by piece size); advance per-fragment drip timers in the game loop's active block, emitting one small blood particle per interval while airborne",
+      "priority": "medium",
+      "status": "completed",
+      "done_when": "Splats appear under landing pieces and persist until Retry; a faint drip trail follows airborne pieces"
+    },
+    {
+      "id": 104,
+      "task": "Gore redesign regression + docs: npx vitest run stays 61/61; Playwright screenshot pass of a shatter for perceptual review (both variants); update CLAUDE.md's Giblets key concept (piece types, landing, splats/drips, mask fix)",
+      "priority": "medium",
+      "status": "in_progress",
+      "context": "Perceptual bar per the desktama learning — screenshots go to the user for sign-off rather than self-certifying the look. 2026-07-11: 61/61 green, CLAUDE.md updated, both-variant screenshots captured (all four piece types + splats + drips visible, zero game errors); awaiting user perceptual sign-off."
     }
   ],
   "recently_updated_files": [
@@ -316,6 +353,11 @@
       "date": "2026-07-10",
       "decision": "Merged branch swinging/feat/game-feel-bundle into main",
       "rationale": "807fb04da3c71153a38a1cd6029b4e1b736b8ad5"
+    },
+    {
+      "date": "2026-07-11",
+      "decision": "Giblet gore-variety redesign (tasks 101-104): each shatter fragment gets a plugin.pieceType at spawn (guaranteed 1 bone shard / 1 organ / 1 gut coil, rest weighted flesh chunks with variant fur edge) with per-type geometry precomputed blobVerts-style; path-drawn per-type painters in drawFragments; fragment collision mask gains 0x0001 so giblets land on the floor (they previously collided only with each other and fell through — restitution/friction were dead values); first ground contact emits fragment-landed -> Renderer.paintSplat into the task-97 decal layer; airborne fragments shed small blood-drip particles on a precomputed cadence",
+      "rationale": "Approach A (typed roster, path-drawn) chosen over B (sprite-baked offscreen canvases — higher detail ceiling at zero per-frame cost, but extra canvas-lifecycle machinery for fidelity likely imperceptible at ~20px/4s) and C (physics-shaped bodies — breaks the physics-untouched constraint and changes collision behavior for barely-visible payoff). All detail is baked at spawn (no per-frame randomness or shadowBlur, consistent with task 86); splats/drips reuse the existing decal and particle systems. The mask fix is the enabling change for landing splats and delivers most of the realism payoff by itself."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
