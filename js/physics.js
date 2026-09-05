@@ -52,6 +52,21 @@ function onCollision(event) {
     const isTargetA = bodyA.label === 'target';
     const isTargetB = bodyB.label === 'target';
 
+    // Giblet touches down: fire once per fragment (walls don't count — a
+    // wall-bounced piece is still airborne).
+    const isFragA = bodyA.label === 'fragment';
+    const isFragB = bodyB.label === 'fragment';
+    const isGroundA = bodyA.label === 'ground';
+    const isGroundB = bodyB.label === 'ground';
+    if ((isFragA && isGroundB) || (isFragB && isGroundA)) {
+      const frag = isFragA ? bodyA : bodyB;
+      if (!frag.plugin.landed) {
+        frag.plugin.landed = true;
+        emit('fragment-landed', { x: frag.position.x, size: frag.circleRadius || 6 });
+      }
+      continue;
+    }
+
     if ((isYoyoA && isTargetB) || (isYoyoB && isTargetA)) {
       const target = isTargetA ? bodyA : bodyB;
       const yoyo = isYoyoA ? bodyA : bodyB;
@@ -232,15 +247,70 @@ export function applyBreak(yoyo, outcome, hitPoint, blastBonus) {
   }
 }
 
-function generateBlobVerts(count = 9) {
+function generateBlobVerts(count = 9, base = 0.7, jitter = 0.5) {
   const verts = [];
   for (let i = 0; i < count; i++) {
     verts.push({
       angle: (i / count) * Math.PI * 2,
-      radiusMul: 0.7 + Math.random() * 0.5,
+      radiusMul: base + Math.random() * jitter,
     });
   }
   return verts;
+}
+
+// Gore-piece roster: every shatter guarantees one bone/organ/gut; the rest
+// roll weighted flesh-heavy so flesh chunks stay the dominant read.
+const PIECE_WEIGHTS = [
+  { type: 'flesh', w: 0.6 },
+  { type: 'bone', w: 0.2 },
+  { type: 'organ', w: 0.2 },
+];
+
+function weightedPieceType() {
+  let roll = Math.random();
+  for (const { type, w } of PIECE_WEIGHTS) {
+    if (roll < w) return type;
+    roll -= w;
+  }
+  return 'flesh';
+}
+
+// One geometry object per piece, generated once at spawn (the blobVerts
+// pattern): the renderer reads this verbatim so no per-frame randomness.
+function generatePiece(type) {
+  if (type === 'bone') {
+    return {
+      type,
+      lenMul: 1.7 + Math.random() * 0.5,   // shaft half-length × draw radius
+      widMul: 0.34 + Math.random() * 0.14, // shaft half-width × draw radius
+      knobMul: 0.55 + Math.random() * 0.15,
+    };
+  }
+  if (type === 'organ') {
+    return {
+      type,
+      blobVerts: generateBlobVerts(8, 0.85, 0.25), // rounder than flesh
+      hiAngle: Math.random() * Math.PI * 2,        // baked gloss highlight
+      hiDist: 0.35 + Math.random() * 0.2,
+    };
+  }
+  if (type === 'gut') {
+    const segs = [];
+    const n = 5;
+    for (let i = 0; i < n; i++) {
+      segs.push({ t: i / (n - 1), wobble: (Math.random() - 0.5) * 0.9 });
+    }
+    return { type, segs, lenMul: 2.4 + Math.random() * 0.8, tubeMul: 0.5 + Math.random() * 0.15 };
+  }
+  // flesh: ragged fur edge over part of the outline, tuft lengths pre-rolled
+  return {
+    type,
+    blobVerts: generateBlobVerts(),
+    colorRoll: Math.random(), // stable fill pick (old position-derived index flickered)
+    furStart: Math.random() * Math.PI * 2,
+    furSpan: Math.PI * (0.6 + Math.random() * 0.5),
+    tufts: Array.from({ length: 5 }, () => 0.25 + Math.random() * 0.35),
+  };
 }
 
 function spawnRatFragments(yoyo, hitPoint, blastBonus = 1) {
@@ -251,9 +321,23 @@ function spawnRatFragments(yoyo, hitPoint, blastBonus = 1) {
   const spread = 1.4 * blastBonus;
   const newFrags = [];
 
+  // Guaranteed variety, then weighted fill; shuffled so the guaranteed
+  // pieces don't always occupy the same ring positions.
+  const pieceTypes = ['bone', 'organ', 'gut'];
+  while (pieceTypes.length < fragCount) pieceTypes.push(weightedPieceType());
+  for (let i = pieceTypes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pieceTypes[i], pieceTypes[j]] = [pieceTypes[j], pieceTypes[i]];
+  }
+
+  // Deliberate size hierarchy: flesh chunks read big and meaty; bones and
+  // organs stay small so they read as parts, not slabs. (Bone's drawn length
+  // still stretches to ~2x its radius via lenMul.)
+  const SIZE_MULS = { flesh: 1.3, gut: 1.0, bone: 0.65, organ: 0.65 };
+
   for (let i = 0; i < fragCount; i++) {
     const angle = (i / fragCount) * Math.PI * 2;
-    const fragR = r * (0.2 + Math.random() * 0.25);
+    const fragR = Math.max(2.5, r * (0.2 + Math.random() * 0.25) * SIZE_MULS[pieceTypes[i]]);
     const frag = Bodies.circle(
       cx + Math.cos(angle) * r * 0.5,
       cy + Math.sin(angle) * r * 0.5,
@@ -263,16 +347,30 @@ function spawnRatFragments(yoyo, hitPoint, blastBonus = 1) {
         restitution: 0.3,
         friction: 0.4,
         frictionAir: 0.01,
-        collisionFilter: { category: 0x0004, mask: 0x0002 | 0x0004 | 0x0008 },
-        plugin: { variantKey: yoyo.plugin.variantKey, born: Date.now(), blobVerts: generateBlobVerts() },
+        // 0x0001 (ground/walls) lets giblets land — without it they collide
+        // only with each other and fall through the floor.
+        collisionFilter: { category: 0x0004, mask: 0x0001 | 0x0002 | 0x0004 | 0x0008 },
+        plugin: {
+          variantKey: yoyo.plugin.variantKey,
+          born: Date.now(),
+          landed: false,
+          dripInterval: 0.12 + Math.random() * 0.18,
+          dripTimer: Math.random() * 0.1,
+          piece: generatePiece(pieceTypes[i]),
+        },
       }
     );
     const dx = frag.position.x - hitPoint.x;
     const dy = frag.position.y - hitPoint.y;
     const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+    // Lobbed scatter, not a burst: the old ×80 launch (~56-168 px/step) was
+    // tuned for non-colliding giblets and tunnels through the 50px walls and
+    // floor now that fragments collide. ×10 keeps the worst case (heavy
+    // blastBonus 1.4, max roll, up-bias) arcing inside the canvas so pieces
+    // land within the 0.85s IMPACT window instead of freezing off-screen.
     Body.setVelocity(frag, {
-      x: (dx / dist) * spread * 80 * (0.5 + Math.random()),
-      y: (dy / dist) * spread * 80 * (0.5 + Math.random()) - 80,
+      x: (dx / dist) * spread * 10 * (0.4 + Math.random() * 0.6),
+      y: (dy / dist) * spread * 10 * (0.4 + Math.random() * 0.6) - 5,
     });
     Body.setAngularVelocity(frag, (Math.random() - 0.5) * 0.5);
     Composite.add(world, frag);

@@ -211,6 +211,11 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     }
 });
 
+// Giblet touchdown — small blood splat into the decal layer, scaled by piece size
+Physics.on('fragment-landed', ({ x, size }) => {
+  Renderer.paintSplat(x, Math.min(size / 10, 1) * 0.4, 0.6);
+});
+
 // Input callbacks
 Input.onPivotMove(({ x, y }) => {
   if (gameState !== 'SWINGING') return;
@@ -290,6 +295,17 @@ function gameLoop(timestamp) {
       }
     }
     Particles.update(dt);
+    // Airborne giblets shed blood drips on their spawn-time cadence
+    for (const frag of Physics.getFragmentBodies()) {
+      if (frag.plugin.landed) continue;
+      frag.plugin.dripTimer += dt;
+      if (frag.plugin.dripTimer >= frag.plugin.dripInterval) {
+        frag.plugin.dripTimer = 0;
+        Particles.emit(frag.position.x, frag.position.y, {
+          count: 1, color: '#8f1420', speed: 20, gravity: 500, radius: 1.8, lifetime: 0.55,
+        });
+      }
+    }
     if (hitLabel.timer > 0) hitLabel.timer -= dt;
     if (shakeTimer > 0) shakeTimer -= dt;
     if (flashTimer > 0) flashTimer -= dt;
