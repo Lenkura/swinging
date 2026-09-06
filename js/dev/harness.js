@@ -91,6 +91,12 @@ export function initDev(injected) {
           x: b.position.x, y: b.position.y, isShield: Boolean(b.plugin.isShield),
         })),
         fragments: (Physics.getFragmentBodies() || []).length,
+        // Piece types let the gate regression-check the giblet roster
+        // (tasks 101-102) rather than only counting bodies.
+        fragmentPieces: (Physics.getFragmentBodies() || [])
+          .map(b => b.plugin?.piece?.type ?? 'none'),
+        fragmentsLanded: (Physics.getFragmentBodies() || [])
+          .filter(b => b.plugin?.landed).length,
         recording: Telemetry.isRecording(),
         run: Telemetry.snapshot(),
       };

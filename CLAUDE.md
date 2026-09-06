@@ -199,7 +199,70 @@ Bumper fields: `x`, `y`, `radius`.
 - **Test files:** `tests/*.test.js` — covers `scoring.js`, `target.js`, `levels.js`, `input.js`
 - **Coverage threshold:** none enforced — `@vitest/coverage-v8` is available for ad-hoc reports
 - **Spec:** `TEST_SPEC.md` at project root
-- Integration tests for physics and renderer are deferred — currently manual browser testing. Use the browser console for Matter.js errors and the devtools Performance tab for frame timing.
+- Unit tests cover pure logic only. Physics, rendering and the wiring between them are covered by the browser gate below, not by Vitest.
+
+---
+
+## Dev Tooling — Playtest Bot & Telemetry
+
+A `?dev=1`-gated instrumentation layer inside the game, plus Playwright rigs
+outside it. All of it is dev-only: without the flag no `js/dev/*` file is ever
+fetched, and no dev global is defined.
+
+### Entry points
+
+| Command | What it does |
+|---|---|
+| `npm run gate` | Regression gate — seeded fixed-timestep runs across Acts 1–3, asserting positive invariants. Exits 0/1. ~40s. |
+| `npm run batch -- --runs 20` | Batch playtest — N seeded bot games in parallel headless contexts, aggregated. Results to `dev/runs/<timestamp>/` (gitignored). ~1.5s/run. |
+| `npm run shots` | Perceptual capture — drives to each damage state and the shatter, writing PNGs to `history/screenshots/` (committed). |
+| `npm run serve` | Static server on :8080. Play at `/?dev=1` to record your own runs. |
+| `node dev/smoke.mjs` | Platform check — confirms Playwright still drives the game on this machine. |
+
+`--headed` on the gate or batch shows the browser; `--help` on the batch lists
+its options.
+
+### Recording your own runs
+
+Serve the project and open `/?dev=1`. Every completed level prints a summary to
+the console and stores the full document in `localStorage` (`yoyo_dev_runs`,
+last 10 runs, separate from `yoyo_progress`). `__ratsmashTelemetry.exportRuns()`
+downloads them all as JSON. A run is only recorded end-to-end if you reach the
+result screen — abandoning to the level select discards it.
+
+### Layout
+
+| File | Responsibility |
+|---|---|
+| `js/dev/telemetry.js` | Run recording and the summary schema. Reads state, never writes it. |
+| `js/dev/bot.js` | Swing policies (`pump`, `sweep`) and pointer dispatch. |
+| `js/dev/harness.js` | `window.__ratsmash` — state, `beginRun`, `runBot`, `setSeed`, `setFixedDt`. |
+| `dev/serve.mjs` | Dependency-free static server (correct ES-module MIME types). |
+| `dev/gate.mjs`, `dev/run-batch.mjs`, `dev/shots.mjs`, `dev/smoke.mjs` | The Node-side rigs. |
+
+`main.js` holds the seam: the dev flag, a dynamic import, no-op telemetry call
+sites, and an `initDev({...})` at the bottom that **injects** its module-scope
+internals into the harness rather than leaking them onto `window`.
+
+### Things to know before trusting a number
+
+- **A bot's swing profile is not a human's.** Bot data is valid for regression
+  detection and for A/B-ing one constant against another. Absolute calibration
+  — `DAMAGE_SCALE`, `pushMaxSpeed`, the speed meter — must rest on human-run
+  telemetry. Calibrating on bot swings would repeat the mistake that produced
+  the 30–40-hit Level 1.
+- **Real frame timing makes runs diverge**, even on the same seed, because
+  physics steps on the real `dt`. Pass `--fixed-dt` (or `fixedDt: 1/60`) for
+  exact reproducibility, at the cost of no longer measuring real-time
+  behaviour. The gate uses fixed dt; the batch defaults to real.
+- **The gate asserts positive invariants, not the absence of crashes.** Stubbing
+  out target spawning throws no error at all and still fails 9 checks — a
+  crash-only smoke run would pass it.
+- **Bounds in the gate are deliberately wide.** It catches regressions; it does
+  not enforce balance. Tightening them into balance assertions would make every
+  intentional tuning change look like a failure.
+- **Screenshots go to `history/screenshots/`, committed.** An earlier set was
+  written to a session temp directory and lost.
 
 ---
 

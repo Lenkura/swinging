@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/playtest-bot-telemetry (branched off realistic-giblets, whose giblet code the screenshot pass needs) building the 2026-09-06 approach-B playtest tooling, tasks 105-110. Starting with task 105, the Playwright platform smoke test — nothing else is built until Chromium is proven to install and drive the game on this Windows box. Background: the giblet work (101-103) is committed on the parent branch as a89d53f/bbd6680 with 61/61 green; task 104 is blocked solely on perceptual sign-off, and its 2026-07-11 screenshots were lost to a session temp path, so task 109 regenerates them into the committed history/screenshots/. Task 77's ?debug=1 overlay is superseded by this telemetry layer.",
+  "current_activity": "Tasks 105-110 complete on swinging/feat/playtest-bot-telemetry: ?dev=1 telemetry, in-page bot, batch runner (1.5s/run), regression gate (npm run gate, 70/70 in 40s, proven to fail on a deliberate break) and screenshot rig. Outstanding: task 104 needs the user perceptual sign-off on the 14 regenerated screenshots in history/screenshots/. Then merge this branch and its realistic-giblets parent to main. First real measurement: bot L1 medians are 4 hits (heavy) vs 9 (standard) - a relative comparison bot data supports, but any absolute DAMAGE_SCALE / pushMaxSpeed change still needs human-run telemetry first.",
   "action_plan": [
     {
       "id": 45,
@@ -226,56 +226,62 @@
       "id": 105,
       "task": "Playwright platform smoke test: install playwright as a devDependency, download Chromium, and run a throwaway script that serves the project, loads index.html, and screenshots the level-select panel",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "The throwaway script produces a PNG showing the level-select grid and npx playwright --version reports cleanly under Windows; if Chromium download or launch fails, stop and revisit the approach rather than building on it",
-      "context": "Gate step for the 2026-09-06 approach-B decision, per L0079 (smoke-test a dependency on the actual platform before committing on paper criteria). Nothing else in tasks 106-110 is built until this passes."
+      "context": "Gate step for the 2026-09-06 approach-B decision, per L0079 (smoke-test a dependency on the actual platform before committing on paper criteria). Nothing else in tasks 106-110 is built until this passes. PASS 2026-09-06: playwright 1.63 + Chromium 153 install and drive the game under Windows; dev/smoke.mjs kept as the reusable platform check."
     },
     {
       "id": 106,
       "task": "dev/serve.mjs (dependency-free Node static server) + js/dev/telemetry.js + the main.js seam: ?dev=1 flag, dynamic import, hit-handler and per-frame hooks, start/end calls",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "Loading ?dev=1 and playing one level by hand prints a run summary whose hitsToClear matches the on-screen hit counter and whose peak speed is a plausible non-zero number; loading without the flag issues no js/dev/* network request",
-      "context": "Standalone value even if the bot never lands: human-run telemetry is the calibration ground truth, since a bot's swing profile is not a human's and calibrating constants on bot data would repeat the L0097 error in a new costume."
+      "context": "Standalone value even if the bot never lands: human-run telemetry is the calibration ground truth, since a bot's swing profile is not a human's and calibrating constants on bot data would repeat the L0097 error in a new costume. PASS 2026-09-06: ?dev=1 run recorded 1500+ frames and 13 damaging hits with a console summary; no js/dev/* fetched without the flag. Non-dev play separately verified by canvas pixel read (HP bar 1.000 -> 0.512), since the HUD is canvas-drawn."
     },
     {
       "id": 107,
       "task": "js/dev/harness.js (window.__ratsmash dev API, seeded Math.random patch, injected main.js internals) + js/dev/bot.js (in-page pointer-dispatching swing policy)",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "__ratsmash.runBot({ level: 1, seed: 42 }) clears Level 1 unattended in a real browser with a SHATTER outcome, and the same seed twice produces identical hitsToClear",
-      "context": "The bot dispatches real PointerEvents at the canvas so input.js and getCanvasXY are exercised end-to-end rather than bypassed. The harness receives main.js internals by injection rather than reaching for globals (L0105, L0133). Open risk: Matter.js may seed its internal Common.random separately from Math.random, which would undercut the reproducibility check."
+      "context": "The bot dispatches real PointerEvents at the canvas so input.js and getCanvasXY are exercised end-to-end rather than bypassed. The harness receives main.js internals by injection rather than reaching for globals (L0105, L0133). Open risk: Matter.js may seed its internal Common.random separately from Math.random, which would undercut the reproducibility check. PASS 2026-09-06: pump policy clears Level 1 unattended. Reproducibility needed an opt-in dev-only fixed timestep - real frame timing makes runs diverge on the same seed, which is inherent to driving a real browser. With fixedDt=1/60 seed 42 gives 11 hits twice; real-dt stays the default so batch numbers reflect actual play."
     },
     {
       "id": 108,
       "task": "dev/run-batch.mjs — headless Chromium across parallel contexts, N seeded games over a level/variant matrix, telemetry extracted per page into dev/runs/<timestamp>/, aggregate table printed (median hits to clear, speed percentiles, combo distribution, frame-time p95)",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "node dev/run-batch.mjs --runs 20 completes, writes 20 JSON files, prints the aggregate table with per-run console errors, and reports its wall-clock time so we know whether the batch is practical as a routine tool",
-      "context": "Open risk: headless Chromium throttles requestAnimationFrame in backgrounded contexts, which could distort frame timing in parallel runs. If it does, frame timing moves to a single foreground run and the batch reports only gameplay numbers."
+      "context": "Open risk: headless Chromium throttles requestAnimationFrame in backgrounded contexts, which could distort frame timing in parallel runs. If it does, frame timing moves to a single foreground run and the batch reports only gameplay numbers. PASS 2026-09-06: 20 runs in 29.8s wall (1.5s/run), 100% shatter, zero errors. The feared rAF throttling in parallel headless contexts did NOT materialise - frame p95 16.7ms across 4 workers. Finding: heavy clears L1 in 4 hits median, standard in 9, so standard scores the 200 floor on a par-1800 level."
     },
     {
       "id": 109,
       "task": "npm run gate (fixed seeded run set asserting positive invariants, exit 0/1) + dev/shots.mjs (drive to a shatter per variant, write PNGs to history/screenshots/)",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "npm run gate exits 0 against current HEAD AND exits non-zero when target spawning is deliberately stubbed out; dev/shots.mjs writes both-variant shatter PNGs into the committed history/screenshots/",
-      "context": "Invariants are positive assertions (rat spawned, HP decreased, shatter fired, score non-zero) rather than absence-of-crash, per L0101. The deliberate-break check matters because a gate never observed failing is not known to work. This task also closes task 104's screenshot half durably, in-repo."
+      "context": "Invariants are positive assertions (rat spawned, HP decreased, shatter fired, score non-zero) rather than absence-of-crash, per L0101. The deliberate-break check matters because a gate never observed failing is not known to work. This task also closes task 104's screenshot half durably, in-repo. PASS 2026-09-06: 70/70 checks in 40.2s, and exit 1 with 9 failures when target spawning was stubbed out - notably with ZERO thrown errors, so a crash-only smoke run would have passed the broken build (L0101 confirmed in practice). dev/shots.mjs captured 14 screenshots across both variants into the committed history/screenshots/."
     },
     {
       "id": 110,
       "task": "Docs and state for the playtest tooling: CLAUDE.md dev-tooling section (three entry points, telemetry schema, where runs land), .gitignore for dev/runs/, task 104 closed on user sign-off",
       "priority": "medium",
-      "status": "pending",
-      "done_when": "CLAUDE.md documents all three entry points and the telemetry schema; git status is clean with run artifacts ignored but screenshots committed"
+      "status": "completed",
+      "done_when": "CLAUDE.md documents all three entry points and the telemetry schema; git status is clean with run artifacts ignored but screenshots committed",
+      "context": "PASS 2026-09-06: CLAUDE.md Dev Tooling section documents all five entry points, the telemetry schema, the layout, and the caveats on trusting a number."
     }
   ],
   "recently_updated_files": [
-    "spec.md",
     "CLAUDE.md",
     "project-state.json",
-    ".gitignore",
-    "TEST_SPEC.md"
+    "js/main.js",
+    "js/dev/telemetry.js",
+    "js/dev/harness.js",
+    "js/dev/bot.js",
+    "dev/gate.mjs",
+    "dev/run-batch.mjs",
+    "dev/shots.mjs",
+    "dev/serve.mjs"
   ],
   "open_questions": [],
   "milestones": [
