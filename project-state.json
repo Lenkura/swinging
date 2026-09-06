@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/realistic-giblets implementing the 2026-07-11 gore-variety design (tasks 101-104): typed giblet pieces (bone/organ/gut/flesh), floor landing via the fragment-mask fix, landing splats into the decal layer, airborne drips. Starting with task 101 (physics.js roster + mask + fragment-landed event). Background: game-feel bundle merged to main 807fb04; task 98's mechanical half passed via automated playtest 2026-07-10 (perceptual half still needs a human pass); task 100 (dead poly-decomp tag) queued from that playtest.",
+  "current_activity": "On swinging/feat/playtest-bot-telemetry (branched off realistic-giblets, whose giblet code the screenshot pass needs) building the 2026-09-06 approach-B playtest tooling, tasks 105-110. Starting with task 105, the Playwright platform smoke test — nothing else is built until Chromium is proven to install and drive the game on this Windows box. Background: the giblet work (101-103) is committed on the parent branch as a89d53f/bbd6680 with 61/61 green; task 104 is blocked solely on perceptual sign-off, and its 2026-07-11 screenshots were lost to a session temp path, so task 109 regenerates them into the committed history/screenshots/. Task 77's ?debug=1 overlay is superseded by this telemetry layer.",
   "action_plan": [
     {
       "id": 45,
@@ -27,9 +27,9 @@
       "id": 77,
       "task": "Add a ?debug=1 overlay that records and displays peak swing speed per swing, to ground the next pushMaxSpeed / speed-meter / DAMAGE_SCALE calibration in real data instead of assumptions",
       "priority": "high",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "Real swing-speed distribution (typical and peak) is captured from playtesting and logged in a decisions entry",
-      "context": "Root-cause fix for the task 63->75 miscalibration: the ~60%-of-pushMaxSpeed assumption was never measured. CLAUDE.md still flags pushMaxSpeed (750/625) and the meter as unvalidated."
+      "context": "Root-cause fix for the task 63->75 miscalibration: the ~60%-of-pushMaxSpeed assumption was never measured. CLAUDE.md still flags pushMaxSpeed (750/625) and the meter as unvalidated. SUPERSEDED 2026-09-06 by tasks 105-110: the ?dev=1 telemetry layer captures the same speed distribution as logged data rather than an on-screen readout, and an overlay would itself distort the perceptual review it was meant to support."
     },
     {
       "id": 78,
@@ -220,7 +220,54 @@
       "task": "Gore redesign regression + docs: npx vitest run stays 61/61; Playwright screenshot pass of a shatter for perceptual review (both variants); update CLAUDE.md's Giblets key concept (piece types, landing, splats/drips, mask fix)",
       "priority": "medium",
       "status": "in_progress",
-      "context": "Perceptual bar per the desktama learning — screenshots go to the user for sign-off rather than self-certifying the look. 2026-07-11: 61/61 green, CLAUDE.md updated, both-variant screenshots captured (all four piece types + splats + drips visible, zero game errors); awaiting user perceptual sign-off."
+      "context": "Perceptual bar per the desktama learning — screenshots go to the user for sign-off rather than self-certifying the look. 2026-07-11: 61/61 green, CLAUDE.md updated, both-variant screenshots captured (all four piece types + splats + drips visible, zero game errors); awaiting user perceptual sign-off. 2026-09-06: those screenshots are GONE — they were written to the 2026-07-11 session's temp scratchpad, never committed, and the directory is no longer reachable (the L0055 blocked-temp-path trap). Regeneration is folded into task 109, which writes them to the committed history/screenshots/ instead. Code and docs halves remain done; only the perceptual sign-off is outstanding."
+    },
+    {
+      "id": 105,
+      "task": "Playwright platform smoke test: install playwright as a devDependency, download Chromium, and run a throwaway script that serves the project, loads index.html, and screenshots the level-select panel",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "The throwaway script produces a PNG showing the level-select grid and npx playwright --version reports cleanly under Windows; if Chromium download or launch fails, stop and revisit the approach rather than building on it",
+      "context": "Gate step for the 2026-09-06 approach-B decision, per L0079 (smoke-test a dependency on the actual platform before committing on paper criteria). Nothing else in tasks 106-110 is built until this passes."
+    },
+    {
+      "id": 106,
+      "task": "dev/serve.mjs (dependency-free Node static server) + js/dev/telemetry.js + the main.js seam: ?dev=1 flag, dynamic import, hit-handler and per-frame hooks, start/end calls",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Loading ?dev=1 and playing one level by hand prints a run summary whose hitsToClear matches the on-screen hit counter and whose peak speed is a plausible non-zero number; loading without the flag issues no js/dev/* network request",
+      "context": "Standalone value even if the bot never lands: human-run telemetry is the calibration ground truth, since a bot's swing profile is not a human's and calibrating constants on bot data would repeat the L0097 error in a new costume."
+    },
+    {
+      "id": 107,
+      "task": "js/dev/harness.js (window.__ratsmash dev API, seeded Math.random patch, injected main.js internals) + js/dev/bot.js (in-page pointer-dispatching swing policy)",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "__ratsmash.runBot({ level: 1, seed: 42 }) clears Level 1 unattended in a real browser with a SHATTER outcome, and the same seed twice produces identical hitsToClear",
+      "context": "The bot dispatches real PointerEvents at the canvas so input.js and getCanvasXY are exercised end-to-end rather than bypassed. The harness receives main.js internals by injection rather than reaching for globals (L0105, L0133). Open risk: Matter.js may seed its internal Common.random separately from Math.random, which would undercut the reproducibility check."
+    },
+    {
+      "id": 108,
+      "task": "dev/run-batch.mjs — headless Chromium across parallel contexts, N seeded games over a level/variant matrix, telemetry extracted per page into dev/runs/<timestamp>/, aggregate table printed (median hits to clear, speed percentiles, combo distribution, frame-time p95)",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "node dev/run-batch.mjs --runs 20 completes, writes 20 JSON files, prints the aggregate table with per-run console errors, and reports its wall-clock time so we know whether the batch is practical as a routine tool",
+      "context": "Open risk: headless Chromium throttles requestAnimationFrame in backgrounded contexts, which could distort frame timing in parallel runs. If it does, frame timing moves to a single foreground run and the batch reports only gameplay numbers."
+    },
+    {
+      "id": 109,
+      "task": "npm run gate (fixed seeded run set asserting positive invariants, exit 0/1) + dev/shots.mjs (drive to a shatter per variant, write PNGs to history/screenshots/)",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "npm run gate exits 0 against current HEAD AND exits non-zero when target spawning is deliberately stubbed out; dev/shots.mjs writes both-variant shatter PNGs into the committed history/screenshots/",
+      "context": "Invariants are positive assertions (rat spawned, HP decreased, shatter fired, score non-zero) rather than absence-of-crash, per L0101. The deliberate-break check matters because a gate never observed failing is not known to work. This task also closes task 104's screenshot half durably, in-repo."
+    },
+    {
+      "id": 110,
+      "task": "Docs and state for the playtest tooling: CLAUDE.md dev-tooling section (three entry points, telemetry schema, where runs land), .gitignore for dev/runs/, task 104 closed on user sign-off",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "CLAUDE.md documents all three entry points and the telemetry schema; git status is clean with run artifacts ignored but screenshots committed"
     }
   ],
   "recently_updated_files": [
@@ -358,6 +405,11 @@
       "date": "2026-07-11",
       "decision": "Giblet gore-variety redesign (tasks 101-104): each shatter fragment gets a plugin.pieceType at spawn (guaranteed 1 bone shard / 1 organ / 1 gut coil, rest weighted flesh chunks with variant fur edge) with per-type geometry precomputed blobVerts-style; path-drawn per-type painters in drawFragments; fragment collision mask gains 0x0001 so giblets land on the floor (they previously collided only with each other and fell through — restitution/friction were dead values); first ground contact emits fragment-landed -> Renderer.paintSplat into the task-97 decal layer; airborne fragments shed small blood-drip particles on a precomputed cadence",
       "rationale": "Approach A (typed roster, path-drawn) chosen over B (sprite-baked offscreen canvases — higher detail ceiling at zero per-frame cost, but extra canvas-lifecycle machinery for fidelity likely imperceptible at ~20px/4s) and C (physics-shaped bodies — breaks the physics-untouched constraint and changes collision behavior for barely-visible payoff). All detail is baked at spawn (no per-frame randomness or shadowBlur, consistent with task 86); splats/drips reuse the existing decal and particle systems. The mask fix is the enabling change for landing splats and delivers most of the realism payoff by itself."
+    },
+    {
+      "date": "2026-09-06",
+      "decision": "Playtest bot + dev telemetry via approach B (Playwright driving a real browser): a ?dev=1-gated in-game instrumentation layer (js/dev/telemetry.js, bot.js, harness.js, dynamically imported so a normal player fetches nothing) plus a Node-side rig (dev/serve.mjs, run-batch.mjs, shots.mjs, npm run gate). The bot dispatches real PointerEvents in-page so input.js is exercised end-to-end; runs are seeded for reproducibility; one telemetry schema covers bot, gate and human runs, tagged by source. Tasks 105-110.",
+      "rationale": "B chosen over A (two-lane harness with a Node/jsdom-stub batch lane, per L0108) and C (telemetry only, no bot). The user prioritised regression-gate plus tuning-data generation at batch scale. A was the recommendation on speed grounds — a stub lane runs dozens of games in seconds where a real browser costs wall-clock time — but B buys real render-path and real-input fidelity with no stub-drift risk, gets screenshots for free (closing task 104 durably), and parallel headless contexts should keep a 20-run batch practical. Playwright is a devDependency alongside vitest/jsdom, so spec.md's no-build-system constraint is untouched: the shipped game still loads as plain ES modules. Deliberately NOT part of this work: any change to gameplay constants (DAMAGE_SCALE, pushMaxSpeed, thresholds) — this measures, and tuning is a separate decision once numbers exist. Standing caveat: a bot's swing profile is not a human's, so bot data is valid for regression detection and relative A/B of constants, while absolute calibration must rest on human-run telemetry — calibrating constants on bot swings would repeat the L0097 unmeasured-premise error that produced the 30-40-hit Level 1."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
