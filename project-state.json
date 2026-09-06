@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Giblet work (101-104) signed off and complete. Playtest tooling (105-110) complete and in use; calibration mode (111) built. NEXT: task 112, the human calibration session - the user runs ?dev=1&calibrate for both variants, which is the measurement everything else waits on. Then design gates for breakable targets (113) and segmented rope (114), both chosen by the user 2026-09-06, then obstacle difficulty (115). Backgrounds feedback maps to the already-queued tasks 79/80. All numbers on record so far are bot-generated - no human run exists yet.",
+  "current_activity": "On swinging/feat/segmented-rope building the 2026-09-06 rope design, tasks 116-121. Starting with task 116, the collision-category cleanup, which is a hard prerequisite - ground/walls currently share Matter default category 0x0001 with the rat, so rope cannot collide with world geometry without colliding with the rat. Playtest tooling from 105-111 is the instrument: the gate detects regressions, the batch A/Bs rope vs no-rope at identical seeds, and the human baseline (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) is the before picture that the rope is expected to move.",
   "action_plan": [
     {
       "id": 45,
@@ -298,9 +298,9 @@
       "id": 114,
       "task": "/brainstorm then implement segmented rope: replace the single tail Constraint with a chain of linked collidable bodies so the tail can catch on obstacles and lose momentum",
       "priority": "high",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "The tail visibly catches and drags on bumpers and shields, the swing remains controllable, and the batch shows a re-measured baseline for hits-to-clear across all 9 levels",
-      "context": "User chose full replacement 2026-09-06. Matter.js Constraints are massless and collisionless, so catching is impossible without segmenting - this is the only approach that delivers it. Changes swing feel globally and forces a damage re-tune; the gate can detect the regressions and the batch can measure the new baseline, which is why this is tractable now and would not have been before."
+      "context": "User chose full replacement 2026-09-06. Matter.js Constraints are massless and collisionless, so catching is impossible without segmenting - this is the only approach that delivers it. Changes swing feel globally and forces a damage re-tune; the gate can detect the regressions and the batch can measure the new baseline, which is why this is tractable now and would not have been before. SUPERSEDED 2026-09-06 by the design gate output, tasks 116-121."
     },
     {
       "id": 115,
@@ -309,6 +309,53 @@
       "status": "pending",
       "done_when": "Bot batch across L1-L9 shows a difficulty curve that rises across acts rather than inverting, and a shield-avoiding bot can no longer clear Act 2 levels",
       "context": "Measured 2026-09-06: a bot whose picker filters shields out cleared 24/24 runs across L4-L9; the Act 2 finale (L6) fell in 4 hits / 2.4s against Level 1s 9 hits. Deferred until 113/114 land since both change the puzzle layer this would be tuning."
+    },
+    {
+      "id": 116,
+      "task": "physics.js - collision category cleanup: give ground/walls their own category (0x0020), add it to the rat mask so the rat stops passing through floor and walls, replace the fragments accidental 0x0001 with it, and audit the unassigned 0x0008 bit",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "A dev probe spawns the rat with no constraint and it comes to rest ON the ground rather than falling past the canvas; fragments report no contacts with the rat body; npm run gate still 70/70",
+      "context": "Hard prerequisite for the rope, not a tidy-up. Ground and walls were created with no collisionFilter so they inherited Matter default category 0x0001 - the same bit the rat explicitly uses - which means rope segments cannot be made to collide with world geometry without also colliding with the rat they hang from."
+    },
+    {
+      "id": 117,
+      "task": "physics.js - build the segmented rope behind ?dev=1&rope=N: N bodies of length pushStringLength/N chained pivot -> segments -> rat tail-base offset, ~2% rat mass each, category 0x0010, colliding with world and obstacles but not each other or the rat",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "With rope=10 the bot clears Level 1 unattended and state().rope.length === 10; without the flag the gate is unchanged at 70/70, proving the old constraint path is untouched",
+      "context": "Flagged so old and new coexist and the batch can A/B them at identical seeds. The flag is removed in task 121 - a permanent one is debt."
+    },
+    {
+      "id": 118,
+      "task": "renderer.js - drawTail draws a smooth curve through real segment positions, deleting the fabricated parabolic sag and speed-bow maths, keeping taper and variant colour",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "npm run shots -- --level 7 produces images where the tail visibly bends around geometry rather than tracing a clean parabola; images go to the user for perceptual review, not to an assertion"
+    },
+    {
+      "id": 119,
+      "task": "input.js/main.js/physics.js - yank on pointerdown with cooldown (impulse along rat->pivot plus tangential damping, never energy-adding), plus wrap and yank counters in telemetry",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "A scripted bumper-level run records wrapContacts > 0 and a yank measurably reduces the wrap; AND a yank-spamming batch shows no sustained-speed or hits-to-clear advantage over a no-yank batch at the same seeds",
+      "context": "The riskiest step. A yank that adds energy becomes the dominant strategy and collapses the game into click-spam (L0076: every dense reward term is a new exploit surface), so the exploit check is a measurement rather than a judgement call."
+    },
+    {
+      "id": 120,
+      "task": "Re-measure and re-tune: batch A/B rope vs no-rope across all 9 levels and both variants at identical seeds; widen gate bounds to the new baseline; change DAMAGE_SCALE only if the data demands it",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "A decisions entry carries a delta table (hits to clear, sustained speed, glancing %) rope vs no-rope, updated gate bounds, and before/after numbers for any constant that moved",
+      "context": "Expect the rope to make levels harder - it costs momentum, and the current damage numbers were implicitly built around a sustained speed of 109. Some of that is the point and some will be over-correction; the batch is what separates them."
+    },
+    {
+      "id": 121,
+      "task": "Rope human pass and docs: user re-runs calibration on the rope build and signs off on feel; rewrite CLAUDE.md tail-attachment concept and document the rope; remove the rope=N flag",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "User sign-off on feel, a fresh calibration entry in the decisions log, and git grep rope= returns nothing outside history",
+      "context": "The 2026-09-06 human calibration (free-swing peak 1146, sustained 109) will not survive the rope, so it must be retaken against the new physics."
     }
   ],
   "recently_updated_files": [
@@ -466,6 +513,11 @@
       "date": "2026-09-06",
       "decision": "MEASURED human swing range (standard variant), replacing the assumption that has driven every balance decision to date. Free-swing calibration: peak 1146, p90 374, p50 177. In play across 9 runs (L2-L9): per-run peak p50 310 / max 400, sustained p50 109 (range 32-139), hits to clear min 4 / p50 6 / max 12, time to clear p50 9.5s, 35% of 66 hits glancing (angleFactor < 0.55).",
       "rationale": "The premise behind the task 63-75 miscalibration was that real swings reach ~60% of pushMaxSpeed (=450 for standard). Measurement shows that is wrong in both directions depending on what is measured: sustained in-play speed is 109, only 14.5% of pushMaxSpeed, while a free swing peaks at 1146, i.e. 153% OF the supposed maximum. pushMaxSpeed=750 is therefore not a ceiling at all, yet in actual play peaks top out near 400 (53%), so the speed meter never fills past about half while playing - it is normalised against a speed only reachable when not playing. Bot comparison: bot peak speed (p50 ~320) tracks human peaks (310) closely, but bot SUSTAINED speed (p50 ~51) is less than half the human 109, and since damage scales with speed squared the bot understates human damage per typical hit by roughly 4.5x. Level-by-level the bot is not a human proxy at all - it cleared L6 in 4 hits/2.4s where the human needed 7 hits/10.6s, and needed 9 hits on L1 where the human cleared L2 in 4. Confirms bot data is usable for regression detection and peak-speed comparison, not for difficulty or absolute tuning. NOT YET MEASURED: the heavy variant (pushMaxSpeed 625) has no calibration run, and no human run exists for L1."
+    },
+    {
+      "date": "2026-09-06",
+      "decision": "Segmented rope design (tasks 116-121): replace the single tail Constraint with a Matter chain of ~10 collidable bodies; TRUE WRAP (the rope may coil a bumper and shorten the effective radius) with a player-initiated yank to unwind; the rat gains collision with ground and walls. Built behind ?dev=1&rope=N so the batch can A/B it at identical seeds, flag removed on merge.",
+      "rationale": "Wrap must emerge from real collision solving, so a hand-rolled Verlet rope was ruled out and the approach collapsed to a Matter body chain - the remaining variable is segment count and stiffness, which the batch runner can measure rather than guess. User chose true wrap over contact-drag-only, player-initiated release over auto-recovery or retry, and full rat/world collision. A collision-category cleanup is a hard prerequisite: ground and walls never set a collisionFilter and so inherited Matter default 0x0001, the same bit the rat uses, making it impossible for rope to collide with world geometry without colliding with the rat. The yank is deliberately energy-neutral (impulse toward the pivot plus tangential damping, on a cooldown) because an accelerating yank would become the dominant strategy; that risk is checked by measurement - a yank-spam batch must show no advantage - rather than by judgement."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
