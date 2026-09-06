@@ -7,6 +7,7 @@
 import * as Physics from '../physics.js';
 import * as Telemetry from './telemetry.js';
 import { POLICIES, sendPointer } from './bot.js';
+import { calibrate } from './calibrate.js';
 
 let deps = null;
 
@@ -171,6 +172,20 @@ export function initDev(injected) {
     },
   };
 
+  /** Timed free-swing measurement in an empty arena. */
+  api.calibrate = opts => calibrate({ ...opts, api });
+
   window.__ratsmash = api;
+
+  // ?dev=1&calibrate auto-starts, so a calibration session needs no console.
+  // Deferred a beat so the level-select DOM is settled first.
+  if (new URLSearchParams(location.search).has('calibrate')) {
+    const params = new URLSearchParams(location.search);
+    setTimeout(() => api.calibrate({
+      seconds: Number(params.get('seconds')) || 30,
+      variant: params.get('variant') || 'standard',
+    }), 250);
+  }
+
   return api;
 }

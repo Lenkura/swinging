@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Tasks 105-110 complete on swinging/feat/playtest-bot-telemetry: ?dev=1 telemetry, in-page bot, batch runner (1.5s/run), regression gate (npm run gate, 70/70 in 40s, proven to fail on a deliberate break) and screenshot rig. Outstanding: task 104 needs the user perceptual sign-off on the 14 regenerated screenshots in history/screenshots/. Then merge this branch and its realistic-giblets parent to main. First real measurement: bot L1 medians are 4 hits (heavy) vs 9 (standard) - a relative comparison bot data supports, but any absolute DAMAGE_SCALE / pushMaxSpeed change still needs human-run telemetry first.",
+  "current_activity": "Giblet work (101-104) signed off and complete. Playtest tooling (105-110) complete and in use; calibration mode (111) built. NEXT: task 112, the human calibration session - the user runs ?dev=1&calibrate for both variants, which is the measurement everything else waits on. Then design gates for breakable targets (113) and segmented rope (114), both chosen by the user 2026-09-06, then obstacle difficulty (115). Backgrounds feedback maps to the already-queued tasks 79/80. All numbers on record so far are bot-generated - no human run exists yet.",
   "action_plan": [
     {
       "id": 45,
@@ -269,6 +269,46 @@
       "status": "completed",
       "done_when": "CLAUDE.md documents all three entry points and the telemetry schema; git status is clean with run artifacts ignored but screenshots committed",
       "context": "PASS 2026-09-06: CLAUDE.md Dev Tooling section documents all five entry points, the telemetry schema, the layout, and the caveats on trusting a number."
+    },
+    {
+      "id": 111,
+      "task": "js/dev/calibrate.js - calibration mode: empty arena (no targets/bumpers), live peak-speed readout overlay, timed window, calibration block appended to the telemetry document",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "?dev=1&calibrate runs a timed free swing and reports peak/p90/p50 against pushMaxSpeed",
+      "context": "Built 2026-09-06 so the user can measure their own swing ceiling. Verified end-to-end: empty arena, overlay updates, source=calibration, zero errors. AWAITING the human calibration session - no human run has been recorded yet; every number in the project so far is bot-generated."
+    },
+    {
+      "id": 112,
+      "task": "Human calibration session: user runs ?dev=1&calibrate for both variants at max effort, then a few normal levels; export the JSON and log the measured swing range in a decisions entry",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "A decisions entry records the human peak/p90/p50 swing speed for both variants, as measured rather than assumed, plus the gap between free-swing ceiling and in-play speeds",
+      "context": "The measurement pushMaxSpeed (750/625), the speed meter and DAMAGE_SCALE have never had. Only the user can produce it. Sequencing caution: a segmented rope (task 114) changes swing feel globally, so these numbers are the BEFORE baseline - do not re-tune DAMAGE_SCALE against them until rope lands, or the tuning happens twice."
+    },
+    {
+      "id": 113,
+      "task": "/brainstorm then implement breakable targets: wire up the outcome computed at physics.js:84 and discarded at main.js:166, and define what ends a level once targets can be destroyed",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Glass/wood/steel respond to impulse per their material config, the level-end condition is defined and implemented, and no material field remains dead",
+      "context": "User chose breakable targets 2026-09-06 over keeping them indestructible. This changes the core loop: today the rat shattering ends the level, and material.strength/crackThreshold/fragmentCount/fragmentSpread are dead config. Needs the design gate - the level-end question has no obvious answer."
+    },
+    {
+      "id": 114,
+      "task": "/brainstorm then implement segmented rope: replace the single tail Constraint with a chain of linked collidable bodies so the tail can catch on obstacles and lose momentum",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "The tail visibly catches and drags on bumpers and shields, the swing remains controllable, and the batch shows a re-measured baseline for hits-to-clear across all 9 levels",
+      "context": "User chose full replacement 2026-09-06. Matter.js Constraints are massless and collisionless, so catching is impossible without segmenting - this is the only approach that delivers it. Changes swing feel globally and forces a damage re-tune; the gate can detect the regressions and the batch can measure the new baseline, which is why this is tractable now and would not have been before."
+    },
+    {
+      "id": 115,
+      "task": "Re-examine Act 2/3 obstacle difficulty once rope and breakable targets land: shield placement, breakSpeed thresholds, and level geometry",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Bot batch across L1-L9 shows a difficulty curve that rises across acts rather than inverting, and a shield-avoiding bot can no longer clear Act 2 levels",
+      "context": "Measured 2026-09-06: a bot whose picker filters shields out cleared 24/24 runs across L4-L9; the Act 2 finale (L6) fell in 4 hits / 2.4s against Level 1s 9 hits. Deferred until 113/114 land since both change the puzzle layer this would be tuning."
     }
   ],
   "recently_updated_files": [
