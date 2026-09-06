@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/segmented-rope building the 2026-09-06 rope design, tasks 116-121. Starting with task 116, the collision-category cleanup, which is a hard prerequisite - ground/walls currently share Matter default category 0x0001 with the rat, so rope cannot collide with world geometry without colliding with the rat. Playtest tooling from 105-111 is the instrument: the gate detects regressions, the batch A/Bs rope vs no-rope at identical seeds, and the human baseline (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) is the before picture that the rope is expected to move.",
+  "current_activity": "On swinging/feat/segmented-rope. Task 116 (collision-category cleanup) complete - ground/walls now own CAT.WORLD, the rat collides with the world, fragments no longer collide with the rat, and dead bit 0x0008 is gone. NEXT: task 117, build the segmented rope behind ?dev=1&rope=N. Gate is 70/70 and its non-dev check was rebuilt around canvas animation after the old HP-drop threshold proved to be measuring an open-loop swing luck (1.9-49% across runs of identical code) rather than code liveness.",
   "action_plan": [
     {
       "id": 45,
@@ -314,9 +314,9 @@
       "id": 116,
       "task": "physics.js - collision category cleanup: give ground/walls their own category (0x0020), add it to the rat mask so the rat stops passing through floor and walls, replace the fragments accidental 0x0001 with it, and audit the unassigned 0x0008 bit",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "A dev probe spawns the rat with no constraint and it comes to rest ON the ground rather than falling past the canvas; fragments report no contacts with the rat body; npm run gate still 70/70",
-      "context": "Hard prerequisite for the rope, not a tidy-up. Ground and walls were created with no collisionFilter so they inherited Matter default category 0x0001 - the same bit the rat explicitly uses - which means rope segments cannot be made to collide with world geometry without also colliding with the rat they hang from."
+      "context": "Hard prerequisite for the rope, not a tidy-up. Ground and walls were created with no collisionFilter so they inherited Matter default category 0x0001 - the same bit the rat explicitly uses - which means rope segments cannot be made to collide with world geometry without also colliding with the rat they hang from. DONE 2026-09-06: rat released from its constraint now rests at y=602, exactly ground-top(620) minus radius(18), where before it fell past the canvas. 0x0008 audited and removed - it appeared once in the fragment mask and was assigned to no body. Measured side-effect check: the rat never approaches the floor in normal play (lowest y 463-492 across L1/L5/L7, zero of 1014 frames near ground), so this changes nothing about current gameplay and only matters once the rope has mass and can drape."
     },
     {
       "id": 117,

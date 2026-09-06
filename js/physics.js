@@ -3,6 +3,35 @@ import { RAT_VARIANTS } from './rat.js';
 
 const { Engine, Bodies, Body, Composite, Constraint, Events, World } = Matter;
 
+// --- Collision categories ------------------------------------------------
+// Matter allows a pair only when BOTH filters agree:
+//   (a.mask & b.category) && (b.mask & a.category)
+// so every intended pair has to be declared from both sides. Ground and walls
+// previously set no collisionFilter at all and inherited Matter's default
+// category 0x0001 - the same bit the rat uses - which is why the rat fell
+// through floors and why rope could not be made to hit world geometry without
+// also hitting the rat it hangs from. 0x0008 appeared in the fragment mask but
+// was never assigned to any body; it is gone.
+export const CAT = {
+  RAT: 0x0001,
+  TARGET: 0x0002,   // targets and bumpers
+  FRAGMENT: 0x0004,
+  ROPE: 0x0010,
+  WORLD: 0x0020,    // ground and walls
+};
+
+// Intended pairs:
+//   rat      x target, world
+//   fragment x world, fragment
+//   rope     x world, target        (never rope-rope, never rope-rat)
+const MASK = {
+  RAT: CAT.TARGET | CAT.WORLD,
+  TARGET: CAT.RAT | CAT.ROPE,
+  FRAGMENT: CAT.WORLD | CAT.FRAGMENT,
+  ROPE: CAT.WORLD | CAT.TARGET,
+  WORLD: CAT.RAT | CAT.FRAGMENT | CAT.ROPE,
+};
+
 let engine, world;
 let ratBody = null;
 let stringConstraint = null;
@@ -36,9 +65,11 @@ export function init(width, height) {
 
   groundBody = Bodies.rectangle(width / 2, height + 25, width * 3, 50, {
     isStatic: true, label: 'ground', friction: 0.6, restitution: 0.2,
+    collisionFilter: { category: CAT.WORLD, mask: MASK.WORLD },
   });
-  leftWall = Bodies.rectangle(-25, height / 2, 50, height * 2, { isStatic: true, label: 'wall' });
-  rightWall = Bodies.rectangle(width + 25, height / 2, 50, height * 2, { isStatic: true, label: 'wall' });
+  const wallOpts = { isStatic: true, label: 'wall', collisionFilter: { category: CAT.WORLD, mask: MASK.WORLD } };
+  leftWall = Bodies.rectangle(-25, height / 2, 50, height * 2, wallOpts);
+  rightWall = Bodies.rectangle(width + 25, height / 2, 50, height * 2, wallOpts);
   Composite.add(world, [groundBody, leftWall, rightWall]);
 
   Events.on(engine, 'collisionStart', onCollision);
@@ -107,7 +138,7 @@ export function spawnRat(x, y, variantKey, asStatic = false) {
     restitution: v.restitution,
     friction: v.friction,
     frictionAir: v.frictionAir,
-    collisionFilter: { category: 0x0001, mask: 0x0002 | 0x0004 },
+    collisionFilter: { category: CAT.RAT, mask: MASK.RAT },
     plugin: { impactMultiplier: v.impactMultiplier, variantKey, radius: v.radius, isCircle: true, fragmentsSpawned: false },
   });
   Body.setMass(ratBody, v.mass);
@@ -148,7 +179,7 @@ export function spawnTargets(levelTargets) {
         label: 'target',
         restitution: material.restitution,
         friction: 0.5,
-        collisionFilter: { category: 0x0002, mask: 0x0001 },
+        collisionFilter: { category: CAT.TARGET, mask: MASK.TARGET },
         plugin: {
           materialKey: td.material,
           cracked: false,
@@ -167,7 +198,7 @@ export function spawnTargets(levelTargets) {
         label: 'target',
         restitution: material.restitution,
         friction: 0.5,
-        collisionFilter: { category: 0x0002, mask: 0x0001 },
+        collisionFilter: { category: CAT.TARGET, mask: MASK.TARGET },
         plugin: {
           materialKey: td.material,
           cracked: false,
@@ -220,7 +251,7 @@ export function spawnBumpers(levelBumpers = []) {
       label: 'bumper',
       restitution: 0.9,
       friction: 0.0,
-      collisionFilter: { category: 0x0002, mask: 0x0001 },
+      collisionFilter: { category: CAT.TARGET, mask: MASK.TARGET },
       plugin: { radius: bd.radius },
     });
     Composite.add(world, body);
@@ -347,9 +378,12 @@ function spawnRatFragments(yoyo, hitPoint, blastBonus = 1) {
         restitution: 0.3,
         friction: 0.4,
         frictionAir: 0.01,
-        // 0x0001 (ground/walls) lets giblets land — without it they collide
-        // only with each other and fall through the floor.
-        collisionFilter: { category: 0x0004, mask: 0x0001 | 0x0002 | 0x0004 | 0x0008 },
+        // CAT.WORLD is what lets giblets land; without it they collide only
+        // with each other and fall through the floor. (Until the category
+        // cleanup this bit was 0x0001, which reached the ground only because
+        // ground shared that default category with the rat - so giblets were
+        // also colliding with the rat for the 0.85s before it is removed.)
+        collisionFilter: { category: CAT.FRAGMENT, mask: MASK.FRAGMENT },
         plugin: {
           variantKey: yoyo.plugin.variantKey,
           born: Date.now(),
