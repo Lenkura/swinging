@@ -209,6 +209,26 @@ function store(doc) {
   }
 }
 
+/**
+ * Merge fields into the most recently finished run and re-persist it.
+ * endRun serialises to localStorage immediately, so anything computed after
+ * it returns (a calibration block, a note) is lost unless written back.
+ */
+export function amendLastRun(patch) {
+  if (!lastRun) return null;
+  Object.assign(lastRun, patch);
+  try {
+    const all = getRuns();
+    if (all.length) {
+      all[all.length - 1] = lastRun;
+      localStorage.setItem(RUN_STORE_KEY, JSON.stringify(all));
+    }
+  } catch (err) {
+    console.warn('[telemetry] could not persist amendment:', err.message);
+  }
+  return lastRun;
+}
+
 export function getRuns() {
   try {
     return JSON.parse(localStorage.getItem(RUN_STORE_KEY) || '[]');

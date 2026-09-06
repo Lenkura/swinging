@@ -92,14 +92,18 @@ export async function calibrate({ seconds = 30, variant = 'standard', level = 1,
   if (!doc) { overlay.textContent = 'CALIBRATION aborted'; return null; }
 
   const s = doc.summary;
-  doc.calibration = {
-    variant,
-    pushMaxSpeed: maxSpeed,
-    peakSpeed: s.speed.max,
-    peakAsFractionOfMax: Math.round((s.speed.max / maxSpeed) * 1000) / 1000,
-    p50AsFractionOfMax: Math.round((s.speed.p50 / maxSpeed) * 1000) / 1000,
-    windowSeconds: seconds,
-  };
+  // amendLastRun, not a plain assignment: endRun has already serialised the
+  // document to localStorage, so a direct mutation would never persist.
+  Telemetry.amendLastRun({
+    calibration: {
+      variant,
+      pushMaxSpeed: maxSpeed,
+      peakSpeed: s.speed.max,
+      peakAsFractionOfMax: Math.round((s.speed.max / maxSpeed) * 1000) / 1000,
+      p50AsFractionOfMax: Math.round((s.speed.p50 / maxSpeed) * 1000) / 1000,
+      windowSeconds: seconds,
+    },
+  });
 
   overlay.textContent =
     `CALIBRATION COMPLETE  ${variant}\n`
