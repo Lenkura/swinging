@@ -9,7 +9,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const PROJECT_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -63,8 +63,15 @@ export function startServer(port = 0, root = PROJECT_ROOT) {
   });
 }
 
-// Standalone mode
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
-  const { base } = await startServer(Number(process.argv[2]) || 8080);
-  console.log(`serving ${PROJECT_ROOT}\n  ${base}\n  ${base}/?dev=1   (telemetry enabled)`);
+// Standalone mode. pathToFileURL, not a hand-built string: on Windows
+// import.meta.url is file:///D:/... (three slashes) while 'file://' + a
+// slash-swapped path gives two, so the comparison silently never matched and
+// running this directly exited 0 without ever listening.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const port = Number(process.argv[2]) || 8080;
+  const { base } = await startServer(port);
+  console.log(`serving ${PROJECT_ROOT}`);
+  console.log(`  ${base}          play normally`);
+  console.log(`  ${base}/?dev=1   telemetry on - run summary in the console`);
+  console.log('\nCtrl+C to stop.');
 }
