@@ -9,6 +9,27 @@ import { generateCrackPattern } from './target.js';
 import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak, startWhoosh, updateWhoosh, stopWhoosh } from './audio.js';
 import { calcPushScore, comboMultiplier } from './scoring.js';
 
+// --- Dev instrumentation (?dev=1) ---------------------------------------
+// Dynamically imported so a normal player never fetches js/dev/*. Every call
+// site below is a no-op without the flag; nothing here may affect gameplay.
+const DEV = new URLSearchParams(location.search).has('dev');
+const NOOP_TELEMETRY = {
+  startRun() {}, endRun() { return null; }, recordHit() {}, sampleFrame() {},
+  setMeta() {}, isRecording() { return false; },
+};
+const Telemetry = DEV ? await import('./dev/telemetry.js') : NOOP_TELEMETRY;
+if (DEV) window.__ratsmashTelemetry = Telemetry;
+
+// Tagged onto each run so a bot number is never mistaken for a human one.
+// The harness (js/dev/harness.js) overwrites these before driving a run.
+let devSource = 'human';
+let devSeed = null;
+// Opt-in fixed timestep. Real frame times vary, so physics stepping on the
+// real dt makes two runs of the same seed diverge. Setting this trades
+// real-time fidelity for reproducibility; it stays null (real dt) unless a
+// runner asks for it, and is unreachable without ?dev=1.
+let devFixedDt = null;
+
 
 const canvas = document.getElementById('game-canvas');
 const CANVAS_W = 1100;
@@ -151,6 +172,11 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
   // Shield hit — check break threshold
     if (target.plugin.isShield) {
       hitCooldown = 0.35;
+      Telemetry.recordHit({
+        kind: speed >= target.plugin.breakSpeed ? 'shield-break' : 'shield-block',
+        speed, angleFactor: af, material: target.plugin.materialKey,
+        breakSpeed: target.plugin.breakSpeed, hpAfter: ratHp,
+      });
       if (speed >= target.plugin.breakSpeed) {
         Physics.removeTarget(target);
         playShieldBreak();
@@ -173,6 +199,11 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     hitCooldown = 0.35;
     playHit(target.plugin.materialKey, Math.min(damage / RAT_MAX_HP, 1), comboCount);
     playComboTone(comboCount);
+
+    Telemetry.recordHit({
+      kind: 'damage', speed, angleFactor: af, material: target.plugin.materialKey,
+      damage, combo: comboCount, multiplier: cm, hpAfter: ratHp, hitIndex: hitCount,
+    });
 
     if (af < 0.55) {
       hitLabel = { text: 'GLANCING!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#f4a261' };
@@ -260,6 +291,11 @@ function startLevel() {
   UI.hidePicker();
   UI.setHint(level.hint || 'Move the mouse to swing the rat! Chain hits for a combo bonus.');
 
+  Telemetry.startRun({
+    level: level.id, levelName: level.name, variant: selectedVariant,
+    source: devSource, seed: devSeed,
+  });
+
   startWhoosh();
   gameState = 'SWINGING';
   lastOutcome = null;
@@ -272,7 +308,8 @@ function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
 
   if (lastTime === null) { lastTime = timestamp; return; }
-  const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+  const rawFrameMs = timestamp - lastTime;  // unclamped - clamping would hide long frames
+  const dt = devFixedDt !== null ? devFixedDt : Math.min(rawFrameMs / 1000, 0.05);
   lastTime = timestamp;
 
   // Physics step (all states except PICKER/RESULT where physics needn't run).
@@ -332,14 +369,20 @@ function gameLoop(timestamp) {
   // Render
   const level = currentLevel();
   let angularSpeed = 0;
+  let ratSpeed = 0;
   if (gameState === 'SWINGING') {
     const yb = Physics.getRatBody();
     if (yb) {
-      const spd = Math.sqrt(yb.velocity.x ** 2 + yb.velocity.y ** 2);
-      angularSpeed = Math.min(spd / RAT_VARIANTS[selectedVariant].pushMaxSpeed, 1);
+      ratSpeed = Math.sqrt(yb.velocity.x ** 2 + yb.velocity.y ** 2);
+      angularSpeed = Math.min(ratSpeed / RAT_VARIANTS[selectedVariant].pushMaxSpeed, 1);
     }
   }
   updateWhoosh(angularSpeed);
+
+  Telemetry.sampleFrame({
+    dt, rawFrameMs, state: gameState, speed: ratSpeed,
+    normalizedSpeed: angularSpeed, hp: ratHp,
+  });
 
   // Pass constraint anchor as pivot so string + hand draw at mouse position
   const constraint = Physics.getStringConstraint();
@@ -371,6 +414,8 @@ function showResult() {
   Input.detachFromCanvas();
   Physics.removeRat();
 
+  Telemetry.endRun({ outcome: lastOutcome, score: lastScore, hitCount });
+
   const level = currentLevel();
   saveProgress(currentLevelId, lastScore);
 
@@ -390,3 +435,27 @@ UI.buildLevelSelect(LEVELS, loadProgress());
 UI.showLevelSelect();
 UI.setHint('');
 requestAnimationFrame(gameLoop);
+
+// Hand the dev harness the module-scope internals it needs, rather than
+// leaking them onto window for it to find (L0105, L0133).
+if (DEV) {
+  const { initDev } = await import('./dev/harness.js');
+  initDev({
+    canvas,
+    getState: () => ({
+      gameState, level: currentLevelId, variant: selectedVariant,
+      hp: ratHp, maxHp: RAT_MAX_HP, hitCount, comboCount,
+      stringLength, pivot: { ...pivot },
+    }),
+    setFixedDt: s => { devFixedDt = s; },
+    beginRun({ level, variant, source, seed }) {
+      currentLevelId = level;
+      selectedVariant = variant;
+      devSource = source;
+      devSeed = seed;
+      UI.hideResult();
+      UI.hideLevelSelect();
+      startLevel();
+    },
+  });
+}

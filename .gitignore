@@ -19,3 +19,8 @@ history/*.flag
 
 # Local Claude settings
 .claude/settings.local.json
+
+# Dev tooling artifacts
+dev/runs/
+dev/*.png
+dev/_verify*.mjs
