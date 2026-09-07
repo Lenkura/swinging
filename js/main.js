@@ -405,6 +405,7 @@ function gameLoop(timestamp) {
     bumperBodies: Physics.getBumperBodies(),
     fragmentBodies: Physics.getFragmentBodies(),
     stringConstraint: constraint,
+    ropeBodies: Physics.getRopeBodies(),
     angularSpeed,
     hpFraction: ratHp / RAT_MAX_HP,
     hitCount,

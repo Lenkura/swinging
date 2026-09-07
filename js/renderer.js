@@ -72,6 +72,7 @@ export function draw({
   bumperBodies = [],
   fragmentBodies,
   stringConstraint,
+  ropeBodies = null,
   angularSpeed,
   hpFraction = 1.0,
   hitCount = 0,
@@ -96,14 +97,22 @@ export function draw({
 
   const ratVariant = yoyoBody ? RAT_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'] : null;
 
-  if (stringConstraint && yoyoBody && (state === 'SWINGING' || state === 'IDLE_ARMED')) {
-    drawTail(pivot, yoyoBody, angularSpeed, stringConstraint, ratVariant);
+  const showTail = stringConstraint && yoyoBody && (state === 'SWINGING' || state === 'IDLE_ARMED');
+  // A drawn tail sits behind the scenery; a physical rope must sit in front of
+  // it, or a rope caught on a bumper renders as a straight line disappearing
+  // behind the very obstacle it is snagged on.
+  if (showTail && !ropeBodies?.length) {
+    drawTail(pivot, yoyoBody, angularSpeed, stringConstraint, ratVariant, null);
   }
 
   drawTrail(yoyoBody, level);
   drawFragments(fragmentBodies);
   drawBumpers(bumperBodies);
   drawTargets(targetBodies);
+
+  if (showTail && ropeBodies?.length) {
+    drawTail(pivot, yoyoBody, angularSpeed, stringConstraint, ratVariant, ropeBodies);
+  }
 
   if (yoyoBody) {
     drawRat(yoyoBody, ratVariant, hpFraction, flash, squash);
@@ -166,7 +175,53 @@ function drawGround(level) {
   ctx.drawImage(cachedGroundCanvas, 0, canvasH - 49);
 }
 
-function drawTail(pivot, body, normalizedSpeed, constraint, variant) {
+/**
+ * Catmull-Rom through the given control points, so a 10-segment rope reads as
+ * a curve rather than a polygon. Returns a densified polyline the tapered
+ * stroker can walk.
+ */
+function smoothPolyline(pts, samplesPerSpan = 4) {
+  if (pts.length < 3) return pts;
+  const at = i => pts[Math.max(0, Math.min(pts.length - 1, i))];
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+    for (let s = 0; s < samplesPerSpan; s++) {
+      const t = s / samplesPerSpan, t2 = t * t, t3 = t2 * t;
+      out.push({
+        x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+        y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+      });
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+
+/** Tapered stroke: thin at the hand, thickening toward the body. */
+function strokeTaperedTail(pts, r, variant) {
+  // Two passes (dark underlay, then colour) instead of shadowBlur: a shadowed
+  // stroke per span would mean 40+ blurred draws a frame, and task 86 is
+  // already about getting shadowBlur out of the per-frame path.
+  // Underlay kept narrow: at +1.9 the rope read as a thick stick next to the
+  // old thin drawn tail, which is a visual regression even though the
+  // geometry is now honest.
+  for (const [color, widen] of [['rgba(0,0,0,0.28)', 0.9], [variant.tailColor, 0]]) {
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let i = 0; i < pts.length - 1; i++) {
+      const t = i / (pts.length - 1);
+      ctx.lineWidth = r * (0.08 + 0.22 * t) + widen;
+      ctx.beginPath();
+      ctx.moveTo(pts[i].x, pts[i].y);
+      ctx.lineTo(pts[i + 1].x, pts[i + 1].y);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawTail(pivot, body, normalizedSpeed, constraint, variant, ropeBodies) {
   const r = body.plugin.radius;
   const angle = body.angle;
   const cos = Math.cos(angle), sin = Math.sin(angle);
@@ -177,6 +232,18 @@ function drawTail(pivot, body, normalizedSpeed, constraint, variant) {
   const ey = body.position.y + baseLocalX * sin + baseLocalY * cos;
 
   const px = pivot.x, py = pivot.y;
+
+  // Segmented rope: the tail IS the physics. Draw where the bodies actually
+  // are, so a rope draped over a bumper looks draped instead of tracing a
+  // clean parabola through it.
+  if (ropeBodies && ropeBodies.length) {
+    const control = [{ x: px, y: py }];
+    for (const seg of ropeBodies) control.push({ x: seg.position.x, y: seg.position.y });
+    control.push({ x: ex, y: ey });
+    strokeTaperedTail(smoothPolyline(control), r, variant);
+    return;
+  }
+
   const dx = ex - px;
   const dy = ey - py;
   const dist = Math.sqrt(dx * dx + dy * dy);
@@ -210,7 +277,7 @@ function drawTail(pivot, body, normalizedSpeed, constraint, variant) {
     });
   }
 
-  // Draw a tapered tail — thin at the hand (t=0), thick where it meets the body (t=1)
+  // Thin at the hand (t=0), thick where it meets the body (t=1)
   ctx.shadowColor = 'rgba(0,0,0,0.25)';
   ctx.shadowBlur = 3;
   ctx.strokeStyle = variant.tailColor;

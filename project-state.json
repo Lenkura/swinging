@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/segmented-rope. Tasks 116-117 complete: categories cleaned up and the segmented rope builds and swings behind ?dev=1&rope=N, parameters set by sweep (10 segments, 5% mass, 48 constraint iterations). NEXT: task 118, renderer draws the real rope - currently the renderer still draws the old fabricated sag curve, so with the flag on the visible tail does not match the physics. Then 119 (wrap + yank), 120 (re-measure/re-tune), 121 (human pass, remove flag).",
+  "current_activity": "On swinging/feat/segmented-rope. Tasks 116-118 complete: categories cleaned, rope builds and swings behind ?dev=1&rope=N with swept parameters, and the renderer draws real segment positions in front of the scenery. NEXT: task 119, wrap detection + the player yank, which is the riskiest step (an energy-adding yank would become the dominant strategy) and also where the weak-wrap question gets answered - current evidence is that a stiffness-1.0 rope grazes obstacles rather than wrapping them.",
   "action_plan": [
     {
       "id": 45,
@@ -330,8 +330,9 @@
       "id": 118,
       "task": "renderer.js - drawTail draws a smooth curve through real segment positions, deleting the fabricated parabolic sag and speed-bow maths, keeping taper and variant colour",
       "priority": "high",
-      "status": "pending",
-      "done_when": "npm run shots -- --level 7 produces images where the tail visibly bends around geometry rather than tracing a clean parabola; images go to the user for perceptual review, not to an assertion"
+      "status": "completed",
+      "done_when": "npm run shots -- --level 7 produces images where the tail visibly bends around geometry rather than tracing a clean parabola; images go to the user for perceptual review, not to an assertion",
+      "context": "DONE 2026-09-07: drawTail branches on ropeBodies and draws a Catmull-Rom curve through real segment positions; the fabricated sag/bow path is kept only for the un-roped mode and is deleted with the flag in task 121. Two findings during the pass: (1) the rope was rendering BEHIND bumpers and targets, so a rope caught on a bumper looked like a straight line vanishing behind the obstacle it was snagged on - the roped tail now draws after the scenery; (2) shadowBlur was dropped for the rope path in favour of a two-pass dark underlay, since a shadowed stroke per span would be 40+ blurred draws a frame. OPEN: contact is confirmed (segments held ~2px off the bumper surface) but reads as a graze, not a wrap - at stiffness 1.0 with 48 solver iterations the rope is nearly rigid. Whether wrap is strong enough to matter is task 119s question."
     },
     {
       "id": 119,
