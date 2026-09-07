@@ -91,6 +91,9 @@ export function initDev(injected) {
         targets: (Physics.getTargetBodies() || []).map(b => ({
           x: b.position.x, y: b.position.y, isShield: Boolean(b.plugin.isShield),
         })),
+        rope: (Physics.getRopeBodies() || []).map(b => ({
+          x: Math.round(b.position.x), y: Math.round(b.position.y),
+        })),
         fragments: (Physics.getFragmentBodies() || []).length,
         // Piece types let the gate regression-check the giblet roster
         // (tasks 101-102) rather than only counting bodies.
@@ -109,6 +112,12 @@ export function initDev(injected) {
      */
     setFixedDt(seconds) { deps.setFixedDt(seconds); },
 
+    /** 0 = the old single constraint; N > 0 = an N-segment rope (task 117). */
+    setRopeSegments(n) { deps.setRopeSegments(n); },
+    getRopeSegments() { return deps.getRopeSegments(); },
+    /** Rope tunables, so they can be swept and measured rather than guessed. */
+    setRopeConfig(cfg) { deps.setRopeConfig(cfg); },
+
     /** Start a level directly, bypassing the menus. */
     beginRun({ level = 1, variant = 'standard', seed = null, source = 'bot' } = {}) {
       const seeding = setSeed(seed);
@@ -125,6 +134,10 @@ export function initDev(injected) {
       timeoutMs = 60000, policyOpts = {}, source = 'bot', fixedDt = null,
     } = {}) {
       deps.setFixedDt(fixedDt);
+      // getLastRun() keeps returning the PREVIOUS run's document while a run is
+      // still recording, so a timed-out run would otherwise report an earlier
+      // run's success as its own. Capture the identity to compare against.
+      const priorDoc = Telemetry.getLastRun();
       const started = api.beginRun({ level, variant, seed, source });
       const rng = seededRandom || nativeRandom;
       const step = POLICIES[policy](policyOpts);
@@ -158,14 +171,16 @@ export function initDev(injected) {
       });
 
       const timedOut = performance.now() - t0 > timeoutMs;
-      const doc = Telemetry.getLastRun();
+      const latest = Telemetry.getLastRun();
+      // Only a document that did not exist before this run belongs to it.
+      const doc = latest && latest !== priorDoc ? latest : null;
       return {
         ...started,
         policy,
         fixedDt,
         timedOut,
-        // A timeout leaves the run un-ended, so there is no document; report
-        // the live snapshot instead of silently returning null.
+        // A timeout leaves the run un-ended and produces no document; report
+        // the live snapshot rather than a stale one from an earlier run.
         document: doc,
         liveSnapshot: doc ? null : Telemetry.snapshot(),
       };

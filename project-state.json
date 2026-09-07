@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/segmented-rope. Task 116 (collision-category cleanup) complete - ground/walls now own CAT.WORLD, the rat collides with the world, fragments no longer collide with the rat, and dead bit 0x0008 is gone. NEXT: task 117, build the segmented rope behind ?dev=1&rope=N. Gate is 70/70 and its non-dev check was rebuilt around canvas animation after the old HP-drop threshold proved to be measuring an open-loop swing luck (1.9-49% across runs of identical code) rather than code liveness.",
+  "current_activity": "On swinging/feat/segmented-rope. Tasks 116-117 complete: categories cleaned up and the segmented rope builds and swings behind ?dev=1&rope=N, parameters set by sweep (10 segments, 5% mass, 48 constraint iterations). NEXT: task 118, renderer draws the real rope - currently the renderer still draws the old fabricated sag curve, so with the flag on the visible tail does not match the physics. Then 119 (wrap + yank), 120 (re-measure/re-tune), 121 (human pass, remove flag).",
   "action_plan": [
     {
       "id": 45,
@@ -322,9 +322,9 @@
       "id": 117,
       "task": "physics.js - build the segmented rope behind ?dev=1&rope=N: N bodies of length pushStringLength/N chained pivot -> segments -> rat tail-base offset, ~2% rat mass each, category 0x0010, colliding with world and obstacles but not each other or the rat",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "With rope=10 the bot clears Level 1 unattended and state().rope.length === 10; without the flag the gate is unchanged at 70/70, proving the old constraint path is untouched",
-      "context": "Flagged so old and new coexist and the batch can A/B them at identical seeds. The flag is removed in task 121 - a permanent one is debt."
+      "context": "Flagged so old and new coexist and the batch can A/B them at identical seeds. The flag is removed in task 121 - a permanent one is debt. DONE 2026-09-07: rope=10 clears Level 1 on 4/4 seeds (3-5 hits, peak ~226), state().rope.length===10, pivot-to-rat span 131 vs the old constraint 130, gate 70/70 unflagged. Parameters were swept, not guessed - see the decision entry."
     },
     {
       "id": 118,
@@ -518,6 +518,11 @@
       "date": "2026-09-06",
       "decision": "Segmented rope design (tasks 116-121): replace the single tail Constraint with a Matter chain of ~10 collidable bodies; TRUE WRAP (the rope may coil a bumper and shorten the effective radius) with a player-initiated yank to unwind; the rat gains collision with ground and walls. Built behind ?dev=1&rope=N so the batch can A/B it at identical seeds, flag removed on merge.",
       "rationale": "Wrap must emerge from real collision solving, so a hand-rolled Verlet rope was ruled out and the approach collapsed to a Matter body chain - the remaining variable is segment count and stiffness, which the batch runner can measure rather than guess. User chose true wrap over contact-drag-only, player-initiated release over auto-recovery or retry, and full rat/world collision. A collision-category cleanup is a hard prerequisite: ground and walls never set a collisionFilter and so inherited Matter default 0x0001, the same bit the rat uses, making it impossible for rope to collide with world geometry without colliding with the rat. The yank is deliberately energy-neutral (impulse toward the pivot plus tangential damping, on a cooldown) because an accelerating yank would become the dominant strategy; that risk is checked by measurement - a yank-spam batch must show no advantage - rather than by judgement."
+    },
+    {
+      "date": "2026-09-07",
+      "decision": "Rope parameters set by sweep: 10 segments, per-segment mass 5% of rat mass, engine.constraintIterations 48 while a rope is attached (Matter default 2 restored for the un-roped path). Circles of radius 3.5, stiffness 1.0, zero constraint damping, frictionAir 0.0005.",
+      "rationale": "Segment mass is the dominant term and the naive value was badly wrong. At 1-2% of rat mass the rope swallowed the swing entirely - peak speed collapsed from ~320 to 40 and the bot never cleared - because a near-massless chain cannot pull a body 100x heavier through Matter sequential solver. Raising constraintIterations helps (2% mass: 102 at 20 iters, 138 at 40, 161 at 60) but does not converge to usable, so a genuinely light rope is not achievable here. At 25% per segment the rope matches the no-rope baseline but totals 2.5x the rat mass and reads as a chain rather than a tail. 5% with 40-60 iterations clears 100% of runs at median peak 208-240 against a 315 baseline, i.e. a 25-30% momentum cost, which is the hindrance the rope exists to create. Frame p95 stays 16.7ms even at 60 iterations, so iteration count is not a perf constraint. Matter default 2 constraint iterations also let the 10-link chain stretch ~30% under the rat weight, lengthening the effective pendulum from 130 to 171px; at 48 iterations the span is 131."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

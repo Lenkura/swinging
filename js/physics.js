@@ -38,6 +38,8 @@ let stringConstraint = null;
 let targetBodies = [];
 let fragmentBodies = [];
 let bumperBodies = [];
+let ropeBodies = [];
+let ropeConstraints = [];
 let groundBody, leftWall, rightWall;
 let canvasW, canvasH;
 
@@ -148,6 +150,8 @@ export function spawnRat(x, y, variantKey, asStatic = false) {
 }
 
 export function attachString(pivotX, pivotY, length, stiffness = 1.0) {
+  detachRope();
+  engine.constraintIterations = 2;   // Matter's default, for the single-constraint path
   if (stringConstraint) Composite.remove(world, stringConstraint);
   // Grip the tail base, not the body center — matches the tail-start point
   // drawn in renderer's drawRat, so the rat hangs from its tail.
@@ -162,6 +166,118 @@ export function attachString(pivotX, pivotY, length, stiffness = 1.0) {
   });
   Composite.add(world, stringConstraint);
 }
+
+/**
+ * Segmented rope tail (task 117) - the alternative to attachString.
+ *
+ * A chain of small collidable bodies from the pivot to the rat's tail base,
+ * so the tail can drape over geometry and coil around obstacles. Wrapping is
+ * not simulated: it falls out of segments colliding with the world, which is
+ * why a Matter body chain was the only approach that could deliver it.
+ *
+ * The chain runs pivot -> seg0 -> ... -> segN-1 -> rat tail base, and total
+ * reach stays `length` so the swing radius matches the old constraint.
+ * stringConstraint is deliberately reused for the pivot link: everything
+ * downstream (updatePivot, the renderer's displayPivot) means "the constraint
+ * anchored at the pivot", and that is still exactly what it is.
+ */
+// Rope tunables, exposed so they can be swept and measured rather than
+// guessed. Defaults are the tuned values; see the task-117 sweep.
+let ropeConfig = {
+  // Both values come from the task-117 sweep, not from taste. Segment mass is
+  // the dominant term: at 1-2% of rat mass the rope swallows the swing (peak
+  // 40-161, never clears) because a near-massless chain cannot pull a body 100x
+  // heavier through Matter's solver. At 25% it matches the no-rope baseline but
+  // reads as a chain rather than a tail. 5% with ~48 iterations clears 100% of
+  // runs at peak 208-240 against a 315 baseline - a 25-30% momentum cost, which
+  // is the hindrance the rope is for.
+  massFrac: 0.05,       // per segment, as a fraction of rat mass
+  iterations: 48,       // engine.constraintIterations while a rope is attached
+  stiffness: 1.0,
+  radius: 3.5,
+  friction: 0.4,
+  frictionAir: 0.0005,
+};
+
+export function setRopeConfig(cfg) { Object.assign(ropeConfig, cfg); }
+export function getRopeConfig() { return { ...ropeConfig }; }
+
+export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ropeConfig.stiffness) {
+  detachRope();
+  // Matter solves constraints twice per step by default, which is nowhere near
+  // enough for a 10-link chain: the links stretch ~30% under the rat's weight,
+  // lengthening the pendulum and absorbing the energy a swing puts in. Restored
+  // in attachString so the un-roped path keeps its original behaviour.
+  engine.constraintIterations = ropeConfig.iterations;
+  if (stringConstraint) { Composite.remove(world, stringConstraint); stringConstraint = null; }
+
+  const segLen = length / segments;
+  const r = ratBody.plugin.radius;
+  // Each segment carries a small share of the rat's mass: enough to drape and
+  // to bleed momentum when it catches, not enough to dominate the pendulum.
+  const segMass = Math.max(0.0008, ratBody.mass * ropeConfig.massFrac);
+
+  for (let i = 0; i < segments; i++) {
+    // Circles, not thin rectangles: a 3px-thick box chain jitters and can
+    // tunnel, and for draping over obstacles the silhouette comes from the
+    // renderer anyway.
+    const seg = Bodies.circle(pivotX, pivotY + (i + 0.5) * segLen, ropeConfig.radius, {
+      label: 'rope',
+      friction: ropeConfig.friction,   // grips when wrapped rather than sliding off
+      frictionAir: ropeConfig.frictionAir,  // 10 segments of drag adds up
+      restitution: 0.0,
+      collisionFilter: { category: CAT.ROPE, mask: MASK.ROPE },
+      plugin: { segIndex: i },
+    });
+    Body.setMass(seg, segMass);
+    ropeBodies.push(seg);
+    Composite.add(world, seg);
+  }
+
+  // Pivot -> first segment. Length 0: the rope's own segments provide reach.
+  stringConstraint = Constraint.create({
+    pointA: { x: pivotX, y: pivotY },
+    bodyB: ropeBodies[0],
+    length: 0,
+    stiffness,
+    damping: 0,
+  });
+  ropeConstraints.push(stringConstraint);
+
+  for (let i = 0; i < segments - 1; i++) {
+    ropeConstraints.push(Constraint.create({
+      bodyA: ropeBodies[i],
+      bodyB: ropeBodies[i + 1],
+      length: segLen,
+      stiffness,
+      damping: 0,
+    }));
+  }
+
+  // Last segment -> the rat's tail base, the same offset attachString uses,
+  // so the rat still hangs by its tail rather than its centre.
+  ropeConstraints.push(Constraint.create({
+    bodyA: ropeBodies[ropeBodies.length - 1],
+    bodyB: ratBody,
+    pointB: { x: -r * 0.85, y: r * 0.22 },
+    length: 0,
+    stiffness,
+    damping: 0,
+  }));
+
+  Composite.add(world, ropeConstraints);
+  return ropeBodies;
+}
+
+export function detachRope() {
+  ropeConstraints.forEach(c => { try { Composite.remove(world, c); } catch { /* already gone */ } });
+  ropeBodies.forEach(b => { try { Composite.remove(world, b); } catch { /* already gone */ } });
+  if (ropeConstraints.includes(stringConstraint)) stringConstraint = null;
+  ropeConstraints = [];
+  ropeBodies = [];
+}
+
+export function getRopeBodies() { return ropeBodies; }
 
 export function spawnTargets(levelTargets) {
   targetBodies.forEach(b => Composite.remove(world, b));
@@ -440,6 +556,10 @@ export function reset() {
   Composite.add(world, [groundBody, leftWall, rightWall]);
   ratBody = null;
   stringConstraint = null;
+  // World.clear already dropped the bodies; clear our bookkeeping too or the
+  // next attachRope would try to remove stale references.
+  ropeBodies = [];
+  ropeConstraints = [];
   targetBodies = [];
   fragmentBodies = [];
   bumperBodies = [];

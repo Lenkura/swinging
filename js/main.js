@@ -29,6 +29,10 @@ let devSeed = null;
 // real-time fidelity for reproducibility; it stays null (real dt) unless a
 // runner asks for it, and is unreachable without ?dev=1.
 let devFixedDt = null;
+// Segmented rope (task 117), dev-only and off by default: ?dev=1&rope=10.
+// Old and new coexist so the batch can A/B them at identical seeds. The flag
+// goes away in task 121 when the rope becomes the only path.
+let ropeSegments = DEV ? Number(new URLSearchParams(location.search).get('rope')) || 0 : 0;
 
 
 const canvas = document.getElementById('game-canvas');
@@ -284,7 +288,11 @@ function startLevel() {
   // Spawn rat and setup push-mode input
   const psl = level.pushStringLength || stringLength;
   Physics.spawnRat(pivot.x, pivot.y + psl, selectedVariant);
-  Physics.attachString(pivot.x, pivot.y, psl, 0.35);
+  if (ropeSegments > 0) {
+    Physics.attachRope(pivot.x, pivot.y, psl, ropeSegments);
+  } else {
+    Physics.attachString(pivot.x, pivot.y, psl, 0.35);
+  }
   Input.init(canvas, pivot);
   Input.attachToCanvas(canvas);
 
@@ -448,6 +456,9 @@ if (DEV) {
       stringLength, pivot: { ...pivot },
     }),
     setFixedDt: s => { devFixedDt = s; },
+    setRopeSegments: n => { ropeSegments = n; },
+    setRopeConfig: cfg => Physics.setRopeConfig(cfg),
+    getRopeSegments: () => ropeSegments,
     beginRun({ level, variant, source, seed }) {
       currentLevelId = level;
       selectedVariant = variant;
