@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/segmented-rope. Tasks 116-118 complete: categories cleaned, rope builds and swings behind ?dev=1&rope=N with swept parameters, and the renderer draws real segment positions in front of the scenery. NEXT: task 119, wrap detection + the player yank, which is the riskiest step (an energy-adding yank would become the dominant strategy) and also where the weak-wrap question gets answered - current evidence is that a stiffness-1.0 rope grazes obstacles rather than wrapping them.",
+  "current_activity": "On swinging/feat/segmented-rope. Tasks 116-119 complete: categories, rope, renderer, and now wrap metrics plus the player yank (energy-clamped, verified non-exploitable). NEXT: task 120, the rope vs no-rope A/B across all 9 levels and both variants at identical seeds, then re-tune only if the data demands it. Open question carried in: the rope grazes obstacles more than it wraps them, and ropeBend conflates obstacle-wrap with slack-crumple, so 120 should report contacts and bend separately per level.",
   "action_plan": [
     {
       "id": 45,
@@ -338,9 +338,9 @@
       "id": 119,
       "task": "input.js/main.js/physics.js - yank on pointerdown with cooldown (impulse along rat->pivot plus tangential damping, never energy-adding), plus wrap and yank counters in telemetry",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "A scripted bumper-level run records wrapContacts > 0 and a yank measurably reduces the wrap; AND a yank-spamming batch shows no sustained-speed or hits-to-clear advantage over a no-yank batch at the same seeds",
-      "context": "The riskiest step. A yank that adds energy becomes the dominant strategy and collapses the game into click-spam (L0076: every dense reward term is a new exploit surface), so the exploit check is a measurement rather than a judgement call."
+      "context": "The riskiest step. A yank that adds energy becomes the dominant strategy and collapses the game into click-spam (L0076: every dense reward term is a new exploit surface), so the exploit check is a measurement rather than a judgement call. DONE 2026-09-07: yank on pointerdown, 0.6s cooldown, clamped so it can never raise speed. Verified at real swing speed (44-89 px/step): 0 of 6 yanks raised speed - the clamp binds every time, so a yank redirects velocity toward the pivot without changing its magnitude. Unwind confirmed: 5 of 5 yanks reduced rope bend, several dramatically (10.2->1.2, 16.9->0.06). Exploit A/B at identical seeds, spam 0.6s vs none: hits to clear identical on both L1 and L7, p50 speed within 2.5%, peak within 1 - no advantage. CAVEAT: ropeBend measures total turning along the rope, which conflates a genuine obstacle wrap with the rope crumpling when slack; L1 has no bumpers yet records the most contacts (92, all rope-vs-target)."
     },
     {
       "id": 120,

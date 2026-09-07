@@ -81,6 +81,16 @@ export const POLICIES = { pump: pumpPolicy, sweep: sweepPolicy };
 
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
+/** Dispatch a pointerdown, which the game treats as a yank request. */
+export function sendYank(canvas, x, y) {
+  const rect = canvas.getBoundingClientRect();
+  canvas.dispatchEvent(new PointerEvent('pointerdown', {
+    clientX: rect.left + x * (rect.width / canvas.width),
+    clientY: rect.top + y * (rect.height / canvas.height),
+    bubbles: true, pointerId: 1, pointerType: 'mouse', isPrimary: true,
+  }));
+}
+
 /** Dispatch a real PointerEvent so the game's own input path handles it. */
 export function sendPointer(canvas, x, y) {
   const rect = canvas.getBoundingClientRect();

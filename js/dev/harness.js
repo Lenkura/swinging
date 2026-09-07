@@ -6,7 +6,7 @@
 
 import * as Physics from '../physics.js';
 import * as Telemetry from './telemetry.js';
-import { POLICIES, sendPointer } from './bot.js';
+import { POLICIES, sendPointer, sendYank } from './bot.js';
 import { calibrate } from './calibrate.js';
 
 let deps = null;
@@ -132,6 +132,7 @@ export function initDev(injected) {
     async runBot({
       level = 1, variant = 'standard', seed = 1, policy = 'pump',
       timeoutMs = 60000, policyOpts = {}, source = 'bot', fixedDt = null,
+      yankEvery = 0,   // seconds between yanks; 0 = never. Used by the exploit check.
     } = {}) {
       deps.setFixedDt(fixedDt);
       // getLastRun() keeps returning the PREVIOUS run's document while a run is
@@ -145,6 +146,7 @@ export function initDev(injected) {
 
       const canvas = deps.canvas;
       const t0 = performance.now();
+      let lastYankAt = -Infinity;
 
       await new Promise(resolve => {
         function frame() {
@@ -163,7 +165,13 @@ export function initDev(injected) {
               rat: ratState(), target, t: elapsedS,
               stringLength: st.stringLength, rng, state: st,
             });
-            if (move) sendPointer(canvas, move.x, move.y);
+            if (move) {
+              sendPointer(canvas, move.x, move.y);
+              if (yankEvery > 0 && elapsedS - lastYankAt >= yankEvery) {
+                lastYankAt = elapsedS;
+                sendYank(canvas, move.x, move.y);
+              }
+            }
           }
           requestAnimationFrame(frame);
         }

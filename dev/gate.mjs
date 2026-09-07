@@ -126,7 +126,12 @@ const t0 = Date.now();
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(`${base}/?dev=1`, { waitUntil: 'load' });
   await page.waitForSelector('#ls-grid', { state: 'visible' });
-  check('harness installs under ?dev=1', await page.evaluate(() => typeof window.__ratsmash === 'object'));
+  // The level grid renders before main.js finishes awaiting its dynamic import
+  // of the harness, so waiting on the grid alone is a race.
+  const harnessReady = await page
+    .waitForFunction(() => typeof window.__ratsmash === 'object', null, { timeout: 10000 })
+    .then(() => true).catch(() => false);
+  check('harness installs under ?dev=1', harnessReady);
 
   for (const c of CASES) {
     console.log(`\n[L${c.level} ${c.variant} seed=${c.seed}]`);

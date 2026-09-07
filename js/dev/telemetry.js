@@ -86,6 +86,9 @@ export function startRun({ level, levelName, variant, source = 'human', seed = n
     // Full-resolution values feed the stats; the stored series is downsampled.
     _speeds: [],
     _frameMs: [],
+    _bend: [],
+    ropeContacts: 0,
+    yanks: 0,
     series: { t: [], speed: [], hp: [] },
     _lastSampleT: -Infinity,
     _t: 0,
@@ -100,8 +103,15 @@ export function startRun({ level, levelName, variant, source = 'human', seed = n
  * @param rawFrameMs true wall-clock delta (NOT the clamped dt) - clamping would
  *   hide exactly the long frames we want to find.
  */
-export function sampleFrame({ dt, rawFrameMs, state, speed, normalizedSpeed, hp }) {
+export function sampleFrame({ dt, rawFrameMs, state, speed, normalizedSpeed, hp, ropeBend = 0, ropeContacts = 0, yanks = 0 }) {
   if (!run) return;
+  // Rope metrics: bend is total turning along the rope in radians, which is
+  // what separates a real wrap from the rope merely touching something.
+  if (state === 'SWINGING') {
+    run._bend.push(ropeBend);
+    run.ropeContacts = ropeContacts;
+    run.yanks = yanks;
+  }
   run._t += dt;
   run._frameMs.push(rawFrameMs);
   // Speed is only meaningful while swinging; sampling RESULT frames would
@@ -153,13 +163,16 @@ export function endRun({ outcome, score, hitCount }) {
     damage: summarise(damaging.map(h => h.damage)),
     angleFactor: summarise(damaging.map(h => h.angleFactor)),
     frameMs: summarise(run._frameMs),
+    ropeBend: summarise(run._bend),
+    ropeContacts: run.ropeContacts,
+    yanks: run.yanks,
     longFrames,
     longFramePct: run._frameMs.length ? round((longFrames / run._frameMs.length) * 100) : 0,
     errors: capturedErrors.length,
   };
   run.errors = [...capturedErrors];
 
-  delete run._speeds; delete run._frameMs; delete run._lastSampleT; delete run._t;
+  delete run._speeds; delete run._frameMs; delete run._bend; delete run._lastSampleT; delete run._t;
 
   const finished = run;
   run = null;
@@ -185,6 +198,9 @@ export function snapshot() {
     hits: run.hits.length,
     damagingHits: run.hits.filter(h => h.kind === 'damage').length,
     peakSpeed: run._speeds.length ? round(Math.max(...run._speeds)) : 0,
+    peakBend: run._bend.length ? round(Math.max(...run._bend)) : 0,
+    ropeContacts: run.ropeContacts,
+    yanks: run.yanks,
     lastSpeed: run._speeds.length ? round(run._speeds[run._speeds.length - 1]) : 0,
     totalDamage: round(run.hits.reduce((a, h) => a + (h.damage || 0), 0)),
     errors: capturedErrors.length,

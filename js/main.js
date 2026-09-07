@@ -251,6 +251,19 @@ Physics.on('fragment-landed', ({ x, size }) => {
   Renderer.paintSplat(x, Math.min(size / 10, 1) * 0.4, 0.6);
 });
 
+// Yank: pull the rat toward the pivot to unwind a caught rope. Cooldown-gated
+// so it cannot be spammed; Physics.yankRope clamps it to never raise speed.
+const YANK_COOLDOWN = 0.6;
+let yankCooldown = 0;
+let yankCount = 0;
+Input.onYank(() => {
+  if (gameState !== 'SWINGING' || yankCooldown > 0) return;
+  if (Physics.yankRope()) {
+    yankCooldown = YANK_COOLDOWN;
+    yankCount++;
+  }
+});
+
 // Input callbacks
 Input.onPivotMove(({ x, y }) => {
   if (gameState !== 'SWINGING') return;
@@ -266,6 +279,8 @@ function startLevel() {
 
   ratHp = RAT_MAX_HP;
   hitCount = 0;
+  yankCooldown = 0;
+  yankCount = 0;
   hitCooldown = 0;
   comboCount = 0;
   comboTimer = 0;
@@ -334,6 +349,7 @@ function gameLoop(timestamp) {
       }
       Physics.step(dt * 1000);
       if (hitCooldown > 0) hitCooldown -= dt;
+      if (yankCooldown > 0) yankCooldown -= dt;
       if (comboTimer > 0) {
         comboTimer -= dt;
         if (comboTimer <= 0) comboCount = 0;
@@ -390,6 +406,9 @@ function gameLoop(timestamp) {
   Telemetry.sampleFrame({
     dt, rawFrameMs, state: gameState, speed: ratSpeed,
     normalizedSpeed: angularSpeed, hp: ratHp,
+    ropeBend: ropeSegments > 0 ? Physics.getRopeBend() : 0,
+    ropeContacts: ropeSegments > 0 ? Physics.getRopeContactCount() : 0,
+    yanks: yankCount,
   });
 
   // Pass constraint anchor as pivot so string + hand draw at mouse position

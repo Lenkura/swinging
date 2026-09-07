@@ -40,6 +40,7 @@ let fragmentBodies = [];
 let bumperBodies = [];
 let ropeBodies = [];
 let ropeConstraints = [];
+let ropeContactCount = 0;
 let groundBody, leftWall, rightWall;
 let canvasW, canvasH;
 
@@ -84,6 +85,14 @@ function onCollision(event) {
     const isYoyoB = bodyB.label === 'rat';
     const isTargetA = bodyA.label === 'target';
     const isTargetB = bodyB.label === 'target';
+
+    // Rope touching an obstacle. Counted rather than acted on: the wrap
+    // itself is pure physics, this only tells us how often it happens.
+    if (bodyA.label === 'rope' || bodyB.label === 'rope') {
+      const other = bodyA.label === 'rope' ? bodyB : bodyA;
+      if (other.label === 'target' || other.label === 'bumper') ropeContactCount++;
+      continue;
+    }
 
     // Giblet touches down: fire once per fragment (walls don't count — a
     // wall-bounced piece is still airborne).
@@ -270,6 +279,7 @@ export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ro
 }
 
 export function detachRope() {
+  ropeContactCount = 0;
   ropeConstraints.forEach(c => { try { Composite.remove(world, c); } catch { /* already gone */ } });
   ropeBodies.forEach(b => { try { Composite.remove(world, b); } catch { /* already gone */ } });
   if (ropeConstraints.includes(stringConstraint)) stringConstraint = null;
@@ -278,6 +288,56 @@ export function detachRope() {
 }
 
 export function getRopeBodies() { return ropeBodies; }
+export function getRopeContactCount() { return ropeContactCount; }
+
+/**
+ * Total turning along the rope, in radians. A taut straight rope is ~0; a rope
+ * bent around an obstacle accumulates real angle. This is the quantity that
+ * says whether "wrap" is actually happening, as opposed to the rope merely
+ * touching something.
+ */
+export function getRopeBend() {
+  if (ropeBodies.length < 3) return 0;
+  let total = 0;
+  for (let i = 1; i < ropeBodies.length - 1; i++) {
+    const a = ropeBodies[i - 1].position, b = ropeBodies[i].position, c = ropeBodies[i + 1].position;
+    let d = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(b.y - a.y, b.x - a.x);
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    total += Math.abs(d);
+  }
+  return total;
+}
+
+/**
+ * Player yank: pull the rat toward the pivot to slacken and unwind a caught
+ * rope.
+ *
+ * Strictly non-accelerating by construction. Tangential motion is damped, a
+ * radial component toward the pivot is added, and the result is then clamped
+ * to the speed the rat already had. A yank that could raise speed would become
+ * the fastest way to swing and the whole game would collapse into click-spam,
+ * so the clamp is the mechanic's safety property, not a tuning choice.
+ */
+export function yankRope(strength = 90) {
+  if (!ratBody || !stringConstraint) return false;
+  const pivotPoint = stringConstraint.pointA;
+  const dx = pivotPoint.x - ratBody.position.x;
+  const dy = pivotPoint.y - ratBody.position.y;
+  const dist = Math.max(1, Math.hypot(dx, dy));
+  const v = ratBody.velocity;
+  const speedBefore = Math.hypot(v.x, v.y);
+
+  let nx = v.x * 0.8 + (dx / dist) * strength;
+  let ny = v.y * 0.8 + (dy / dist) * strength;
+  const after = Math.hypot(nx, ny);
+  if (after > speedBefore && after > 0) {
+    const k = speedBefore / after;
+    nx *= k; ny *= k;
+  }
+  Body.setVelocity(ratBody, { x: nx, y: ny });
+  return true;
+}
 
 export function spawnTargets(levelTargets) {
   targetBodies.forEach(b => Composite.remove(world, b));
@@ -560,6 +620,7 @@ export function reset() {
   // next attachRope would try to remove stale references.
   ropeBodies = [];
   ropeConstraints = [];
+  ropeContactCount = 0;
   targetBodies = [];
   fragmentBodies = [];
   bumperBodies = [];
