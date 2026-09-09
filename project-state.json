@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/segmented-rope. Tasks 116-119 complete: categories, rope, renderer, and now wrap metrics plus the player yank (energy-clamped, verified non-exploitable). NEXT: task 120, the rope vs no-rope A/B across all 9 levels and both variants at identical seeds, then re-tune only if the data demands it. Open question carried in: the rope grazes obstacles more than it wraps them, and ropeBend conflates obstacle-wrap with slack-crumple, so 120 should report contacts and bend separately per level.",
+  "current_activity": "On swinging/feat/segmented-rope. Tasks 116-120 complete. The A/B shows the rope makes the game easier (hits 5->3) via a flywheel effect - peak speed down 30% but sustained speed up 23% and glancing hits down 36% - and no gameplay constant was changed because the data did not require it. TWO OPEN ITEMS for task 121: (1) Level 8 soft-locks without the yank (6/6 fail, zero hits) and nothing in the game tells the player that clicking yanks, so it needs a hint or a visible affordance; (2) the gate cases do not include L8 and the bot does not yank by default, so the gate would not have caught this - both should change when the rope becomes the only path.",
   "action_plan": [
     {
       "id": 45,
@@ -346,9 +346,9 @@
       "id": 120,
       "task": "Re-measure and re-tune: batch A/B rope vs no-rope across all 9 levels and both variants at identical seeds; widen gate bounds to the new baseline; change DAMAGE_SCALE only if the data demands it",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "A decisions entry carries a delta table (hits to clear, sustained speed, glancing %) rope vs no-rope, updated gate bounds, and before/after numbers for any constant that moved",
-      "context": "Expect the rope to make levels harder - it costs momentum, and the current damage numbers were implicitly built around a sustained speed of 109. Some of that is the point and some will be over-correction; the batch is what separates them."
+      "context": "Expect the rope to make levels harder - it costs momentum, and the current damage numbers were implicitly built around a sustained speed of 109. Some of that is the point and some will be over-correction; the batch is what separates them. DONE 2026-09-09: 108-run A/B (9 levels x 2 variants x 3 seeds x 2 arms, identical seeds, fixed dt, one page switching only setRopeSegments). NO CONSTANT WAS CHANGED - the data did not demand it. See the decision entry for the numbers."
     },
     {
       "id": 121,
@@ -524,6 +524,11 @@
       "date": "2026-09-07",
       "decision": "Rope parameters set by sweep: 10 segments, per-segment mass 5% of rat mass, engine.constraintIterations 48 while a rope is attached (Matter default 2 restored for the un-roped path). Circles of radius 3.5, stiffness 1.0, zero constraint damping, frictionAir 0.0005.",
       "rationale": "Segment mass is the dominant term and the naive value was badly wrong. At 1-2% of rat mass the rope swallowed the swing entirely - peak speed collapsed from ~320 to 40 and the bot never cleared - because a near-massless chain cannot pull a body 100x heavier through Matter sequential solver. Raising constraintIterations helps (2% mass: 102 at 20 iters, 138 at 40, 161 at 60) but does not converge to usable, so a genuinely light rope is not achievable here. At 25% per segment the rope matches the no-rope baseline but totals 2.5x the rat mass and reads as a chain rather than a tail. 5% with 40-60 iterations clears 100% of runs at median peak 208-240 against a 315 baseline, i.e. a 25-30% momentum cost, which is the hindrance the rope exists to create. Frame p95 stays 16.7ms even at 60 iterations, so iteration count is not a perf constraint. Matter default 2 constraint iterations also let the 10-link chain stretch ~30% under the rat weight, lengthening the effective pendulum from 130 to 171px; at 48 iterations the span is 131."
+    },
+    {
+      "date": "2026-09-09",
+      "decision": "Rope vs no-rope measured across all 9 levels and both variants (108 runs, identical seeds, fixed timestep). Result: the rope makes the game EASIER, not harder - median hits to clear 5 -> 3 (-40%), time to clear 4.1s -> 2.7s (-33%) - despite cutting peak speed 337 -> 237 (-30%). DAMAGE_SCALE and every other gameplay constant left unchanged.",
+      "rationale": "The mechanism is the opposite of the intent and only measurement would have found it. Rope mass acts as a flywheel: peak speed falls 30% but SUSTAINED speed rises 23% (p50 50.1 -> 61.5) and glancing hits fall 36% (35.5% -> 22.8%). Since damage scales with speed squared and with angleFactor, a steady clean swing out-damages a peaky sloppy one, so fewer hits are needed. Momentum IS hindered as the feature intended - peak is down 30% - but peak is not what governs difficulty here. No constant was retuned because the rope moves bot median hits to clear to 3, inside the 3-4 design target, where no-rope sat at 5; the honest next step is a human re-calibration (task 121), not tuning against bot numbers. SOFT-LOCK FOUND: Level 8 with rope and no yank fails 6/6 with ZERO contacts and ZERO hits - the rope tangles slack and the bot cannot build a swing at all, so it never reaches the target. With a yank every 1.2s it clears 3/3. The yank is therefore load-bearing rather than a convenience, which retrospectively validates choosing player-initiated release over auto-recovery - but the game never tells the player that clicking yanks, so discoverability is now a real gap. Rope contacts are highest on the Act 2 shield levels L4 (80) and L6 (76)."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
