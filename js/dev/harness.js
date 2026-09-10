@@ -117,6 +117,11 @@ export function initDev(injected) {
     getRopeSegments() { return deps.getRopeSegments(); },
     /** Rope tunables, so they can be swept and measured rather than guessed. */
     setRopeConfig(cfg) { deps.setRopeConfig(cfg); },
+    /** Physics sub-steps per frame - the anti-tunneling knob. */
+    setSubSteps(n) { deps.setSubSteps(n); },
+    /** Max px the hand may travel per frame; 0 = uncapped (original). */
+    setHandMaxStep(n) { deps.setHandMaxStep(n); },
+    getHandMaxStep() { return deps.getHandMaxStep(); },
 
     /** Start a level directly, bypassing the menus. */
     beginRun({ level = 1, variant = 'standard', seed = null, source = 'bot' } = {}) {

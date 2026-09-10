@@ -33,6 +33,12 @@ let devFixedDt = null;
 // Old and new coexist so the batch can A/B them at identical seeds. The flag
 // goes away in task 121 when the rope becomes the only path.
 let ropeSegments = DEV ? Number(new URLSearchParams(location.search).get('rope')) || 0 : 0;
+// Dev knobs, all defaulting to current behaviour: ?dev=1&rope=10&hand=40&subs=4
+if (DEV) {
+  const q = new URLSearchParams(location.search);
+  if (q.has('hand')) Physics.setHandMaxStep(Number(q.get('hand')) || 0);
+  if (q.has('subs')) Physics.setSubSteps(Number(q.get('subs')) || 1);
+}
 
 
 const canvas = document.getElementById('game-canvas');
@@ -478,6 +484,9 @@ if (DEV) {
     setFixedDt: s => { devFixedDt = s; },
     setRopeSegments: n => { ropeSegments = n; },
     setRopeConfig: cfg => Physics.setRopeConfig(cfg),
+    setSubSteps: n => Physics.setSubSteps(n),
+    setHandMaxStep: n => Physics.setHandMaxStep(n),
+    getHandMaxStep: () => Physics.getHandMaxStep(),
     getRopeSegments: () => ropeSegments,
     beginRun({ level, variant, source, seed }) {
       currentLevelId = level;

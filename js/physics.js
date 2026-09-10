@@ -137,8 +137,23 @@ function onCollision(event) {
   }
 }
 
+// Sub-steps per frame. Matter has no continuous collision detection, so a body
+// that moves further in one step than an obstacle is wide passes straight
+// through it. Measured on Level 7: rope segments move up to 234px per 16.7ms
+// step against 44px-wide bumpers, and 89% of segment steps exceed the
+// segment's own diameter - so at speed the rope simply teleports past
+// obstacles. Splitting the step shortens each displacement proportionally.
+let subSteps = 1;
+export function setSubSteps(n) { subSteps = Math.max(1, n | 0); }
+export function getSubSteps() { return subSteps; }
+
 export function step(delta) {
-  Engine.update(engine, delta);
+  if (subSteps === 1) { advanceHand(1); Engine.update(engine, delta); return; }
+  const dt = delta / subSteps;
+  for (let i = 0; i < subSteps; i++) {
+    advanceHand(1 / subSteps);   // spread the hand's travel across the sub-steps
+    Engine.update(engine, dt);
+  }
 }
 
 export function spawnRat(x, y, variantKey, asStatic = false) {
@@ -160,6 +175,8 @@ export function spawnRat(x, y, variantKey, asStatic = false) {
 
 export function attachString(pivotX, pivotY, length, stiffness = 1.0) {
   detachRope();
+  pivotTarget = { x: pivotX, y: pivotY };
+  pivotActual = { x: pivotX, y: pivotY };
   engine.constraintIterations = 2;   // Matter's default, for the single-constraint path
   if (stringConstraint) Composite.remove(world, stringConstraint);
   // Grip the tail base, not the body center — matches the tail-start point
@@ -213,6 +230,8 @@ export function getRopeConfig() { return { ...ropeConfig }; }
 
 export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ropeConfig.stiffness) {
   detachRope();
+  pivotTarget = { x: pivotX, y: pivotY };
+  pivotActual = { x: pivotX, y: pivotY };
   // Matter solves constraints twice per step by default, which is nowhere near
   // enough for a 10-link chain: the links stretch ~30% under the rat's weight,
   // lengthening the pendulum and absorbing the energy a swing puts in. Restored
@@ -594,8 +613,42 @@ function spawnRatFragments(yoyo, hitPoint, blastBonus = 1) {
   }, 4000);
 }
 
+// --- Hand rate limit -----------------------------------------------------
+// updatePivot used to write the pointer position straight into the
+// constraint, so the hand could teleport up to 234px in a single frame and
+// whip the rat with it - the actual source of the speeds that let the rope
+// tunnel through 44px obstacles. With a cap the hand accelerates toward the
+// pointer instead of snapping to it: the cursor may outrun the hand, and the
+// hand catches up.
+//
+// 0 = uncapped, i.e. exactly the original behaviour. Dev-tunable only for now.
+let handMaxStep = 0;
+let pivotTarget = null;
+let pivotActual = null;
+
+export function setHandMaxStep(px) { handMaxStep = Math.max(0, px || 0); }
+export function getHandMaxStep() { return handMaxStep; }
+
 export function updatePivot(x, y) {
-  if (stringConstraint) stringConstraint.pointA = { x, y };
+  pivotTarget = { x, y };
+  if (handMaxStep <= 0) {
+    pivotActual = { x, y };
+    if (stringConstraint) stringConstraint.pointA = { x, y };
+  }
+}
+
+/** Move the hand toward the pointer, at most handMaxStep * fraction px. */
+function advanceHand(fraction) {
+  if (handMaxStep <= 0 || !pivotTarget || !stringConstraint) return;
+  if (!pivotActual) pivotActual = { ...stringConstraint.pointA };
+  const dx = pivotTarget.x - pivotActual.x;
+  const dy = pivotTarget.y - pivotActual.y;
+  const dist = Math.hypot(dx, dy);
+  const maxD = handMaxStep * fraction;
+  pivotActual = dist <= maxD
+    ? { ...pivotTarget }
+    : { x: pivotActual.x + (dx / dist) * maxD, y: pivotActual.y + (dy / dist) * maxD };
+  stringConstraint.pointA = { ...pivotActual };
 }
 
 export function detachString() {
