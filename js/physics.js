@@ -1,7 +1,7 @@
 import { MATERIALS, evaluateImpact, generateCrackPattern } from './target.js';
 import { RAT_VARIANTS } from './rat.js';
 
-const { Engine, Bodies, Body, Composite, Constraint, Events, World } = Matter;
+const { Engine, Bodies, Body, Composite, Constraint, Events, World, Query } = Matter;
 
 // --- Collision categories ------------------------------------------------
 // Matter allows a pair only when BOTH filters agree:
@@ -157,16 +157,59 @@ function clampRopeSpeed() {
   }
 }
 
-export function step(delta) {
-  if (subSteps === 1) {
-    advanceHand(1); clampRopeSpeed(); Engine.update(engine, delta);
-    return;
+/**
+ * Manual continuous collision detection for the rope.
+ *
+ * After the engine has moved the segments, sweep each one from where it was to
+ * where it now is. If that path crosses an obstacle the discrete test missed,
+ * binary-search the last point on the path that is still outside, put the
+ * segment there, and kill its velocity so the ordinary solver takes over from
+ * a legal position on the next step.
+ *
+ * Segments that moved less than their own radius are skipped - the discrete
+ * test already handles those, and that skip is what keeps this cheap.
+ */
+function sweepRopeSegments(prev) {
+  if (!ropeBodies.length) return;
+  const obstacles = targetBodies.concat(bumperBodies);
+  if (!obstacles.length) return;
+  const r = ropeConfig.radius;
+
+  for (let i = 0; i < ropeBodies.length; i++) {
+    const seg = ropeBodies[i];
+    const from = prev[i];
+    if (!from) continue;
+    const dx = seg.position.x - from.x;
+    const dy = seg.position.y - from.y;
+    if (Math.hypot(dx, dy) <= r) continue;
+
+    if (!Query.ray(obstacles, from, seg.position, r * 2).length) continue;
+
+    // Last free point along the path. 8 iterations resolves the path to
+    // under half a percent of its length, which is far below a segment.
+    let free = 0, blocked = 1;
+    for (let k = 0; k < 8; k++) {
+      const mid = (free + blocked) / 2;
+      const pt = { x: from.x + dx * mid, y: from.y + dy * mid };
+      if (Query.point(obstacles, pt).length) blocked = mid; else free = mid;
+    }
+    Body.setPosition(seg, { x: from.x + dx * free, y: from.y + dy * free });
+    Body.setVelocity(seg, { x: 0, y: 0 });
+    ropeContactCount++;
   }
-  const dt = delta / subSteps;
+}
+
+export function step(delta) {
+  const dt = subSteps === 1 ? delta : delta / subSteps;
+  const fraction = subSteps === 1 ? 1 : 1 / subSteps;
   for (let i = 0; i < subSteps; i++) {
-    advanceHand(1 / subSteps);   // spread the hand's travel across the sub-steps
+    advanceHand(fraction);
     clampRopeSpeed();
+    const prev = ropeConfig.ccd && ropeBodies.length
+      ? ropeBodies.map(s => ({ x: s.position.x, y: s.position.y }))
+      : null;
     Engine.update(engine, dt);
+    if (prev) sweepRopeSegments(prev);
   }
 }
 
@@ -244,6 +287,12 @@ let ropeConfig = {
   // touching the rat's speed, which is what the game is actually about.
   // 0 = unclamped.
   maxSegStep: 0,
+  // Swept collision for rope segments. Matter 0.19 has no continuous
+  // collision detection, and a 7px segment crossing a 44px bumper in one step
+  // simply never overlaps it, so no contact is generated. Sweeping the path
+  // catches what the discrete test misses. Only the rope needs this: the rat
+  // is large and carries the damage.
+  ccd: true,
 };
 
 export function setRopeConfig(cfg) { Object.assign(ropeConfig, cfg); }

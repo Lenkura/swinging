@@ -39,6 +39,7 @@ if (DEV) {
   if (q.has('hand')) Physics.setHandMaxStep(Number(q.get('hand')) || 0);
   if (q.has('subs')) Physics.setSubSteps(Number(q.get('subs')) || 1);
   if (q.has('segcap')) Physics.setRopeConfig({ maxSegStep: Number(q.get('segcap')) || 0 });
+  if (q.has('ccd')) Physics.setRopeConfig({ ccd: q.get('ccd') !== '0' });
 }
 
 
