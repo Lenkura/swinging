@@ -147,11 +147,25 @@ let subSteps = 1;
 export function setSubSteps(n) { subSteps = Math.max(1, n | 0); }
 export function getSubSteps() { return subSteps; }
 
+function clampRopeSpeed() {
+  const cap = ropeConfig.maxSegStep;
+  if (cap <= 0 || !ropeBodies.length) return;
+  for (const seg of ropeBodies) {
+    const { x, y } = seg.velocity;
+    const sp = Math.hypot(x, y);
+    if (sp > cap) Body.setVelocity(seg, { x: (x / sp) * cap, y: (y / sp) * cap });
+  }
+}
+
 export function step(delta) {
-  if (subSteps === 1) { advanceHand(1); Engine.update(engine, delta); return; }
+  if (subSteps === 1) {
+    advanceHand(1); clampRopeSpeed(); Engine.update(engine, delta);
+    return;
+  }
   const dt = delta / subSteps;
   for (let i = 0; i < subSteps; i++) {
     advanceHand(1 / subSteps);   // spread the hand's travel across the sub-steps
+    clampRopeSpeed();
     Engine.update(engine, dt);
   }
 }
@@ -223,6 +237,13 @@ let ropeConfig = {
   radius: 3.5,
   friction: 0.4,
   frictionAir: 0.0005,
+  // Max px a segment may travel per sub-step. Rope segments whip faster than
+  // the rat (432 vs 247 px/step measured), and a 7px segment crossing 44px of
+  // bumper in one step never registers a contact - Matter has no continuous
+  // collision detection. Clamping the segments alone fixes tunneling without
+  // touching the rat's speed, which is what the game is actually about.
+  // 0 = unclamped.
+  maxSegStep: 0,
 };
 
 export function setRopeConfig(cfg) { Object.assign(ropeConfig, cfg); }
