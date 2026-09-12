@@ -3,9 +3,9 @@
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
   "last_session_date": "2026-09-12",
-  "last_session_summary_path": "history/session-005-summary.md",
+  "last_session_summary_path": "history/session-006-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "swinging/feat/segmented-rope merged to main (1889ba8) with its stacked parents - 20 commits covering the giblet redesign, the playtest/telemetry toolchain and the segmented rope. Gate 91/91, vitest 61/61 at merge. NEXT: task 125, a fresh human calibration on the rope build, since the 2026-09-06 numbers were measured on the single-constraint tail and do not survive it. Then the deferred backlog: 113 breakable targets (design gate needed - it changes what ends a level), 115 obstacle difficulty, 79/80 per-act backgrounds (the user asked for these on 2026-09-06), 100 the dead poly-decomp tag, 122 the optional hand cap.",
+  "current_activity": "Rope build is merged to main and calibrated against real human play. The one open branch is swinging/fix/speed-meter-calibration (heavy pushMaxSpeed 625->785 from measurement, plus calibration data and docs) - ready to merge. NO gameplay constant was changed beyond that presentation value, deliberately. THE BLOCKING PROBLEM is task 126: damage cannot be a trade-off in this game (you destroy your own rat and score rewards fewer hits, so more damage is always better) and mass cannot be the counterweight (the player drives the pivot directly, so both variants clock identical in-play speed of 114 despite masses of 11.5 and 4.5). Heavy is therefore strictly better on every axis and DAMAGE_SCALE cannot move until 126 resolves - which also blocks task 129, Level 1 taking ~10 hits on standard against a documented 3-4 target. Start a fresh session with the 126 design gate.",
   "action_plan": [
     {
       "id": 45,
@@ -19,9 +19,9 @@
       "id": 76,
       "task": "Playtest Level 1 (and a few other levels) with DAMAGE_SCALE=200 to confirm hit-count lands around 3-4 and that particle bursts / screen shake feel proportionate, not maxed-out on every hit",
       "priority": "high",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "Level 1 clears in roughly 3-4 hits, particle bursts scale visibly with hit strength rather than always appearing at full size, and shake fires only on stronger/combo hits",
-      "context": "Validation step for task 75's correction before resuming task 45's full playthrough."
+      "context": "Validation step for task 75's correction before resuming task 45's full playthrough. SUPERSEDED 2026-09-12 by task 127, which answered it directly and negatively: with DAMAGE_SCALE=200 on the rope build, Level 1 takes a human median of 10.5 hits on standard and 5 on heavy, not 3-4. The open work is now task 129 (the L1 gap) blocked on 126 (variant imbalance)."
     },
     {
       "id": 78,
@@ -91,9 +91,10 @@
       "id": 98,
       "task": "Game-feel bundle regression pass: npx vitest run stays 61/61, then browser playtest of both rat variants across a normal, shield, and bumper level with all five effects active",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "61/61 tests pass and all five effects read correctly together with no core-loop regressions",
-      "context": "Perceptual acceptance is the bar (green tests cannot judge feel) — the playtest is the real gate."
+      "context": "Perceptual acceptance is the bar (green tests cannot judge feel) — the playtest is the real gate. CLOSED 2026-09-12: the perceptual half is satisfied by real play rather than a dedicated pass. The user played L1, L4, L5, L6, L7 and L8 across both variants on the rope build with all five game-feel effects active, 20 recorded runs, zero errors and zero page errors throughout. Mechanical half had already passed.",
+      "completed_date": "2026-09-12T08:20:00"
     },
     {
       "id": 99,
@@ -158,9 +159,9 @@
       "id": 122,
       "task": "Pick the hand-speed cap and sub-step count by feel, then make them defaults and retune damage for the new speed range",
       "priority": "high",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "A hand cap and sub-step count are chosen from browser play, set as defaults, DAMAGE_SCALE retuned against a fresh human calibration, and the rope no longer visibly passes through obstacles at speed",
-      "context": "User reported 2026-09-09 that the rope passes through obstacles when spinning fast. Root cause measured: updatePivot wrote the pointer position straight into the constraint, so the hand teleported up to 234px per frame (p90 107) and whipped the rat to 249px/step against 44px bumpers - Matter has no continuous collision detection, so more than half of all steps moved further than a bumper is wide. Sub-stepping alone cannot fix it (contacts never plateau: 48/39/100/157/266/288/843 at 1..24 sub-steps) and reducing gravity would not either, since the player drives the pivot directly. The hand cap bounds the system at its source: rat peak 249 -> 149 (hand 80) -> 101 (hand 40) -> 65 (hand 25). Implemented as dev-tunable with defaults unchanged so the user can choose by feel. CAVEAT: bot clear rates at low caps are unreliable - its pump policy was built for an uncapped hand and fails entirely at hand=25. UPDATE 2026-09-11: the user tested and the rope still tunnels. Measuring rope segment velocity directly (with sub-stepping, body.velocity IS per-sub-step displacement) shows why my hand=40 recommendation was wrong: I estimated rope displacement from the RAT peak, but rope segments whip far faster than the rat (432 vs 247 px/step). At hand=40/subs=4, 26.3% of rope samples still exceed the 44px bumper diameter; only hand=25 gets it to 1.4%, which is a large feel change. Sub-stepping does not help - 4 to 8 sub-steps made it slightly WORSE (26.3% to 30.5%), because better constraint solving stiffens the rope and it whips harder. A rope-segment speed clamp cuts over-44 samples to 3.5% but cannot bound displacement, because the constraint solver repositions bodies directly regardless of velocity (ropeMax stayed ~280 under a cap of 12). CONCLUSION: no parameter fixes this. Matter 0.19 has no continuous collision detection and this game sits squarely in the regime where discrete collision fails."
+      "context": "User reported 2026-09-09 that the rope passes through obstacles when spinning fast. Root cause measured: updatePivot wrote the pointer position straight into the constraint, so the hand teleported up to 234px per frame (p90 107) and whipped the rat to 249px/step against 44px bumpers - Matter has no continuous collision detection, so more than half of all steps moved further than a bumper is wide. Sub-stepping alone cannot fix it (contacts never plateau: 48/39/100/157/266/288/843 at 1..24 sub-steps) and reducing gravity would not either, since the player drives the pivot directly. The hand cap bounds the system at its source: rat peak 249 -> 149 (hand 80) -> 101 (hand 40) -> 65 (hand 25). Implemented as dev-tunable with defaults unchanged so the user can choose by feel. CAVEAT: bot clear rates at low caps are unreliable - its pump policy was built for an uncapped hand and fails entirely at hand=25. UPDATE 2026-09-11: the user tested and the rope still tunnels. Measuring rope segment velocity directly (with sub-stepping, body.velocity IS per-sub-step displacement) shows why my hand=40 recommendation was wrong: I estimated rope displacement from the RAT peak, but rope segments whip far faster than the rat (432 vs 247 px/step). At hand=40/subs=4, 26.3% of rope samples still exceed the 44px bumper diameter; only hand=25 gets it to 1.4%, which is a large feel change. Sub-stepping does not help - 4 to 8 sub-steps made it slightly WORSE (26.3% to 30.5%), because better constraint solving stiffens the rope and it whips harder. A rope-segment speed clamp cuts over-44 samples to 3.5% but cannot bound displacement, because the constraint solver repositions bodies directly regardless of velocity (ropeMax stayed ~280 under a cap of 12). CONCLUSION: no parameter fixes this. Matter 0.19 has no continuous collision detection and this game sits squarely in the regime where discrete collision fails. SUPERSEDED 2026-09-12 by task 123/124: swept collision fixed the tunneling this task existed to mitigate, without capping the skill ceiling. The hand-cap, sub-step and segcap knobs remain available and documented as tuning levers, but choosing values for them is no longer needed work."
     },
     {
       "id": 123,
@@ -184,24 +185,57 @@
       "id": 125,
       "task": "Fresh human calibration on the rope build, then decide whether DAMAGE_SCALE needs retuning",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "A decisions entry records human peak/p90/p50 swing speed and hits-to-clear on the rope build, and either a retune with before/after numbers or an explicit note that the data did not require one",
-      "context": "The 2026-09-06 calibration (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) was measured on the single-constraint tail and does not survive the rope. Bot numbers moved a lot (hits 5 -> 3) but bot swings are not human swings, so this needs the user. Run ?dev=1&calibrate for both variants plus a few normal levels."
+      "context": "The 2026-09-06 calibration (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) was measured on the single-constraint tail and does not survive the rope. Bot numbers moved a lot (hits 5 -> 3) but bot swings are not human swings, so this needs the user. Run ?dev=1&calibrate for both variants plus a few normal levels. 2026-09-12: calibration half DONE for both variants on the rope build. Standard p50 133.55 / p90 280.43 / p95 352.76 / peak 719.6 (7429 samples, 45s). Heavy p50 113.1 / p90 227.1 / p95 284.49 / peak 784.26. STILL NEEDED for the DAMAGE_SCALE half: in-play runs on the rope build, especially Level 1 - the level the 3-4 hit design target was written against, and the only rope-build in-play data is two L7 runs (7 and 8 hits). CLOSED 2026-09-12: 10 in-play runs on the rope build (heavy L4x4/L5/L6/L7/L8, standard L4x2). Heavy median 3 hits (range 2-5), standard median 6 (n=2, L4 only). DAMAGE_SCALE left at 200 - the spread is between variants, which a global divisor cannot fix. Level 1 was never run and remains the one gap, but is no longer blocking.",
+      "completed_date": "2026-09-12T07:30:00"
+    },
+    {
+      "id": 126,
+      "task": "/brainstorm then rebalance the rat variants: what each rat is FOR, given that damage cannot be a trade-off in this game",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Across a spread of levels the two variants clear in comparable hit counts, or heavy pays a cost that shows up in the score - measured, not assumed",
+      "context": "Measured 2026-09-12 from human play on the rope build. Heavy carries impactMultiplier 2.2 and mass 11.5 against standard 1.0 and 4.5, and swings only ~15% slower (calibration p50 113 vs 134). Since damage goes as speed squared, heavy nets 2.2 x (113/134)^2 = 1.56x effective damage - slower does not come close to paying for the multiplier. Observed: heavy median 3 hits vs standard 6, and because score is max(200, 3000-(hits-1)*500) that compounds into 1000-2500 vs 500. The lever is impactMultiplier, NOT DAMAGE_SCALE, which divides both variants equally. Needs the design gate: making heavy weaker, slower, or giving standard something of its own are different games. STRENGTHENED 2026-09-12 by L1 data, which invalidates the trade-off premise entirely: in actual play both variants swing at the SAME speed (p50 114.4 standard vs 114.1 heavy). The earlier -15% figure came from free-swing calibration and does not survive contact with real play, so heavy pays NO speed cost for its 2.2x multiplier. Observed damage per hit 18.3 vs 7.7 = 2.4x, matching the multiplier with nothing offsetting it. Heavy also lands cleaner (15% glancing vs 31%), plausibly because its radius is 22 against 18. Heavy is better on every measured axis: same speed, 2.4x damage, cleaner hits, bigger body. There is no trade-off to balance - the variant is simply strictly better. SCOPE SET 2026-09-12: user chose a full design gate over a quick constant change. THE STRUCTURAL PROBLEM the design must solve: the goal is to destroy YOUR OWN rat in as few hits as possible and score is max(200, 3000-(hits-1)*500), so taking more damage per hit is purely good - there is no downside to trade against, and any variant with a higher multiplier is permanently strictly better. The usual counterweight is unavailable too: heavy mass 11.5 should swing slower, but the player drives the pivot directly so the hand overrides mass, which is why both variants clock identical in-play speed (114.1 vs 114.4). Mass-based trade-offs do not survive this control scheme. Options sketched and NOT chosen: cut heavy impactMultiplier 2.2 -> ~1.25; equalise damage and differentiate on feel/blast/appearance; keep heavy strong but apply a score penalty. Also note the arithmetic trap: standard needs ~3.3x damage to reach 4 hits on L1, which would drop heavy to ~1.4 hits, so DAMAGE_SCALE cannot move until this resolves."
+    },
+    {
+      "id": 127,
+      "task": "Level 1 in-play runs on the rope build to check the 3-4 hit design target directly",
+      "priority": "medium",
+      "status": "completed",
+      "done_when": "Several L1 runs on each variant are recorded and compared against the 3-4 hit target",
+      "context": "The only level the 3-4 hit target was ever written against, and the one level with no rope-build data - the 2026-09-12 session covered L4-L8 only. Not blocking: L4 gives a usable read, and task 126 is the more interesting problem. DONE 2026-09-12: 4 human runs per variant on L1. Standard 11/17/10/6 hits (median 10.5, 7.1s, score 200 floor, 31% glancing). Heavy 4/5/5/5 (median 5, 3.5s, score 1000, 15% glancing). Both variants MISS the 3-4 hit target - standard by roughly 3x.",
+      "completed_date": "2026-09-12T08:10:00"
+    },
+    {
+      "id": 128,
+      "task": "/brainstorm level design and obstacle cohesion across all 9 levels so they present a connected, escalating challenge",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Each act has a stated design intent, obstacles serve that intent rather than decorating it, and the measured difficulty curve rises across acts instead of inverting",
+      "context": "User side note 2026-09-12: the levels and obstacles need to present a cohesive challenge. Evidence already on hand: a shield-avoiding bot cleared 24/24 runs across L4-L9 (task 115 measurement), the Act 2 finale L6 fell in 4 hits to the bot where L1 took 9, and human L1 takes 10.5 hits on standard while human L6 heavy took 2 - so the curve is inverted for the player as well. The rope changes what obstacle geometry can do (a tail that catches is new level-design vocabulary) and breakable targets (task 113) would change it again, so this brainstorm should probably follow or absorb 113 and 115 rather than run before them."
+    },
+    {
+      "id": 129,
+      "task": "Known issue: Level 1 takes ~10 hits on standard against a documented 3-4 hit target",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "L1 clears in roughly 3-4 hits on standard for a human player",
+      "context": "Measured 2026-09-12 across 4 human runs: 11/17/10/6 hits, median 10.5, scoring the 200 floor every time on the game first level. Heavy sits at 5. Deliberately NOT fixed by moving DAMAGE_SCALE, because the ~3.3x standard needs would drop heavy to ~1.4 hits and bake the variant imbalance in permanently. Blocked on task 126."
     }
   ],
   "recently_updated_files": [
     "CLAUDE.md",
+    "README.md",
     "project-state.json",
-    "js/main.js",
-    "js/dev/telemetry.js",
-    "js/dev/harness.js",
-    "js/dev/bot.js",
-    "dev/gate.mjs",
-    "dev/run-batch.mjs",
-    "dev/shots.mjs",
-    "dev/serve.mjs"
+    "js/rat.js",
+    "history/calibration/human-runs-log.csv",
+    "history/session-006-summary.md"
   ],
-  "open_questions": [],
+  "open_questions": [
+    "Task 126: what is each rat variant FOR, when damage cannot be a trade-off and mass cannot be a cost? Sketched but unchosen: cut heavy impactMultiplier to ~1.25; equalise damage and differentiate on feel/blast/appearance; or keep heavy strong and apply a score penalty.",
+    "Task 128: should the level/obstacle cohesion pass run before or after breakable targets (113)? Both the rope and breakable targets change what level geometry can express, so designing first may mean designing twice."
+  ],
   "milestones": [
     {
       "name": "Push mode playable",
@@ -379,6 +413,16 @@
       "date": "2026-09-12",
       "decision": "Merged branch swinging/feat/segmented-rope into main (with its stacked parents swinging/feat/playtest-bot-telemetry and swinging/feat/realistic-giblets, 20 commits)",
       "rationale": "1889ba8ab8cbd41534d52c85db1212d580e33977"
+    },
+    {
+      "date": "2026-09-12",
+      "decision": "Human calibration on the rope build. Standard: free-swing p50 133.6, p90 280.4, peak 719.6. Heavy: p50 113.1, p90 227.1, peak 784.3. Heavy pushMaxSpeed raised 625 -> 785 to match its measured ceiling; standard left at 750. DAMAGE_SCALE deliberately NOT changed.",
+      "rationale": "The rope costs real momentum, now measured on a human rather than the bot: against the 2026-09-06 pre-rope calibration, standard free-swing peak fell 1146 -> 719.6 (-37%), p90 374 -> 280.4 (-25%) and p50 177 -> 133.6 (-25%). That is the hindrance the rope was built for. It also fixed the speed meter almost by accident: standard now peaks at 96% of its pushMaxSpeed where it previously hit 153% and saturated, so the meter is correctly scaled for the first time. Heavy still overshot at 125%, so its value was raised to its measured 784 - safe because pushMaxSpeed is a presentation knob with exactly one use (normalising the meter and the whoosh in main.js:420) and never enters the damage formula, which keeps balance and presentation knobs orthogonal per L0120. DAMAGE_SCALE stays at 200 because the data does not yet support a change: the only rope-build in-play runs are two Level 7 clears at 7 and 8 hits, and Level 1 - the level the 3-4 hit target was actually written against - has no rope-build run at all. Changing a damage constant on two runs of the wrong level would repeat the reasoning-from-insufficient-data error this whole effort exists to prevent."
+    },
+    {
+      "date": "2026-09-12",
+      "decision": "Level 1 human runs close task 127. Standard median 10.5 hits, heavy median 5 - both miss the documented 3-4 hit target, standard by about 3x. Two earlier claims corrected: heavy does NOT swing slower in play, and the bot is NOT a good proxy for human difficulty.",
+      "rationale": "Measured on the level the 3-4 target was actually written against. Standard: 11/17/10/6 hits, median 10.5, 7.1s, scoring the 200 floor every time, 31% glancing. Heavy: 4/5/5/5, median 5, 3.5s, score 1000, 15% glancing. CORRECTION 1 - I previously said heavy swings ~15% slower, from free-swing calibration (p50 113 vs 134). In play the two are identical (114.1 vs 114.4), so the trade-off justifying heavy 2.2x impactMultiplier does not exist where it matters; observed damage per hit is 18.3 vs 7.7, a clean 2.4x with nothing offsetting it. CORRECTION 2 - I noted last turn that the bot appeared to track human numbers. On L1 it does not: bot standard 6 vs human 10.5, bot heavy 2 vs human 5, so the bot is roughly twice as effective as the player and the earlier agreement on L4 was coincidence. The standing caveat that bot data is for regression and relative comparison, not absolute difficulty, holds. DAMAGE_SCALE still not changed: tripling damage to bring standard to target would drop heavy to ~2 hits, so the variant imbalance (task 126) has to be resolved first or any global tuning bakes it in."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
