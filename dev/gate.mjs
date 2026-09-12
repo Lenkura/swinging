@@ -19,11 +19,16 @@ const FIXED_DT = 1 / 60;
 // Seeded, fixed-dt cases. Bounds are deliberately wide: the gate catches
 // regressions, it does not enforce balance. Tightening these into balance
 // assertions would make every intentional tuning change look like a failure.
+// yankEvery models a competent player: with the rope, Level 8 is unwinnable
+// without yanking (6/6 failures, zero hits), so a bot that never yanks would
+// report a broken level - and a gate without an L8 case would not have caught
+// the soft-lock at all.
 const CASES = [
-  { level: 1, variant: 'standard', seed: 42, maxHits: 25 },
-  { level: 1, variant: 'heavy', seed: 42, maxHits: 25 },
-  { level: 4, variant: 'standard', seed: 7, maxHits: 40 },  // Act 2 - shields
-  { level: 7, variant: 'standard', seed: 7, maxHits: 40 },  // Act 3 - bumpers
+  { level: 1, variant: 'standard', seed: 42, maxHits: 30, yankEvery: 1.5 },
+  { level: 1, variant: 'heavy', seed: 42, maxHits: 30, yankEvery: 1.5 },
+  { level: 4, variant: 'standard', seed: 7, maxHits: 45, yankEvery: 1.5 },  // Act 2 - shields
+  { level: 7, variant: 'standard', seed: 7, maxHits: 45, yankEvery: 1.5 },  // Act 3 - bumpers
+  { level: 8, variant: 'standard', seed: 500, maxHits: 45, yankEvery: 1.5 }, // needs the yank
 ];
 
 const checks = [];
@@ -145,6 +150,7 @@ const t0 = Date.now();
     check('targets spawned', spawn.targets.length > 0, `${spawn.targets.length}`);
     check('HP starts at max', spawn.hp === spawn.maxHp, `${spawn.hp}/${spawn.maxHp}`);
     check('telemetry is recording', spawn.recording === true);
+    check('rope is the default tail', spawn.rope.length > 0, `${spawn.rope.length} segments`);
 
     // Fail fast: with no rat or no targets the run cannot possibly finish,
     // and waiting out the deadline turns a broken build into a 6-minute gate.

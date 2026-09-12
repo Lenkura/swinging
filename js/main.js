@@ -29,13 +29,15 @@ let devSeed = null;
 // real-time fidelity for reproducibility; it stays null (real dt) unless a
 // runner asks for it, and is unreachable without ?dev=1.
 let devFixedDt = null;
-// Segmented rope (task 117), dev-only and off by default: ?dev=1&rope=10.
-// Old and new coexist so the batch can A/B them at identical seeds. The flag
-// goes away in task 121 when the rope becomes the only path.
-let ropeSegments = DEV ? Number(new URLSearchParams(location.search).get('rope')) || 0 : 0;
+// Segmented rope. Now the default tail for every player. The dev override
+// (?dev=1&rope=0 for the old single constraint, or another segment count)
+// is kept because dev/ab.mjs and future tuning need to compare against it.
+const ROPE_SEGMENTS = 10;
+let ropeSegments = ROPE_SEGMENTS;
 // Dev knobs, all defaulting to current behaviour: ?dev=1&rope=10&hand=40&subs=4
 if (DEV) {
   const q = new URLSearchParams(location.search);
+  if (q.has('rope')) ropeSegments = Number(q.get('rope')) || 0;
   if (q.has('hand')) Physics.setHandMaxStep(Number(q.get('hand')) || 0);
   if (q.has('subs')) Physics.setSubSteps(Number(q.get('subs')) || 1);
   if (q.has('segcap')) Physics.setRopeConfig({ maxSegStep: Number(q.get('segcap')) || 0 });
@@ -264,6 +266,13 @@ Physics.on('fragment-landed', ({ x, size }) => {
 const YANK_COOLDOWN = 0.6;
 let yankCooldown = 0;
 let yankCount = 0;
+// The yank is not a convenience: with the rope, Level 8 is unwinnable without
+// it (measured 6/6 failures, zero hits). Nothing else in the game teaches it,
+// so a prompt appears exactly when the player needs it.
+const SNAG_SPEED = 25;      // px/step below which the swing is going nowhere
+const SNAG_SECONDS = 2.5;
+let stuckTimer = 0;
+let snagHintShown = false;
 Input.onYank(() => {
   if (gameState !== 'SWINGING' || yankCooldown > 0) return;
   if (Physics.yankRope()) {
@@ -289,6 +298,8 @@ function startLevel() {
   hitCount = 0;
   yankCooldown = 0;
   yankCount = 0;
+  stuckTimer = 0;
+  snagHintShown = false;
   hitCooldown = 0;
   comboCount = 0;
   comboTimer = 0;
@@ -410,6 +421,20 @@ function gameLoop(timestamp) {
     }
   }
   updateWhoosh(angularSpeed);
+
+  // Snag prompt: slow and not landing hits for a while means the rope is
+  // caught. Cleared as soon as the swing recovers, and never shown again once
+  // the player has yanked - they know the move by then.
+  if (gameState === 'SWINGING') {
+    if (ratSpeed < SNAG_SPEED) stuckTimer += dt; else stuckTimer = 0;
+    if (stuckTimer > SNAG_SECONDS && !snagHintShown && yankCount === 0) {
+      UI.setHint('Rope snagged? Click to yank it free.');
+      snagHintShown = true;
+    } else if (stuckTimer === 0 && snagHintShown) {
+      UI.setHint(currentLevel().hint || 'Move the mouse to swing the rat! Chain hits for a combo bonus.');
+      snagHintShown = false;
+    }
+  }
 
   Telemetry.sampleFrame({
     dt, rawFrameMs, state: gameState, speed: ratSpeed,

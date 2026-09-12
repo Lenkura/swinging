@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/segmented-rope. Rope collision now: segment penetration 0%, link crossings 0.46-0.75% (from 5-7.5%), no feel change, ~1.3% of frame budget. AWAITING user confirmation in the browser. Then task 121 closes the branch: docs, remove the rope=N flag, human sign-off and a fresh calibration. Still open: nothing tells the player that clicking yanks, and Level 8 soft-locks without it.",
+  "current_activity": "swinging/feat/segmented-rope is complete and ready to merge: tasks 116-124 done, rope shipped as the default tail with manual CCD, the yank and its snag prompt, and CLAUDE.md updated. Gate 91/91, vitest 61/61. NEXT after merge: task 125 (fresh human calibration on the rope build - the 2026-09-06 numbers do not survive it), then the deferred backlog - task 113 breakable targets, 115 obstacle difficulty, 79/80 backgrounds, 100 dead poly-decomp tag.",
   "action_plan": [
     {
       "id": 45,
@@ -354,9 +354,9 @@
       "id": 121,
       "task": "Rope human pass and docs: user re-runs calibration on the rope build and signs off on feel; rewrite CLAUDE.md tail-attachment concept and document the rope; remove the rope=N flag",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "User sign-off on feel, a fresh calibration entry in the decisions log, and git grep rope= returns nothing outside history",
-      "context": "The 2026-09-06 human calibration (free-swing peak 1146, sustained 109) will not survive the rope, so it must be retaken against the new physics."
+      "context": "The 2026-09-06 human calibration (free-swing peak 1146, sustained 109) will not survive the rope, so it must be retaken against the new physics. DONE 2026-09-12: rope is now the default tail for every player (10 segments), the dev override survives as ?dev=1&rope=0 because dev/ab.mjs needs it to compare against the old constraint - a deliberate deviation from the original done_when, which assumed the flag was pure scaffolding. Snag prompt added for the yank discoverability gap. CLAUDE.md rewritten: tail-attachment concept, collision categories, manual CCD, yank, and a dev-knob table. Gate grew an L8 case with yanking (the level that soft-locks without it) and a rope-is-default invariant: 91/91. Verified with no dev flag at all: rope renders, hits register, zero errors, no dev globals. NOT DONE: a fresh human calibration - the rope invalidates the 2026-09-06 numbers, tracked as task 125."
     },
     {
       "id": 122,
@@ -381,6 +381,14 @@
       "status": "completed",
       "done_when": "Rope links crossing an obstacle drop well below 1% with segment penetration at zero, no feel change and no meaningful perf cost",
       "context": "Follow-up to task 123 after the user asked to strengthen it. Segment-level CCD had taken penetration to ~0 but the rope is a chain of circles with space between them, so the LINE joining two segments still cut obstacles 5-7.5% of the time - which is what remains visible as clipping. Geometry alone could not close it (10 segments at radius 6.5 reached 2.74%, and MORE segments was worse - 20 gave 4.19% - because a floppier rope whips harder). Result: link crossings 5-7.5% -> 0.46-0.75%, segment penetration 0%, cost 0.166 -> ~0.21 ms/frame (1.3% of budget)."
+    },
+    {
+      "id": 125,
+      "task": "Fresh human calibration on the rope build, then decide whether DAMAGE_SCALE needs retuning",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "A decisions entry records human peak/p90/p50 swing speed and hits-to-clear on the rope build, and either a retune with before/after numbers or an explicit note that the data did not require one",
+      "context": "The 2026-09-06 calibration (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) was measured on the single-constraint tail and does not survive the rope. Bot numbers moved a lot (hits 5 -> 3) but bot swings are not human swings, so this needs the user. Run ?dev=1&calibrate for both variants plus a few normal levels."
     }
   ],
   "recently_updated_files": [

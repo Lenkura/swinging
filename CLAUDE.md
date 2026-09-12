@@ -157,7 +157,10 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 ## Key Concepts
 
 - **Pivot**: the hand/grip point; follows the pointer every frame (no button hold required). Defined per-level as `{x, y}` fractions of canvas size; overridden to the constraint anchor position during play.
-- **Tail attachment**: a Matter.js `Constraint` with `stiffness: 0.35`, anchored to the rat's tail base (`pointB` offset from body center) rather than its center — gravity torques the off-center body to hang and rotate below the grip point, so the rat is held by the tail, not a string. Never released — the rat stays attached until it shatters. Rendered as the rat's own tail stretching to the pivot using a sag/bow curve, replacing the old rope visual; the rat's rotation (`ctx.rotate`) follows the physics body's `angle` directly.
+- **Tail attachment (segmented rope)**: the tail is a chain of 10 collidable circular bodies (radius 5, each 5% of the rat's mass) running pivot -> segment 0 -> ... -> segment 9 -> the rat's tail-base offset (`-r*0.85, r*0.22`), so the rat still hangs by its tail rather than its centre. Built by `Physics.attachRope`; total reach matches `pushStringLength`. Segments collide with world geometry and obstacles but never with each other or the rat (see Collision categories). Wrapping is not simulated — it emerges from segments colliding. `engine.constraintIterations` is raised to 48 while a rope is attached (Matter's default 2 lets the chain stretch ~30% under load, lengthening the pendulum from 130 to 171px) and restored by `attachString`. The pre-rope single `Constraint` still exists behind `?dev=1&rope=0` purely so `dev/ab.mjs` can compare against it.
+- **Collision categories** (`physics.js` `CAT`/`MASK`): rat `0x0001`, targets and bumpers `0x0002`, fragments `0x0004`, rope `0x0010`, world (ground/walls) `0x0020`. Matter allows a pair only when *both* filters agree, so every intended pair is declared from both sides. Ground and walls previously set no filter at all and inherited Matter's default `0x0001` — the same bit the rat uses — which is why the rat fell through floors and why rope could not hit world geometry without also hitting the rat.
+- **Rope collision (manual CCD)**: Matter 0.19 has no continuous collision detection, and rope segments whip to ~432 px/step against 44px bumpers, so discrete collision misses most contacts. Two passes run after each `Engine.update`: `sweepRopeSegments` sweeps each segment from its previous to its current position (`Matter.Query.ray`, then a binary search for the last free point) and `resolveRopeLinks` does the same for the *line between* adjacent segments, since the rope is a chain of circles with gaps a link can cut through. Measured effect: segment penetration 2.2% -> 0%, link crossings 5-7.5% -> under 1%, cost ~0.21ms/frame. Segments moving less than their own radius are skipped, which is what keeps it cheap. Neither pass touches the rat: it is large enough for discrete collision and it carries the damage.
+- **Yank**: `pointerdown` (the pivot still snaps to the pointer) pulls the rat toward the pivot to slacken and unwind a caught rope — 0.6s cooldown. Non-accelerating *by construction*: tangential motion is damped, a radial component is added, and the result is clamped to the speed the rat already had, so it can never exceed it. This is load-bearing, not a convenience: with the rope, Level 8 is unwinnable without it (6/6 bot failures, zero hits). A snag prompt appears after 2.5s below 25 px/step and is suppressed once the player has yanked once.
 - **HP system**: `ratHp` starts at 100. Damage per hit = `speed² × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / DAMAGE_SCALE` (`DAMAGE_SCALE = 200`). HP floors at 0; the rat shatters (giblets) when HP reaches 0. `DAMAGE_SCALE` was raised to 2000 in an earlier pass on the (incorrect) assumption that real swings reach ~60% of `pushMaxSpeed`; playtesting showed actual swing speeds land far below that, producing 30-40 hits to clear Level 1, so it was corrected back down to 200 (~3-4 hits on Level 1 for a typical swing). The `pushMaxSpeed` values (750 standard / 625 heavy) and the speed-meter calibration remain unvalidated against real swing data and may need their own pass.
 - **Hit cooldown**: 0.35s lock-out after each registered hit. Prevents the physics engine from double-counting a single contact.
 - **Combo system**: Each hit within `COMBO_WINDOW` (1.0s) increments `comboCount`. Multiplier = `min(1 + comboCount × 0.5, 3.0)`. Resets if the window expires before the next hit.
@@ -220,7 +223,25 @@ fetched, and no dev global is defined.
 | `node dev/smoke.mjs` | Platform check — confirms Playwright still drives the game on this machine. |
 
 `--headed` on the gate or batch shows the browser; `--help` on the batch lists
-its options.
+its options. `node dev/ab.mjs` A/Bs two physics configurations at identical
+seeds on one page — it is how the rope was measured against the old constraint.
+
+### Dev-only URL knobs
+
+All default to shipped behaviour; they exist for tuning and A/B, not for play.
+
+| Param | Default | Effect |
+|---|---|---|
+| `rope=N` | 10 | Rope segment count; `0` restores the pre-rope single constraint |
+| `hand=N` | 0 | Max px the hand may travel per frame; `0` = uncapped |
+| `subs=N` | 1 | Physics sub-steps per frame |
+| `segcap=N` | 0 | Max px a rope segment may move per sub-step; `0` = unclamped |
+| `ccd=0` | on | Disables the rope's swept collision |
+| `calibrate` | off | Timed free-swing measurement in an empty arena |
+
+`hand`, `subs` and `segcap` were explored as fixes for rope tunneling and are
+**not** the fix — see the 2026-09-11 decision entry. They remain because they
+are useful tuning levers.
 
 ### Recording your own runs
 
