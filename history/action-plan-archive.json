@@ -1,0 +1,257 @@
+[
+  {
+    "id": 77,
+    "task": "Add a ?debug=1 overlay that records and displays peak swing speed per swing, to ground the next pushMaxSpeed / speed-meter / DAMAGE_SCALE calibration in real data instead of assumptions",
+    "priority": "high",
+    "status": "superseded",
+    "done_when": "Real swing-speed distribution (typical and peak) is captured from playtesting and logged in a decisions entry",
+    "context": "Root-cause fix for the task 63->75 miscalibration: the ~60%-of-pushMaxSpeed assumption was never measured. CLAUDE.md still flags pushMaxSpeed (750/625) and the meter as unvalidated. SUPERSEDED 2026-09-06 by tasks 105-110: the ?dev=1 telemetry layer captures the same speed distribution as logged data rather than an on-screen readout, and an overlay would itself distort the perceptual review it was meant to support.",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 81,
+    "task": "main.js — hit-stop: freeze the simulation ~40-80ms on high-damage hits, scaled by damageIntensity, composing with the existing screen shake",
+    "priority": "medium",
+    "status": "superseded",
+    "context": "Superseded by task 95 (2026-07-03 game-feel design).",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 82,
+    "task": "renderer.js — one-frame white impact flash on the rat at hit time, plus squash-and-stretch (scale along velocity vector, brief squash at impact) in drawRat",
+    "priority": "medium",
+    "status": "superseded",
+    "context": "Superseded by task 96 (2026-07-03 game-feel design).",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 83,
+    "task": "renderer.js — persistent blood-splatter decal canvas: paint splats on hit/shatter into an offscreen layer drawn under targets, cleared only on level restart",
+    "priority": "medium",
+    "status": "superseded",
+    "context": "Superseded by task 97 (2026-07-03 game-feel design).",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 87,
+    "task": "audio.js — route all nodes through a shared master GainNode -> DynamicsCompressorNode instead of ac.destination directly (playShatter stacks gain 1.3 and combo hits reach 2.8x — currently hard-clips); expose volume/mute",
+    "priority": "high",
+    "status": "superseded",
+    "context": "Superseded by task 93 (2026-07-03 game-feel design).",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 89,
+    "task": "audio.js/main.js — speed-driven swing whoosh: looping filtered-noise node whose gain and lowpass cutoff track normalizedSpeed each frame, making the wind-up audible before contact",
+    "priority": "medium",
+    "status": "superseded",
+    "context": "Superseded by task 94 (2026-07-03 game-feel design).",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 93,
+    "task": "audio.js + index.html/ui.js/css — master bus: lazy GainNode -> DynamicsCompressorNode chain, reroute all ~12 connect(ac.destination) sites through it; setMuted/isMuted persisted under localStorage key yoyo_muted; mute toggle button wired in ui.js",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "Shatter and 4+-combo hits no longer crackle/clip; the toggle silences everything mid-sound and survives a page reload",
+    "context": "First step of the 2026-07-03 game-feel design (approach A, inline integration) — the bus is the foundation the whoosh (94) connects through. audio.js owns mute state; UI reads through it. CLOSED 2026-09-12: shipped in commit d771795 and merged to main in 807fb04; the effects are live and are now documented in CLAUDE.md. Status had been stale since July.",
+    "completed_date": "2026-07-03",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 94,
+    "task": "audio.js + main.js — swing whoosh: one persistent looping noise source -> lowpass -> gain, parameters ramped each frame from the 0-1 normalizedSpeed (angularSpeed already computed in gameLoop); startWhoosh in startLevel, stopWhoosh in showResult",
+    "priority": "medium",
+    "status": "completed",
+    "done_when": "Audible swell tracks swing speed, silent when the rat hangs idle, no whoosh on the result screen",
+    "context": "Tracks the normalized 0-1 meter value, not absolute speed — the meter calibration is unvalidated until task 77, so the whoosh must not bake in new absolute-speed assumptions. CLOSED 2026-09-12: shipped in commit d771795 and merged to main in 807fb04; the effects are live and are now documented in CLAUDE.md. Status had been stale since July.",
+    "completed_date": "2026-07-03",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 95,
+    "task": "main.js — hit-stop: hitStopTimer set in the collision handler alongside the shake trigger (damage > 120, duration 40 + 40*damageIntensity ms), gating Physics.step/updateMovingTargets/hitCooldown/comboTimer in gameLoop while particles, shake, and hit-label timers keep updating",
+    "priority": "medium",
+    "status": "completed",
+    "done_when": "Heavy hits freeze rat and targets for a visible beat while blood keeps flying; weak hits produce no stutter; the combo window is not shortened by the pause",
+    "context": "Timer set in handler, consumed in loop — never pause the engine mid-callback (deferred-mutation learning). Shares the damage > 120 threshold with screen shake so the feedback constants stay one tuning group. CLOSED 2026-09-12: shipped in commit d771795 and merged to main in 807fb04; the effects are live and are now documented in CLAUDE.md. Status had been stale since July.",
+    "completed_date": "2026-07-03",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 96,
+    "task": "renderer.js + main.js — impact flash + squash-stretch: flash timer whitens the rat's fills for ~2 frames on every damaging hit; body scales along the velocity angle (stretch with speed, squash pulse on impact) applied before the existing body.angle rotation in drawRat",
+    "priority": "medium",
+    "status": "completed",
+    "done_when": "Visible white blink and squash on every damaging hit; damage overlays, cracks, and tail still render correctly while squashed",
+    "completed_date": "2026-07-03",
+    "context": "CLOSED 2026-09-12: shipped in commit d771795 and merged to main in 807fb04; the effects are live and are now documented in CLAUDE.md. Status had been stale since July.",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 97,
+    "task": "renderer.js + main.js — ground blood decals: module-level offscreen decal canvas (cachedGroundCanvas pattern) with exported paintSplat(x, intensity)/clearDecals(); painted on every damaging hit and larger at shatter, blitted each frame between drawGround and drawTargets; clearDecals() in startLevel",
+    "priority": "medium",
+    "status": "completed",
+    "done_when": "Splats accumulate on the floor across an attempt, sit under targets and rat, and are gone after Retry",
+    "context": "Ground only — target stains were rejected: targets already carry crack/crackedColor state, shields get removed, and moving targets would leave stains floating. CLOSED 2026-09-12: shipped in commit d771795 and merged to main in 807fb04; the effects are live and are now documented in CLAUDE.md. Status had been stale since July.",
+    "completed_date": "2026-07-03",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 101,
+    "task": "physics.js — giblet piece roster + landing: add 0x0001 to the fragment collision mask (fixes giblets falling through the floor — they currently collide only with each other); assign plugin.pieceType in spawnRatFragments (guaranteed bone/organ/gut + weighted flesh) with per-type precomputed geometry and dripInterval; onCollision branch emits fragment-landed {x, size} once per fragment on first ground contact",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "Giblets visibly bounce and come to rest on the floor in a browser shatter with no console errors",
+    "context": "First step of the 2026-07-11 gore-variety design. The mask omission made fragment restitution/friction dead values; landing contact is the prerequisite for task 103's splats. Implementation also required retuning the launch velocity (x80 -> x10 multiplier): the old burst speed was tuned for non-colliding giblets and both tunneled through the 50px walls/floor and froze pieces off-canvas-top at the 0.85s RESULT physics freeze. Verified 2026-07-11 in Playwright screenshots, zero game errors.",
+    "completed_date": "2026-07-11",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 102,
+    "task": "renderer.js — per-type giblet painters in drawFragments: flesh (red blob, ragged fur edge from variant color), bone (elongated off-white shard, knobbed ends), organ (glossy maroon lump, baked highlight), gut (pink undulating tube); all geometry from plugin, no per-frame randomness or shadowBlur; keep the 4000ms fade",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "Shatter screenshot shows at least 3 visually distinct piece types, and the two rat variants show different fur-edge tones",
+    "completed_date": "2026-07-11",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 103,
+    "task": "main.js — giblet splats + drips: subscribe to fragment-landed -> Renderer.paintSplat(x, intensity scaled by piece size); advance per-fragment drip timers in the game loop's active block, emitting one small blood particle per interval while airborne",
+    "priority": "medium",
+    "status": "completed",
+    "done_when": "Splats appear under landing pieces and persist until Retry; a faint drip trail follows airborne pieces",
+    "completed_date": "2026-07-11",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 104,
+    "task": "Gore redesign regression + docs: npx vitest run stays 61/61; Playwright screenshot pass of a shatter for perceptual review (both variants); update CLAUDE.md's Giblets key concept (piece types, landing, splats/drips, mask fix)",
+    "priority": "medium",
+    "status": "completed",
+    "context": "Perceptual bar per the desktama learning — screenshots go to the user for sign-off rather than self-certifying the look. 2026-07-11: 61/61 green, CLAUDE.md updated, both-variant screenshots captured (all four piece types + splats + drips visible, zero game errors); awaiting user perceptual sign-off. 2026-09-06: those screenshots are GONE — they were written to the 2026-07-11 session's temp scratchpad, never committed, and the directory is no longer reachable (the L0055 blocked-temp-path trap). Regeneration is folded into task 109, which writes them to the committed history/screenshots/ instead. Code and docs halves remain done; only the perceptual sign-off is outstanding. SIGNED OFF 2026-09-06: user reviewed the regenerated screenshots and approved (\"graphical upgrades we have done look good\"). Task closed.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 105,
+    "task": "Playwright platform smoke test: install playwright as a devDependency, download Chromium, and run a throwaway script that serves the project, loads index.html, and screenshots the level-select panel",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "The throwaway script produces a PNG showing the level-select grid and npx playwright --version reports cleanly under Windows; if Chromium download or launch fails, stop and revisit the approach rather than building on it",
+    "context": "Gate step for the 2026-09-06 approach-B decision, per L0079 (smoke-test a dependency on the actual platform before committing on paper criteria). Nothing else in tasks 106-110 is built until this passes. PASS 2026-09-06: playwright 1.63 + Chromium 153 install and drive the game under Windows; dev/smoke.mjs kept as the reusable platform check.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 106,
+    "task": "dev/serve.mjs (dependency-free Node static server) + js/dev/telemetry.js + the main.js seam: ?dev=1 flag, dynamic import, hit-handler and per-frame hooks, start/end calls",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "Loading ?dev=1 and playing one level by hand prints a run summary whose hitsToClear matches the on-screen hit counter and whose peak speed is a plausible non-zero number; loading without the flag issues no js/dev/* network request",
+    "context": "Standalone value even if the bot never lands: human-run telemetry is the calibration ground truth, since a bot's swing profile is not a human's and calibrating constants on bot data would repeat the L0097 error in a new costume. PASS 2026-09-06: ?dev=1 run recorded 1500+ frames and 13 damaging hits with a console summary; no js/dev/* fetched without the flag. Non-dev play separately verified by canvas pixel read (HP bar 1.000 -> 0.512), since the HUD is canvas-drawn.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 107,
+    "task": "js/dev/harness.js (window.__ratsmash dev API, seeded Math.random patch, injected main.js internals) + js/dev/bot.js (in-page pointer-dispatching swing policy)",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "__ratsmash.runBot({ level: 1, seed: 42 }) clears Level 1 unattended in a real browser with a SHATTER outcome, and the same seed twice produces identical hitsToClear",
+    "context": "The bot dispatches real PointerEvents at the canvas so input.js and getCanvasXY are exercised end-to-end rather than bypassed. The harness receives main.js internals by injection rather than reaching for globals (L0105, L0133). Open risk: Matter.js may seed its internal Common.random separately from Math.random, which would undercut the reproducibility check. PASS 2026-09-06: pump policy clears Level 1 unattended. Reproducibility needed an opt-in dev-only fixed timestep - real frame timing makes runs diverge on the same seed, which is inherent to driving a real browser. With fixedDt=1/60 seed 42 gives 11 hits twice; real-dt stays the default so batch numbers reflect actual play.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 108,
+    "task": "dev/run-batch.mjs — headless Chromium across parallel contexts, N seeded games over a level/variant matrix, telemetry extracted per page into dev/runs/<timestamp>/, aggregate table printed (median hits to clear, speed percentiles, combo distribution, frame-time p95)",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "node dev/run-batch.mjs --runs 20 completes, writes 20 JSON files, prints the aggregate table with per-run console errors, and reports its wall-clock time so we know whether the batch is practical as a routine tool",
+    "context": "Open risk: headless Chromium throttles requestAnimationFrame in backgrounded contexts, which could distort frame timing in parallel runs. If it does, frame timing moves to a single foreground run and the batch reports only gameplay numbers. PASS 2026-09-06: 20 runs in 29.8s wall (1.5s/run), 100% shatter, zero errors. The feared rAF throttling in parallel headless contexts did NOT materialise - frame p95 16.7ms across 4 workers. Finding: heavy clears L1 in 4 hits median, standard in 9, so standard scores the 200 floor on a par-1800 level.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 109,
+    "task": "npm run gate (fixed seeded run set asserting positive invariants, exit 0/1) + dev/shots.mjs (drive to a shatter per variant, write PNGs to history/screenshots/)",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "npm run gate exits 0 against current HEAD AND exits non-zero when target spawning is deliberately stubbed out; dev/shots.mjs writes both-variant shatter PNGs into the committed history/screenshots/",
+    "context": "Invariants are positive assertions (rat spawned, HP decreased, shatter fired, score non-zero) rather than absence-of-crash, per L0101. The deliberate-break check matters because a gate never observed failing is not known to work. This task also closes task 104's screenshot half durably, in-repo. PASS 2026-09-06: 70/70 checks in 40.2s, and exit 1 with 9 failures when target spawning was stubbed out - notably with ZERO thrown errors, so a crash-only smoke run would have passed the broken build (L0101 confirmed in practice). dev/shots.mjs captured 14 screenshots across both variants into the committed history/screenshots/.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 110,
+    "task": "Docs and state for the playtest tooling: CLAUDE.md dev-tooling section (three entry points, telemetry schema, where runs land), .gitignore for dev/runs/, task 104 closed on user sign-off",
+    "priority": "medium",
+    "status": "completed",
+    "done_when": "CLAUDE.md documents all three entry points and the telemetry schema; git status is clean with run artifacts ignored but screenshots committed",
+    "context": "PASS 2026-09-06: CLAUDE.md Dev Tooling section documents all five entry points, the telemetry schema, the layout, and the caveats on trusting a number.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 111,
+    "task": "js/dev/calibrate.js - calibration mode: empty arena (no targets/bumpers), live peak-speed readout overlay, timed window, calibration block appended to the telemetry document",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "?dev=1&calibrate runs a timed free swing and reports peak/p90/p50 against pushMaxSpeed",
+    "context": "Built 2026-09-06 so the user can measure their own swing ceiling. Verified end-to-end: empty arena, overlay updates, source=calibration, zero errors. AWAITING the human calibration session - no human run has been recorded yet; every number in the project so far is bot-generated.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 112,
+    "task": "Human calibration session: user runs ?dev=1&calibrate for both variants at max effort, then a few normal levels; export the JSON and log the measured swing range in a decisions entry",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "A decisions entry records the human peak/p90/p50 swing speed for both variants, as measured rather than assumed, plus the gap between free-swing ceiling and in-play speeds",
+    "context": "The measurement pushMaxSpeed (750/625), the speed meter and DAMAGE_SCALE have never had. Only the user can produce it. Sequencing caution: a segmented rope (task 114) changes swing feel globally, so these numbers are the BEFORE baseline - do not re-tune DAMAGE_SCALE against them until rope lands, or the tuning happens twice. DONE 2026-09-06: 1 calibration run (standard, ~64s free swing) + 9 in-play runs (L2-L9 standard), read out of the browser localStorage directly. Zero errors across all 10 runs; worst frame p95 6.2ms.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 114,
+    "task": "/brainstorm then implement segmented rope: replace the single tail Constraint with a chain of linked collidable bodies so the tail can catch on obstacles and lose momentum",
+    "priority": "high",
+    "status": "superseded",
+    "done_when": "The tail visibly catches and drags on bumpers and shields, the swing remains controllable, and the batch shows a re-measured baseline for hits-to-clear across all 9 levels",
+    "context": "User chose full replacement 2026-09-06. Matter.js Constraints are massless and collisionless, so catching is impossible without segmenting - this is the only approach that delivers it. Changes swing feel globally and forces a damage re-tune; the gate can detect the regressions and the batch can measure the new baseline, which is why this is tractable now and would not have been before. SUPERSEDED 2026-09-06 by the design gate output, tasks 116-121.",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 116,
+    "task": "physics.js - collision category cleanup: give ground/walls their own category (0x0020), add it to the rat mask so the rat stops passing through floor and walls, replace the fragments accidental 0x0001 with it, and audit the unassigned 0x0008 bit",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "A dev probe spawns the rat with no constraint and it comes to rest ON the ground rather than falling past the canvas; fragments report no contacts with the rat body; npm run gate still 70/70",
+    "context": "Hard prerequisite for the rope, not a tidy-up. Ground and walls were created with no collisionFilter so they inherited Matter default category 0x0001 - the same bit the rat explicitly uses - which means rope segments cannot be made to collide with world geometry without also colliding with the rat they hang from. DONE 2026-09-06: rat released from its constraint now rests at y=602, exactly ground-top(620) minus radius(18), where before it fell past the canvas. 0x0008 audited and removed - it appeared once in the fragment mask and was assigned to no body. Measured side-effect check: the rat never approaches the floor in normal play (lowest y 463-492 across L1/L5/L7, zero of 1014 frames near ground), so this changes nothing about current gameplay and only matters once the rope has mass and can drape.",
+    "completed_date": "2026-09-06",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 117,
+    "task": "physics.js - build the segmented rope behind ?dev=1&rope=N: N bodies of length pushStringLength/N chained pivot -> segments -> rat tail-base offset, ~2% rat mass each, category 0x0010, colliding with world and obstacles but not each other or the rat",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "With rope=10 the bot clears Level 1 unattended and state().rope.length === 10; without the flag the gate is unchanged at 70/70, proving the old constraint path is untouched",
+    "context": "Flagged so old and new coexist and the batch can A/B them at identical seeds. The flag is removed in task 121 - a permanent one is debt. DONE 2026-09-07: rope=10 clears Level 1 on 4/4 seeds (3-5 hits, peak ~226), state().rope.length===10, pivot-to-rat span 131 vs the old constraint 130, gate 70/70 unflagged. Parameters were swept, not guessed - see the decision entry.",
+    "completed_date": "2026-09-07",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 118,
+    "task": "renderer.js - drawTail draws a smooth curve through real segment positions, deleting the fabricated parabolic sag and speed-bow maths, keeping taper and variant colour",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "npm run shots -- --level 7 produces images where the tail visibly bends around geometry rather than tracing a clean parabola; images go to the user for perceptual review, not to an assertion",
+    "context": "DONE 2026-09-07: drawTail branches on ropeBodies and draws a Catmull-Rom curve through real segment positions; the fabricated sag/bow path is kept only for the un-roped mode and is deleted with the flag in task 121. Two findings during the pass: (1) the rope was rendering BEHIND bumpers and targets, so a rope caught on a bumper looked like a straight line vanishing behind the obstacle it was snagged on - the roped tail now draws after the scenery; (2) shadowBlur was dropped for the rope path in favour of a two-pass dark underlay, since a shadowed stroke per span would be 40+ blurred draws a frame. OPEN: contact is confirmed (segments held ~2px off the bumper surface) but reads as a graze, not a wrap - at stiffness 1.0 with 48 solver iterations the rope is nearly rigid. Whether wrap is strong enough to matter is task 119s question.",
+    "completed_date": "2026-09-07",
+    "archived_date": "2026-09-12"
+  }
+]
