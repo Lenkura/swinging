@@ -81,6 +81,27 @@ const t0 = Date.now();
     const r = document.getElementById('game-canvas').getBoundingClientRect();
     return { left: r.left, top: r.top, width: r.width, height: r.height };
   });
+  // What the non-dev path actually needs to prove is that the seam - a
+  // top-level await, a dynamic import and no-op call sites - did not break
+  // the shipped game. That fails as an exception or a frozen frame, so
+  // "the canvas is still animating in response to input" is the invariant.
+  //
+  // Sampled BEFORE the sweep, not after. Since DAMAGE_SCALE dropped to 80 the
+  // sweep usually lands enough hits to shatter the rat outright (HP drop was
+  // 1.9-49%, now routinely 100%), and the RESULT screen it ends on is
+  // legitimately static - sampling there failed ~43% of runs for no real fault.
+  const frameHash = () => page.evaluate(() => {
+    const c = document.getElementById('game-canvas');
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let h = 0;
+    for (let i = 0; i < d.length; i += 997 * 4) h = (h * 31 + d[i] + d[i + 1] * 3) | 0;
+    return h;
+  });
+  const h1 = await frameHash();
+  await page.mouse.move(rect.left + 300 * (rect.width / 1100), rect.top + 200 * (rect.height / 620));
+  await page.waitForTimeout(400);
+  const h2 = await frameHash();
+
   // Amplitude and centre are aimed at Level 1's target (x=726); a sweep that
   // only spans 140-660 never connects and makes this check flaky.
   const swingStart = Date.now();
@@ -104,21 +125,6 @@ const t0 = Date.now();
   // by the four seeded bot cases below, which execute the same handler.
   console.log(`  INFO  HP drop this run: ${hpBefore.toFixed(3)} -> ${hpAfter.toFixed(3)}`);
 
-  // What the non-dev path actually needs to prove is that the seam - a
-  // top-level await, a dynamic import and no-op call sites - did not break
-  // the shipped game. That fails as an exception or a frozen frame, so
-  // "the canvas is still animating in response to input" is the invariant.
-  const frameHash = () => page.evaluate(() => {
-    const c = document.getElementById('game-canvas');
-    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-    let h = 0;
-    for (let i = 0; i < d.length; i += 997 * 4) h = (h * 31 + d[i] + d[i + 1] * 3) | 0;
-    return h;
-  });
-  const h1 = await frameHash();
-  await page.mouse.move(rect.left + 300 * (rect.width / 1100), rect.top + 200 * (rect.height / 620));
-  await page.waitForTimeout(400);
-  const h2 = await frameHash();
   check('canvas animates under input (seam did not freeze the game)', h1 !== h2, `${h1} vs ${h2}`);
   check('no page errors in non-dev play', errors.length === 0, errors.join(' | '));
   await page.close();
