@@ -1,6 +1,6 @@
 # Rat Smash
 
-A browser-based physics game. Swing a rat on a string into targets to smash them. Chain hits to build a combo multiplier and beat the par score.
+A browser-based physics game. Swing a rat by its tail into targets to smash them. Chain hits to build a combo multiplier and beat the par score.
 
 ## How to run
 
@@ -21,6 +21,9 @@ Then open **http://localhost:8080** in your browser.
 ## Gameplay
 
 - **Move the mouse** to swing the rat. The pivot follows your cursor.
+- **Click** to yank the tail. The rat's tail is a rope that can snag on bumpers
+  and targets; a yank pulls it free. It never speeds you up, so there is no
+  reason to spam it - but some levels are hard to finish without it.
 - **Chain hits** within one second to build a combo multiplier (up to 3×).
 - The rat has HP — each hit drains it. When HP hits zero the rat shatters and the round ends.
 - **Fewer hits = higher score.** A one-hit smash scores 3000; each extra hit costs 500.

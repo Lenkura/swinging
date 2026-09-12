@@ -3,9 +3,9 @@
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
   "last_session_date": "2026-09-12",
-  "last_session_summary_path": "history/session-005-summary.md",
+  "last_session_summary_path": "history/session-006-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/fix/speed-meter-calibration (3 commits, unmerged): heavy pushMaxSpeed corrected to 785 from measurement, calibration data logged, tasks 125 and 127 closed. NO gameplay constant has been changed this session by design. Three things queued from the L1 findings: 126 (variant rebalance - needs a design gate because damage cannot be a trade-off when destroying your own rat faster is always better, and the player-driven pivot cancels mass-based costs), 129 (L1 at ~10 hits on standard, blocked on 126), and 128 (level/obstacle cohesion, the user side note, probably follows 113 and 115). Next practical step: merge this branch, then run the 126 design gate.",
+  "current_activity": "Rope build is merged to main and calibrated against real human play. The one open branch is swinging/fix/speed-meter-calibration (heavy pushMaxSpeed 625->785 from measurement, plus calibration data and docs) - ready to merge. NO gameplay constant was changed beyond that presentation value, deliberately. THE BLOCKING PROBLEM is task 126: damage cannot be a trade-off in this game (you destroy your own rat and score rewards fewer hits, so more damage is always better) and mass cannot be the counterweight (the player drives the pivot directly, so both variants clock identical in-play speed of 114 despite masses of 11.5 and 4.5). Heavy is therefore strictly better on every axis and DAMAGE_SCALE cannot move until 126 resolves - which also blocks task 129, Level 1 taking ~10 hits on standard against a documented 3-4 target. Start a fresh session with the 126 design gate.",
   "action_plan": [
     {
       "id": 45,
@@ -19,9 +19,9 @@
       "id": 76,
       "task": "Playtest Level 1 (and a few other levels) with DAMAGE_SCALE=200 to confirm hit-count lands around 3-4 and that particle bursts / screen shake feel proportionate, not maxed-out on every hit",
       "priority": "high",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "Level 1 clears in roughly 3-4 hits, particle bursts scale visibly with hit strength rather than always appearing at full size, and shake fires only on stronger/combo hits",
-      "context": "Validation step for task 75's correction before resuming task 45's full playthrough."
+      "context": "Validation step for task 75's correction before resuming task 45's full playthrough. SUPERSEDED 2026-09-12 by task 127, which answered it directly and negatively: with DAMAGE_SCALE=200 on the rope build, Level 1 takes a human median of 10.5 hits on standard and 5 on heavy, not 3-4. The open work is now task 129 (the L1 gap) blocked on 126 (variant imbalance)."
     },
     {
       "id": 78,
@@ -91,9 +91,10 @@
       "id": 98,
       "task": "Game-feel bundle regression pass: npx vitest run stays 61/61, then browser playtest of both rat variants across a normal, shield, and bumper level with all five effects active",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "61/61 tests pass and all five effects read correctly together with no core-loop regressions",
-      "context": "Perceptual acceptance is the bar (green tests cannot judge feel) — the playtest is the real gate."
+      "context": "Perceptual acceptance is the bar (green tests cannot judge feel) — the playtest is the real gate. CLOSED 2026-09-12: the perceptual half is satisfied by real play rather than a dedicated pass. The user played L1, L4, L5, L6, L7 and L8 across both variants on the rope build with all five game-feel effects active, 20 recorded runs, zero errors and zero page errors throughout. Mechanical half had already passed.",
+      "completed_date": "2026-09-12T08:20:00"
     },
     {
       "id": 99,
@@ -158,9 +159,9 @@
       "id": 122,
       "task": "Pick the hand-speed cap and sub-step count by feel, then make them defaults and retune damage for the new speed range",
       "priority": "high",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "A hand cap and sub-step count are chosen from browser play, set as defaults, DAMAGE_SCALE retuned against a fresh human calibration, and the rope no longer visibly passes through obstacles at speed",
-      "context": "User reported 2026-09-09 that the rope passes through obstacles when spinning fast. Root cause measured: updatePivot wrote the pointer position straight into the constraint, so the hand teleported up to 234px per frame (p90 107) and whipped the rat to 249px/step against 44px bumpers - Matter has no continuous collision detection, so more than half of all steps moved further than a bumper is wide. Sub-stepping alone cannot fix it (contacts never plateau: 48/39/100/157/266/288/843 at 1..24 sub-steps) and reducing gravity would not either, since the player drives the pivot directly. The hand cap bounds the system at its source: rat peak 249 -> 149 (hand 80) -> 101 (hand 40) -> 65 (hand 25). Implemented as dev-tunable with defaults unchanged so the user can choose by feel. CAVEAT: bot clear rates at low caps are unreliable - its pump policy was built for an uncapped hand and fails entirely at hand=25. UPDATE 2026-09-11: the user tested and the rope still tunnels. Measuring rope segment velocity directly (with sub-stepping, body.velocity IS per-sub-step displacement) shows why my hand=40 recommendation was wrong: I estimated rope displacement from the RAT peak, but rope segments whip far faster than the rat (432 vs 247 px/step). At hand=40/subs=4, 26.3% of rope samples still exceed the 44px bumper diameter; only hand=25 gets it to 1.4%, which is a large feel change. Sub-stepping does not help - 4 to 8 sub-steps made it slightly WORSE (26.3% to 30.5%), because better constraint solving stiffens the rope and it whips harder. A rope-segment speed clamp cuts over-44 samples to 3.5% but cannot bound displacement, because the constraint solver repositions bodies directly regardless of velocity (ropeMax stayed ~280 under a cap of 12). CONCLUSION: no parameter fixes this. Matter 0.19 has no continuous collision detection and this game sits squarely in the regime where discrete collision fails."
+      "context": "User reported 2026-09-09 that the rope passes through obstacles when spinning fast. Root cause measured: updatePivot wrote the pointer position straight into the constraint, so the hand teleported up to 234px per frame (p90 107) and whipped the rat to 249px/step against 44px bumpers - Matter has no continuous collision detection, so more than half of all steps moved further than a bumper is wide. Sub-stepping alone cannot fix it (contacts never plateau: 48/39/100/157/266/288/843 at 1..24 sub-steps) and reducing gravity would not either, since the player drives the pivot directly. The hand cap bounds the system at its source: rat peak 249 -> 149 (hand 80) -> 101 (hand 40) -> 65 (hand 25). Implemented as dev-tunable with defaults unchanged so the user can choose by feel. CAVEAT: bot clear rates at low caps are unreliable - its pump policy was built for an uncapped hand and fails entirely at hand=25. UPDATE 2026-09-11: the user tested and the rope still tunnels. Measuring rope segment velocity directly (with sub-stepping, body.velocity IS per-sub-step displacement) shows why my hand=40 recommendation was wrong: I estimated rope displacement from the RAT peak, but rope segments whip far faster than the rat (432 vs 247 px/step). At hand=40/subs=4, 26.3% of rope samples still exceed the 44px bumper diameter; only hand=25 gets it to 1.4%, which is a large feel change. Sub-stepping does not help - 4 to 8 sub-steps made it slightly WORSE (26.3% to 30.5%), because better constraint solving stiffens the rope and it whips harder. A rope-segment speed clamp cuts over-44 samples to 3.5% but cannot bound displacement, because the constraint solver repositions bodies directly regardless of velocity (ropeMax stayed ~280 under a cap of 12). CONCLUSION: no parameter fixes this. Matter 0.19 has no continuous collision detection and this game sits squarely in the regime where discrete collision fails. SUPERSEDED 2026-09-12 by task 123/124: swept collision fixed the tunneling this task existed to mitigate, without capping the skill ceiling. The hand-cap, sub-step and segcap knobs remain available and documented as tuning levers, but choosing values for them is no longer needed work."
     },
     {
       "id": 123,
@@ -225,17 +226,16 @@
   ],
   "recently_updated_files": [
     "CLAUDE.md",
+    "README.md",
     "project-state.json",
-    "js/main.js",
-    "js/dev/telemetry.js",
-    "js/dev/harness.js",
-    "js/dev/bot.js",
-    "dev/gate.mjs",
-    "dev/run-batch.mjs",
-    "dev/shots.mjs",
-    "dev/serve.mjs"
+    "js/rat.js",
+    "history/calibration/human-runs-log.csv",
+    "history/session-006-summary.md"
   ],
-  "open_questions": [],
+  "open_questions": [
+    "Task 126: what is each rat variant FOR, when damage cannot be a trade-off and mass cannot be a cost? Sketched but unchosen: cut heavy impactMultiplier to ~1.25; equalise damage and differentiate on feel/blast/appearance; or keep heavy strong and apply a score penalty.",
+    "Task 128: should the level/obstacle cohesion pass run before or after breakable targets (113)? Both the rope and breakable targets change what level geometry can express, so designing first may mean designing twice."
+  ],
   "milestones": [
     {
       "name": "Push mode playable",

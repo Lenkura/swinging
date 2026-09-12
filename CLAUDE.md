@@ -46,7 +46,24 @@ swinging/
 │   ├── target.js           ← material definitions, impact evaluation, fragments
 │   ├── particles.js        ← particle system
 │   ├── audio.js            ← Web Audio sound synthesis
-│   └── scoring.js          ← calcPushScore + combo multiplier formulas
+│   ├── scoring.js          ← calcPushScore + combo multiplier formulas
+│   └── dev/                ← ?dev=1 only; never fetched by a normal player
+│       ├── telemetry.js    ← run recording and the summary schema
+│       ├── bot.js          ← swing policies + pointer dispatch
+│       ├── harness.js      ← window.__ratsmash (state, runBot, seeds, knobs)
+│       └── calibrate.js    ← timed free-swing measurement in an empty arena
+├── dev/                    ← Node-side rigs (not served to the game)
+│   ├── serve.mjs           ← dependency-free static server
+│   ├── gate.mjs            ← regression gate (npm run gate)
+│   ├── run-batch.mjs       ← batch playtest runner
+│   ├── ab.mjs              ← A/B two configs at identical seeds
+│   ├── shots.mjs           ← perceptual screenshot capture
+│   └── smoke.mjs           ← Playwright platform check
+├── history/
+│   ├── session-*.md        ← session summaries
+│   ├── screenshots/        ← committed perceptual-review images
+│   ├── calibration/        ← human-runs-log.csv, the durable telemetry record
+│   └── action-plan-archive.json
 ├── tests/                  ← Vitest test files
 ├── vitest.config.js
 └── package.json
@@ -191,6 +208,16 @@ Bumper fields: `x`, `y`, `radius`.
 
 **New rat variant**: add to `RAT_VARIANTS` in `rat.js` and add a picker button in `index.html` with class `rat-btn`. Color fields `wornColor` (body-wear blend target) and `chunkColor` (fur-debris particle color) are required — `renderer.js`'s `blendHexColors` and `main.js`'s `emitImpactBurst` read them unconditionally.
 
+> **Before tuning a variant, read this.** `impactMultiplier` is the only field that
+> changes how fast a rat dies, and raising it is *purely* an advantage: the goal is to
+> destroy your own rat in few hits, so more damage is always better and there is nothing
+> to trade against. `mass` does **not** act as a counterweight — the player drives the
+> pivot directly, so the hand overrides inertia, and the two shipped variants clock
+> identical in-play speed (114.1 vs 114.4) despite masses of 11.5 and 4.5.
+> `pushMaxSpeed` is presentation only (speed meter and whoosh). This is why heavy is
+> currently strictly better than standard and why task 126 is a design gate rather than a
+> constant change.
+
 **New material**: add to `MATERIALS` in `target.js`.
 
 ---
@@ -202,6 +229,11 @@ Bumper fields: `x`, `y`, `radius`.
 - **Test files:** `tests/*.test.js` — covers `scoring.js`, `target.js`, `levels.js`, `input.js`
 - **Coverage threshold:** none enforced — `@vitest/coverage-v8` is available for ad-hoc reports
 - **Spec:** `TEST_SPEC.md` at project root
+
+```
+npx vitest run
+```
+
 - Unit tests cover pure logic only. Physics, rendering and the wiring between them are covered by the browser gate below, not by Vitest.
 
 ---
@@ -220,7 +252,9 @@ fetched, and no dev global is defined.
 | `npm run batch -- --runs 20` | Batch playtest — N seeded bot games in parallel headless contexts, aggregated. Results to `dev/runs/<timestamp>/` (gitignored). ~1.5s/run. |
 | `npm run shots` | Perceptual capture — drives to each damage state and the shatter, writing PNGs to `history/screenshots/` (committed). |
 | `npm run serve` | Static server on :8080. Play at `/?dev=1` to record your own runs. |
+| `node dev/ab.mjs` | A/B two physics configurations at identical seeds on one page — how the rope was measured against the old constraint. |
 | `node dev/smoke.mjs` | Platform check — confirms Playwright still drives the game on this machine. |
+| `/?dev=1&calibrate` | Timed free-swing measurement, both variants — the only source of real human speed data. |
 
 `--headed` on the gate or batch shows the browser; `--help` on the batch lists
 its options. `node dev/ab.mjs` A/Bs two physics configurations at identical
@@ -257,7 +291,8 @@ result screen — abandoning to the level select discards it.
 |---|---|
 | `js/dev/telemetry.js` | Run recording and the summary schema. Reads state, never writes it. |
 | `js/dev/bot.js` | Swing policies (`pump`, `sweep`) and pointer dispatch. |
-| `js/dev/harness.js` | `window.__ratsmash` — state, `beginRun`, `runBot`, `setSeed`, `setFixedDt`. |
+| `js/dev/harness.js` | `window.__ratsmash` — state, `beginRun`, `runBot`, `setSeed`, `setFixedDt`, rope knobs. |
+| `js/dev/calibrate.js` | Free-swing calibration mode and its on-screen readout. |
 | `dev/serve.mjs` | Dependency-free static server (correct ES-module MIME types). |
 | `dev/gate.mjs`, `dev/run-batch.mjs`, `dev/shots.mjs`, `dev/smoke.mjs` | The Node-side rigs. |
 
