@@ -2,10 +2,10 @@
   "project_name": "swinging",
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
-  "last_session_date": "2026-09-12",
+  "last_session_date": "2026-09-13",
   "last_session_summary_path": "history/session-006-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Rope build is merged to main and calibrated against real human play. The one open branch is swinging/fix/speed-meter-calibration (heavy pushMaxSpeed 625->785 from measurement, plus calibration data and docs) - ready to merge. NO gameplay constant was changed beyond that presentation value, deliberately. THE BLOCKING PROBLEM is task 126: damage cannot be a trade-off in this game (you destroy your own rat and score rewards fewer hits, so more damage is always better) and mass cannot be the counterweight (the player drives the pivot directly, so both variants clock identical in-play speed of 114 despite masses of 11.5 and 4.5). Heavy is therefore strictly better on every axis and DAMAGE_SCALE cannot move until 126 resolves - which also blocks task 129, Level 1 taking ~10 hits on standard against a documented 3-4 target. Start a fresh session with the 126 design gate.",
+  "current_activity": "Task 126's rebalance is IMPLEMENTED and committed on branch swinging/fix/variant-difficulty-rebalance (4 commits: 47896ac scoring, 595df2b the damage tuning group, 5a87212 levels and picker, bef72f7 a gate fix). 68/68 vitest and 91/91 gate, the latter verified over 5 consecutive foreground runs. The variants are now an explicit difficulty selector: heavy impactMultiplier 2.2 -> 1.4, DAMAGE_SCALE 200 -> 80, per-variant parHits 5/3, and calcPushScore scores each rat against its own par so neither is taxed. WHAT IS NOT YET TRUE: nothing has been measured. The predicted Level 1 outcome (standard ~5.2 hits, heavy ~3.4) is a linear extrapolation from two medians, and tasks 126 and 129 both stay open until task 133 - human Level 1 runs on both variants - confirms or refutes it. If standard lands at 6-7 rather than 5, the correction is parHits, NOT another DAMAGE_SCALE move. Task 132 also needs its picker labels and star thresholds eyeballed during that same session. NEXT: task 133.",
   "action_plan": [
     {
       "id": 45,
@@ -151,9 +151,9 @@
       "id": 126,
       "task": "/brainstorm then rebalance the rat variants: what each rat is FOR, given that damage cannot be a trade-off in this game",
       "priority": "high",
-      "status": "pending",
+      "status": "in_progress",
       "done_when": "Across a spread of levels the two variants clear in comparable hit counts, or heavy pays a cost that shows up in the score - measured, not assumed",
-      "context": "Measured 2026-09-12 from human play on the rope build. Heavy carries impactMultiplier 2.2 and mass 11.5 against standard 1.0 and 4.5, and swings only ~15% slower (calibration p50 113 vs 134). Since damage goes as speed squared, heavy nets 2.2 x (113/134)^2 = 1.56x effective damage - slower does not come close to paying for the multiplier. Observed: heavy median 3 hits vs standard 6, and because score is max(200, 3000-(hits-1)*500) that compounds into 1000-2500 vs 500. The lever is impactMultiplier, NOT DAMAGE_SCALE, which divides both variants equally. Needs the design gate: making heavy weaker, slower, or giving standard something of its own are different games. STRENGTHENED 2026-09-12 by L1 data, which invalidates the trade-off premise entirely: in actual play both variants swing at the SAME speed (p50 114.4 standard vs 114.1 heavy). The earlier -15% figure came from free-swing calibration and does not survive contact with real play, so heavy pays NO speed cost for its 2.2x multiplier. Observed damage per hit 18.3 vs 7.7 = 2.4x, matching the multiplier with nothing offsetting it. Heavy also lands cleaner (15% glancing vs 31%), plausibly because its radius is 22 against 18. Heavy is better on every measured axis: same speed, 2.4x damage, cleaner hits, bigger body. There is no trade-off to balance - the variant is simply strictly better. SCOPE SET 2026-09-12: user chose a full design gate over a quick constant change. THE STRUCTURAL PROBLEM the design must solve: the goal is to destroy YOUR OWN rat in as few hits as possible and score is max(200, 3000-(hits-1)*500), so taking more damage per hit is purely good - there is no downside to trade against, and any variant with a higher multiplier is permanently strictly better. The usual counterweight is unavailable too: heavy mass 11.5 should swing slower, but the player drives the pivot directly so the hand overrides mass, which is why both variants clock identical in-play speed (114.1 vs 114.4). Mass-based trade-offs do not survive this control scheme. Options sketched and NOT chosen: cut heavy impactMultiplier 2.2 -> ~1.25; equalise damage and differentiate on feel/blast/appearance; keep heavy strong but apply a score penalty. Also note the arithmetic trap: standard needs ~3.3x damage to reach 4 hits on L1, which would drop heavy to ~1.4 hits, so DAMAGE_SCALE cannot move until this resolves."
+      "context": "Measured 2026-09-12 from human play on the rope build. Heavy carries impactMultiplier 2.2 and mass 11.5 against standard 1.0 and 4.5, and swings only ~15% slower (calibration p50 113 vs 134). Since damage goes as speed squared, heavy nets 2.2 x (113/134)^2 = 1.56x effective damage - slower does not come close to paying for the multiplier. Observed: heavy median 3 hits vs standard 6, and because score is max(200, 3000-(hits-1)*500) that compounds into 1000-2500 vs 500. The lever is impactMultiplier, NOT DAMAGE_SCALE, which divides both variants equally. Needs the design gate: making heavy weaker, slower, or giving standard something of its own are different games. STRENGTHENED 2026-09-12 by L1 data, which invalidates the trade-off premise entirely: in actual play both variants swing at the SAME speed (p50 114.4 standard vs 114.1 heavy). The earlier -15% figure came from free-swing calibration and does not survive contact with real play, so heavy pays NO speed cost for its 2.2x multiplier. Observed damage per hit 18.3 vs 7.7 = 2.4x, matching the multiplier with nothing offsetting it. Heavy also lands cleaner (15% glancing vs 31%), plausibly because its radius is 22 against 18. Heavy is better on every measured axis: same speed, 2.4x damage, cleaner hits, bigger body. There is no trade-off to balance - the variant is simply strictly better. SCOPE SET 2026-09-12: user chose a full design gate over a quick constant change. THE STRUCTURAL PROBLEM the design must solve: the goal is to destroy YOUR OWN rat in as few hits as possible and score is max(200, 3000-(hits-1)*500), so taking more damage per hit is purely good - there is no downside to trade against, and any variant with a higher multiplier is permanently strictly better. The usual counterweight is unavailable too: heavy mass 11.5 should swing slower, but the player drives the pivot directly so the hand overrides mass, which is why both variants clock identical in-play speed (114.1 vs 114.4). Mass-based trade-offs do not survive this control scheme. Options sketched and NOT chosen: cut heavy impactMultiplier 2.2 -> ~1.25; equalise damage and differentiate on feel/blast/appearance; keep heavy strong but apply a score penalty. Also note the arithmetic trap: standard needs ~3.3x damage to reach 4 hits on L1, which would drop heavy to ~1.4 hits, so DAMAGE_SCALE cannot move until this resolves. DESIGN GATE CLOSED 2026-09-13: chose the difficulty-selector framing with par-relative scoring - see the 2026-09-13 decisions entry. Implementation is tasks 130-133; 126 closes when task 133 measures the predicted hit counts, since its done_when demands measured, not assumed."
     },
     {
       "id": 127,
@@ -178,7 +178,74 @@
       "priority": "high",
       "status": "pending",
       "done_when": "L1 clears in roughly 3-4 hits on standard for a human player",
-      "context": "Measured 2026-09-12 across 4 human runs: 11/17/10/6 hits, median 10.5, scoring the 200 floor every time on the game first level. Heavy sits at 5. Deliberately NOT fixed by moving DAMAGE_SCALE, because the ~3.3x standard needs would drop heavy to ~1.4 hits and bake the variant imbalance in permanently. Blocked on task 126."
+      "context": "Measured 2026-09-12 across 4 human runs: 11/17/10/6 hits, median 10.5, scoring the 200 floor every time on the game first level. Heavy sits at 5. Deliberately NOT fixed by moving DAMAGE_SCALE, because the ~3.3x standard needs would drop heavy to ~1.4 hits and bake the variant imbalance in permanently. Blocked on task 126. UNBLOCKED 2026-09-13: task 126's design resolves this. The mechanism is DAMAGE_SCALE 200 -> 80, which lifts standard off the 200 floor to a predicted ~5.2 hits without baking in the variant imbalance, because heavy's impactMultiplier drops 2.2 -> 1.4 in the same change. Closes with task 133."
+    },
+    {
+      "id": 130,
+      "task": "scoring.js - add a parHits parameter to calcPushScore, defaulting to 1",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "calcPushScore(hits, parHits = 1) returns max(200, 3000 - (hits - parHits) * 500), npx vitest run is green, and the 6 existing scoring.test.js assertions pass UNMODIFIED - that is the proof the default preserves current behaviour. New cases cover par-met = 3000, par-beaten > 3000, and the 200 floor.",
+      "context": "Par-relative scoring is what lets both variants reach 3000 by mastering their own rat, so the difficulty gap needs no score tax. DONE 2026-09-13 (commit 47896ac): 68/68 vitest green, up from 61 - the 7 new cases landed and all 6 original assertions passed UNMODIFIED, which is the evidence the parHits=1 default preserves the original curve.",
+      "completed_date": "2026-09-13T01:25:00"
+    },
+    {
+      "id": 131,
+      "task": "rat.js + main.js - the damage tuning group, as one commit",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "heavy impactMultiplier 2.2 -> 1.4; parHits 5 (standard) and 3 (heavy) on the variants; DAMAGE_SCALE 200 -> 80; feedback divisors 240 -> 96 (damageIntensity) and 80 -> 32 (shakeIntensity); parHits passed at main.js:250. npx vitest run green AND npm run gate exits 0.",
+      "context": "One commit because these are a single tuning group (L0169) - splitting them leaves the tree in a state where damage is buffed but the feedback constants derived from damage magnitude are not. The divisors scale by the same 2.5 to hold felt output constant, so hit count is the only variable this change introduces. DONE 2026-09-13 (commit 595df2b): 68/68 vitest green and the gate at 91/91, verified over 5 consecutive foreground runs. ERROR CAUGHT AND CORRECTED MID-IMPLEMENTATION: the feedback thresholds were first scaled the WRONG WAY (240->96, 120->48, 80->32). Lowering DAMAGE_SCALE raises damage, so the thresholds must scale in the SAME direction, not the inverse - correct values are 240->600, 120->300, 80->200. The gate passed 91/91 with the wrong values because its bounds are deliberately wide, so tests did not catch it; what caught it was reading the gate's reported peak damage (140-252) against the assumed range. A third coupled constant was also found during implementation that the design had missed: the shake/hit-stop gate at 'damage > 120', now 300.",
+      "completed_date": "2026-09-13T01:40:00"
+    },
+    {
+      "id": 132,
+      "task": "levels.js pushParScore -> 3000 across all 9 levels, plus index.html difficulty labels on the picker",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "All 9 pushParScore values are 3000, the rat-desc spans read as explicit Hard/Easy labels, and a local serve confirms the picker labels and the level-select star thresholds respond to the new scale.",
+      "context": "The existing 600-1800 pushParScore thresholds stop meaning anything once par is variant-relative, because a par run always scores 3000 and would always read three stars. CODE DONE 2026-09-13 (commit 5a87212): all 9 pushParScore values are 3000 and the picker reads 'Hard - quick & nimble' / 'Easy - heavy & mean'. VISUAL CONFIRMATION NOT YET DONE - the done_when asks for a local serve to confirm the picker labels and star thresholds render correctly, and that has not been performed. Folded into task 133, where the user is at the picker and the result screen anyway; do not treat this item as fully closed until that is observed.",
+      "completed_date": "2026-09-13T01:45:00"
+    },
+    {
+      "id": 133,
+      "task": "Human L1 runs on the rebalanced build, both variants",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Several L1 runs per variant recorded, standard median near 5 hits and heavy near 3, both scoring off the 200 floor, written up as a decisions entry with the actual numbers.",
+      "context": "This is what actually closes 126 and 129 - the design's predicted table is a linear extrapolation from two medians, not a result. If standard lands at 6-7 rather than 5, the correction is parHits, NOT another DAMAGE_SCALE move. Bot data cannot substitute: on L1 the bot is roughly twice as effective as a human (bot standard 6 vs human 10.5)."
+    },
+    {
+      "id": 134,
+      "task": "Re-measure Acts 2-3 against the new damage scale",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Hit counts recorded per act on the rebalanced build, and any level falling outside the 1-6 hit live scoring range is flagged.",
+      "context": "The DAMAGE_SCALE change touches all 9 levels, not just L1. Feeds tasks 115 and 128."
+    },
+    {
+      "id": 135,
+      "task": "Per-level parHits overrides once Acts 2-3 are measured",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Levels whose measured hit counts differ materially from the per-variant baseline carry a parHits override, or a note records that the baseline fits well enough.",
+      "context": "Deliberately out of scope for the 126 rebalance: L1 is the only level with measured data for both variants, so per-level pars now would be invented numbers."
+    },
+    {
+      "id": 136,
+      "task": "main.js - investigate the dormant damageIntensity range",
+      "priority": "low",
+      "status": "pending",
+      "done_when": "Either the saturation constant is retuned so burst scaling and hit-stop use their intended range, or a note records why the current range is correct.",
+      "context": "Found while checking the damage coupling for task 126: damageIntensity saturates at 240 but observed per-hit damage peaks around 18, so it runs at about 0.08 of its range and the burst-size scaling and hit-stop variation documented in CLAUDE.md are effectively inert. Logged rather than fixed inside the rebalance so it does not contaminate that measurement. CORRECTION 2026-09-13: the 0.08 figure is the value at the human MEDIAN hit, not the peak. The gate reports peak per-hit damage around 100 on the pre-change scale, so damageIntensity actually reached about 0.42 of its range on big hits. The finding survives but is narrower than first logged: the effect is inert on ordinary hits and only partially engaged on the hardest ones. The rebalance held this ratio constant by design (240 -> 600 alongside the 2.5x damage rise), so nothing about it changed - it remains a pre-existing question, not a regression."
+    },
+    {
+      "id": 137,
+      "task": "Verify the CLAUDE.md tuning-group note survives the next DAMAGE_SCALE change",
+      "priority": "low",
+      "status": "pending",
+      "done_when": "The next time DAMAGE_SCALE moves, the three derived thresholds move with it in the same commit and in the same direction.",
+      "context": "Added after scaling those thresholds the wrong way during task 131 - the inverse felt intuitive because DAMAGE_SCALE is a divisor, and the wide-bounded gate passed anyway. The note at main.js:63 spells out the direction explicitly for this reason (L0169)."
     }
   ],
   "recently_updated_files": [
@@ -385,6 +452,11 @@
       "date": "2026-09-12",
       "decision": "Merged branch swinging/fix/speed-meter-calibration into main",
       "rationale": "f1b5a5890d08c8079cc66f9ce9344d9b698c5583"
+    },
+    {
+      "date": "2026-09-13",
+      "decision": "Task 126 resolved by design gate: the rat variants become an explicit difficulty selector with par-relative scoring. Heavy impactMultiplier 2.2 -> 1.4, DAMAGE_SCALE 200 -> 80, per-variant parHits (standard 5, heavy 3), calcPushScore gains a parHits parameter, and the picker gets Hard/Easy labels. No score tax.",
+      "rationale": "The game has no cost axis at all: the rat's only resource is HP and spending HP is winning, so impactMultiplier is one-sided and any variant carrying more of it is permanently strictly better (L0250). Reading the code settled what the task description left open - main.js:247 ends the level when the rat's own HP hits 0 and calcPushScore(hitCount) is the only scored term, so targets are anvils and hits are the sole metric. Two findings redirected the fix. First, calcPushScore has a live gradient only from 1 to 6 hits and standard's measured median of 10.5 sits four hits past the end of it, so a standard player improving 17 -> 11 hits sees no score change at all; that unscorable band, not the variant gap, is the substance of task 129, and no score multiplier addresses it. Second, the hard/easy axis is already physically real and shipped: radius 22 vs 18 produces 15% vs 31% glancing hits through angleFactor, which is a shaped cost rather than a described one (L0373). So the design keeps the precision gap as the difficulty axis, closes the unjustified raw-damage gap on top of it, and pulls both variants inside the live scoring range. Par-relative scoring was chosen over the flat score multiplier sketched in the earlier options because the 500-per-hit curve is steep enough that any sane multiplier has to be re-derived every time a hit count moves; scoring each variant against its own par lets both reach 3000 by mastery, makes standard's harder par pay more for the same absolute feat, and - with parHits defaulting to 1 - leaves the existing function behaviour and all 6 scoring tests untouched. REJECTED: per-material variant affinity (a real strategic choice, but a larger new mechanic); equalising power and differentiating on feel alone (removes strategy); relabel-plus-multiplier only (3 lines, but leaves 129 unfixed on the 200 floor). ACCEPTED CONSEQUENCES: cross-variant high scores stop being directly comparable, and saved scores earned on the old scale will be beaten easily - no migration for a single-player local game. COUPLING CHECK (L0169): three feedback constants read raw damage magnitude - damageIntensity /240, shakeIntensity /80, and hitStopTimer derived from the former - so their divisors scale by the same 2.5 (to 96 and 32) to hold felt output constant and keep hit count the only variable this change introduces (L0227). Noted while checking: damageIntensity currently peaks at 0.08 of its range, so burst scaling and hit-stop are effectively dormant at today's damage values - logged as its own task rather than fixed by accident."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
