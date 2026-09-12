@@ -16,14 +16,6 @@
       "context": "Paused mid-playthrough — that session surfaced the tuning/feature feedback in tasks 63-74 (speed/damage recalibration, shape variety, moving targets, giblet blobs, trail tone-down). Resume the full playthrough once those land. NOTE: a DevTools screenshot from a prior debug session (blobcheck.png, since deleted) showed decomp.min.js failing to load with a CORS error (0 bytes transferred) while matter.min.js loaded fine — explicitly verify poly-decomp loads (SRI/crossorigin intact) during this playthrough."
     },
     {
-      "id": 76,
-      "task": "Playtest Level 1 (and a few other levels) with DAMAGE_SCALE=200 to confirm hit-count lands around 3-4 and that particle bursts / screen shake feel proportionate, not maxed-out on every hit",
-      "priority": "high",
-      "status": "superseded",
-      "done_when": "Level 1 clears in roughly 3-4 hits, particle bursts scale visibly with hit strength rather than always appearing at full size, and shake fires only on stronger/combo hits",
-      "context": "Validation step for task 75's correction before resuming task 45's full playthrough. SUPERSEDED 2026-09-12 by task 127, which answered it directly and negatively: with DAMAGE_SCALE=200 on the rope build, Level 1 takes a human median of 10.5 hits on standard and 5 on heavy, not 3-4. The open work is now task 129 (the L1 gap) blocked on 126 (variant imbalance)."
-    },
-    {
       "id": 78,
       "task": "target.js — evaluate lowering steel restitution (0.55): Matter.js resolves collision restitution as max(rat, target), so steel targets still bounce the rat despite its near-zero restitution",
       "priority": "low",
@@ -129,24 +121,6 @@
       "context": "Measured 2026-09-06: a bot whose picker filters shields out cleared 24/24 runs across L4-L9; the Act 2 finale (L6) fell in 4 hits / 2.4s against Level 1s 9 hits. Deferred until 113/114 land since both change the puzzle layer this would be tuning."
     },
     {
-      "id": 119,
-      "task": "input.js/main.js/physics.js - yank on pointerdown with cooldown (impulse along rat->pivot plus tangential damping, never energy-adding), plus wrap and yank counters in telemetry",
-      "priority": "high",
-      "status": "completed",
-      "done_when": "A scripted bumper-level run records wrapContacts > 0 and a yank measurably reduces the wrap; AND a yank-spamming batch shows no sustained-speed or hits-to-clear advantage over a no-yank batch at the same seeds",
-      "context": "The riskiest step. A yank that adds energy becomes the dominant strategy and collapses the game into click-spam (L0076: every dense reward term is a new exploit surface), so the exploit check is a measurement rather than a judgement call. DONE 2026-09-07: yank on pointerdown, 0.6s cooldown, clamped so it can never raise speed. Verified at real swing speed (44-89 px/step): 0 of 6 yanks raised speed - the clamp binds every time, so a yank redirects velocity toward the pivot without changing its magnitude. Unwind confirmed: 5 of 5 yanks reduced rope bend, several dramatically (10.2->1.2, 16.9->0.06). Exploit A/B at identical seeds, spam 0.6s vs none: hits to clear identical on both L1 and L7, p50 speed within 2.5%, peak within 1 - no advantage. CAVEAT: ropeBend measures total turning along the rope, which conflates a genuine obstacle wrap with the rope crumpling when slack; L1 has no bumpers yet records the most contacts (92, all rope-vs-target).",
-      "completed_date": "2026-09-07"
-    },
-    {
-      "id": 120,
-      "task": "Re-measure and re-tune: batch A/B rope vs no-rope across all 9 levels and both variants at identical seeds; widen gate bounds to the new baseline; change DAMAGE_SCALE only if the data demands it",
-      "priority": "high",
-      "status": "completed",
-      "done_when": "A decisions entry carries a delta table (hits to clear, sustained speed, glancing %) rope vs no-rope, updated gate bounds, and before/after numbers for any constant that moved",
-      "context": "Expect the rope to make levels harder - it costs momentum, and the current damage numbers were implicitly built around a sustained speed of 109. Some of that is the point and some will be over-correction; the batch is what separates them. DONE 2026-09-09: 108-run A/B (9 levels x 2 variants x 3 seeds x 2 arms, identical seeds, fixed dt, one page switching only setRopeSegments). NO CONSTANT WAS CHANGED - the data did not demand it. See the decision entry for the numbers.",
-      "completed_date": "2026-09-09"
-    },
-    {
       "id": 121,
       "task": "Rope human pass and docs: user re-runs calibration on the rope build and signs off on feel; rewrite CLAUDE.md tail-attachment concept and document the rope; remove the rope=N flag",
       "priority": "high",
@@ -154,23 +128,6 @@
       "done_when": "User sign-off on feel, a fresh calibration entry in the decisions log, and git grep rope= returns nothing outside history",
       "context": "The 2026-09-06 human calibration (free-swing peak 1146, sustained 109) will not survive the rope, so it must be retaken against the new physics. DONE 2026-09-12: rope is now the default tail for every player (10 segments), the dev override survives as ?dev=1&rope=0 because dev/ab.mjs needs it to compare against the old constraint - a deliberate deviation from the original done_when, which assumed the flag was pure scaffolding. Snag prompt added for the yank discoverability gap. CLAUDE.md rewritten: tail-attachment concept, collision categories, manual CCD, yank, and a dev-knob table. Gate grew an L8 case with yanking (the level that soft-locks without it) and a rope-is-default invariant: 91/91. Verified with no dev flag at all: rope renders, hits register, zero errors, no dev globals. NOT DONE: a fresh human calibration - the rope invalidates the 2026-09-06 numbers, tracked as task 125.",
       "completed_date": "2026-09-12T16:20:41"
-    },
-    {
-      "id": 122,
-      "task": "Pick the hand-speed cap and sub-step count by feel, then make them defaults and retune damage for the new speed range",
-      "priority": "high",
-      "status": "superseded",
-      "done_when": "A hand cap and sub-step count are chosen from browser play, set as defaults, DAMAGE_SCALE retuned against a fresh human calibration, and the rope no longer visibly passes through obstacles at speed",
-      "context": "User reported 2026-09-09 that the rope passes through obstacles when spinning fast. Root cause measured: updatePivot wrote the pointer position straight into the constraint, so the hand teleported up to 234px per frame (p90 107) and whipped the rat to 249px/step against 44px bumpers - Matter has no continuous collision detection, so more than half of all steps moved further than a bumper is wide. Sub-stepping alone cannot fix it (contacts never plateau: 48/39/100/157/266/288/843 at 1..24 sub-steps) and reducing gravity would not either, since the player drives the pivot directly. The hand cap bounds the system at its source: rat peak 249 -> 149 (hand 80) -> 101 (hand 40) -> 65 (hand 25). Implemented as dev-tunable with defaults unchanged so the user can choose by feel. CAVEAT: bot clear rates at low caps are unreliable - its pump policy was built for an uncapped hand and fails entirely at hand=25. UPDATE 2026-09-11: the user tested and the rope still tunnels. Measuring rope segment velocity directly (with sub-stepping, body.velocity IS per-sub-step displacement) shows why my hand=40 recommendation was wrong: I estimated rope displacement from the RAT peak, but rope segments whip far faster than the rat (432 vs 247 px/step). At hand=40/subs=4, 26.3% of rope samples still exceed the 44px bumper diameter; only hand=25 gets it to 1.4%, which is a large feel change. Sub-stepping does not help - 4 to 8 sub-steps made it slightly WORSE (26.3% to 30.5%), because better constraint solving stiffens the rope and it whips harder. A rope-segment speed clamp cuts over-44 samples to 3.5% but cannot bound displacement, because the constraint solver repositions bodies directly regardless of velocity (ropeMax stayed ~280 under a cap of 12). CONCLUSION: no parameter fixes this. Matter 0.19 has no continuous collision detection and this game sits squarely in the regime where discrete collision fails. SUPERSEDED 2026-09-12 by task 123/124: swept collision fixed the tunneling this task existed to mitigate, without capping the skill ceiling. The hand-cap, sub-step and segcap knobs remain available and documented as tuning levers, but choosing values for them is no longer needed work."
-    },
-    {
-      "id": 123,
-      "task": "physics.js - manual continuous collision detection for rope segments via Matter.Query.ray: sweep each segment from its previous to its new position each sub-step, and on a hit against a target or bumper place it at the contact point and kill its normal velocity",
-      "priority": "high",
-      "status": "completed",
-      "done_when": "Rope segments no longer pass through targets or bumpers at any achievable speed, with the rat speed and hand behaviour left untouched, and the gate still green",
-      "context": "The correct fix for the tunneling the user reported. Matter 0.19 ships no CCD, but Matter.Query.ray is present and verified working against a bumper in this build. The rope is the only body that needs sweeping - the rat is large enough and carries the damage - so this stays contained and changes no gameplay feel, unlike the hand cap (task 122) which caps the skill ceiling and still leaves 26% of samples tunneling. DONE 2026-09-11: sweeping implemented in step() after each Engine.update, defaulting ON. Measured at the settings the user actually plays (hand uncapped, 1 sub-step): segments found INSIDE an obstacle fell from 2.19% to 0.00% on L7 and 2.58% to 0.20% on L4, while rope contacts rose 36->173 and 91->360 - the rope now registers what it was silently missing. Hits to clear unchanged (5->5, 6->5), clear rate 100% both, and physics cost 0.174 -> 0.166 ms/frame, i.e. no measurable cost, because segments that moved less than their own radius are skipped. The residual 0.20% on L4 is the point test ignoring segment radius: a segment whose centre is outside can still overlap by up to 3.5px.",
-      "completed_date": "2026-09-11"
     },
     {
       "id": 124,
@@ -423,6 +380,11 @@
       "date": "2026-09-12",
       "decision": "Level 1 human runs close task 127. Standard median 10.5 hits, heavy median 5 - both miss the documented 3-4 hit target, standard by about 3x. Two earlier claims corrected: heavy does NOT swing slower in play, and the bot is NOT a good proxy for human difficulty.",
       "rationale": "Measured on the level the 3-4 target was actually written against. Standard: 11/17/10/6 hits, median 10.5, 7.1s, scoring the 200 floor every time, 31% glancing. Heavy: 4/5/5/5, median 5, 3.5s, score 1000, 15% glancing. CORRECTION 1 - I previously said heavy swings ~15% slower, from free-swing calibration (p50 113 vs 134). In play the two are identical (114.1 vs 114.4), so the trade-off justifying heavy 2.2x impactMultiplier does not exist where it matters; observed damage per hit is 18.3 vs 7.7, a clean 2.4x with nothing offsetting it. CORRECTION 2 - I noted last turn that the bot appeared to track human numbers. On L1 it does not: bot standard 6 vs human 10.5, bot heavy 2 vs human 5, so the bot is roughly twice as effective as the player and the earlier agreement on L4 was coincidence. The standing caveat that bot data is for regression and relative comparison, not absolute difficulty, holds. DAMAGE_SCALE still not changed: tripling damage to bring standard to target would drop heavy to ~2 hits, so the variant imbalance (task 126) has to be resolved first or any global tuning bakes it in."
+    },
+    {
+      "date": "2026-09-12",
+      "decision": "Merged branch swinging/fix/speed-meter-calibration into main",
+      "rationale": "f1b5a5890d08c8079cc66f9ce9344d9b698c5583"
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

@@ -253,5 +253,53 @@
     "context": "DONE 2026-09-07: drawTail branches on ropeBodies and draws a Catmull-Rom curve through real segment positions; the fabricated sag/bow path is kept only for the un-roped mode and is deleted with the flag in task 121. Two findings during the pass: (1) the rope was rendering BEHIND bumpers and targets, so a rope caught on a bumper looked like a straight line vanishing behind the obstacle it was snagged on - the roped tail now draws after the scenery; (2) shadowBlur was dropped for the rope path in favour of a two-pass dark underlay, since a shadowed stroke per span would be 40+ blurred draws a frame. OPEN: contact is confirmed (segments held ~2px off the bumper surface) but reads as a graze, not a wrap - at stiffness 1.0 with 48 solver iterations the rope is nearly rigid. Whether wrap is strong enough to matter is task 119s question.",
     "completed_date": "2026-09-07",
     "archived_date": "2026-09-12"
+  },
+  {
+    "id": 76,
+    "task": "Playtest Level 1 (and a few other levels) with DAMAGE_SCALE=200 to confirm hit-count lands around 3-4 and that particle bursts / screen shake feel proportionate, not maxed-out on every hit",
+    "priority": "high",
+    "status": "superseded",
+    "done_when": "Level 1 clears in roughly 3-4 hits, particle bursts scale visibly with hit strength rather than always appearing at full size, and shake fires only on stronger/combo hits",
+    "context": "Validation step for task 75's correction before resuming task 45's full playthrough. SUPERSEDED 2026-09-12 by task 127, which answered it directly and negatively: with DAMAGE_SCALE=200 on the rope build, Level 1 takes a human median of 10.5 hits on standard and 5 on heavy, not 3-4. The open work is now task 129 (the L1 gap) blocked on 126 (variant imbalance).",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 119,
+    "task": "input.js/main.js/physics.js - yank on pointerdown with cooldown (impulse along rat->pivot plus tangential damping, never energy-adding), plus wrap and yank counters in telemetry",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "A scripted bumper-level run records wrapContacts > 0 and a yank measurably reduces the wrap; AND a yank-spamming batch shows no sustained-speed or hits-to-clear advantage over a no-yank batch at the same seeds",
+    "context": "The riskiest step. A yank that adds energy becomes the dominant strategy and collapses the game into click-spam (L0076: every dense reward term is a new exploit surface), so the exploit check is a measurement rather than a judgement call. DONE 2026-09-07: yank on pointerdown, 0.6s cooldown, clamped so it can never raise speed. Verified at real swing speed (44-89 px/step): 0 of 6 yanks raised speed - the clamp binds every time, so a yank redirects velocity toward the pivot without changing its magnitude. Unwind confirmed: 5 of 5 yanks reduced rope bend, several dramatically (10.2->1.2, 16.9->0.06). Exploit A/B at identical seeds, spam 0.6s vs none: hits to clear identical on both L1 and L7, p50 speed within 2.5%, peak within 1 - no advantage. CAVEAT: ropeBend measures total turning along the rope, which conflates a genuine obstacle wrap with the rope crumpling when slack; L1 has no bumpers yet records the most contacts (92, all rope-vs-target).",
+    "completed_date": "2026-09-07",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 120,
+    "task": "Re-measure and re-tune: batch A/B rope vs no-rope across all 9 levels and both variants at identical seeds; widen gate bounds to the new baseline; change DAMAGE_SCALE only if the data demands it",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "A decisions entry carries a delta table (hits to clear, sustained speed, glancing %) rope vs no-rope, updated gate bounds, and before/after numbers for any constant that moved",
+    "context": "Expect the rope to make levels harder - it costs momentum, and the current damage numbers were implicitly built around a sustained speed of 109. Some of that is the point and some will be over-correction; the batch is what separates them. DONE 2026-09-09: 108-run A/B (9 levels x 2 variants x 3 seeds x 2 arms, identical seeds, fixed dt, one page switching only setRopeSegments). NO CONSTANT WAS CHANGED - the data did not demand it. See the decision entry for the numbers.",
+    "completed_date": "2026-09-09",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 122,
+    "task": "Pick the hand-speed cap and sub-step count by feel, then make them defaults and retune damage for the new speed range",
+    "priority": "high",
+    "status": "superseded",
+    "done_when": "A hand cap and sub-step count are chosen from browser play, set as defaults, DAMAGE_SCALE retuned against a fresh human calibration, and the rope no longer visibly passes through obstacles at speed",
+    "context": "User reported 2026-09-09 that the rope passes through obstacles when spinning fast. Root cause measured: updatePivot wrote the pointer position straight into the constraint, so the hand teleported up to 234px per frame (p90 107) and whipped the rat to 249px/step against 44px bumpers - Matter has no continuous collision detection, so more than half of all steps moved further than a bumper is wide. Sub-stepping alone cannot fix it (contacts never plateau: 48/39/100/157/266/288/843 at 1..24 sub-steps) and reducing gravity would not either, since the player drives the pivot directly. The hand cap bounds the system at its source: rat peak 249 -> 149 (hand 80) -> 101 (hand 40) -> 65 (hand 25). Implemented as dev-tunable with defaults unchanged so the user can choose by feel. CAVEAT: bot clear rates at low caps are unreliable - its pump policy was built for an uncapped hand and fails entirely at hand=25. UPDATE 2026-09-11: the user tested and the rope still tunnels. Measuring rope segment velocity directly (with sub-stepping, body.velocity IS per-sub-step displacement) shows why my hand=40 recommendation was wrong: I estimated rope displacement from the RAT peak, but rope segments whip far faster than the rat (432 vs 247 px/step). At hand=40/subs=4, 26.3% of rope samples still exceed the 44px bumper diameter; only hand=25 gets it to 1.4%, which is a large feel change. Sub-stepping does not help - 4 to 8 sub-steps made it slightly WORSE (26.3% to 30.5%), because better constraint solving stiffens the rope and it whips harder. A rope-segment speed clamp cuts over-44 samples to 3.5% but cannot bound displacement, because the constraint solver repositions bodies directly regardless of velocity (ropeMax stayed ~280 under a cap of 12). CONCLUSION: no parameter fixes this. Matter 0.19 has no continuous collision detection and this game sits squarely in the regime where discrete collision fails. SUPERSEDED 2026-09-12 by task 123/124: swept collision fixed the tunneling this task existed to mitigate, without capping the skill ceiling. The hand-cap, sub-step and segcap knobs remain available and documented as tuning levers, but choosing values for them is no longer needed work.",
+    "archived_date": "2026-09-12"
+  },
+  {
+    "id": 123,
+    "task": "physics.js - manual continuous collision detection for rope segments via Matter.Query.ray: sweep each segment from its previous to its new position each sub-step, and on a hit against a target or bumper place it at the contact point and kill its normal velocity",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "Rope segments no longer pass through targets or bumpers at any achievable speed, with the rat speed and hand behaviour left untouched, and the gate still green",
+    "context": "The correct fix for the tunneling the user reported. Matter 0.19 ships no CCD, but Matter.Query.ray is present and verified working against a bumper in this build. The rope is the only body that needs sweeping - the rat is large enough and carries the damage - so this stays contained and changes no gameplay feel, unlike the hand cap (task 122) which caps the skill ceiling and still leaves 26% of samples tunneling. DONE 2026-09-11: sweeping implemented in step() after each Engine.update, defaulting ON. Measured at the settings the user actually plays (hand uncapped, 1 sub-step): segments found INSIDE an obstacle fell from 2.19% to 0.00% on L7 and 2.58% to 0.20% on L4, while rope contacts rose 36->173 and 91->360 - the rope now registers what it was silently missing. Hits to clear unchanged (5->5, 6->5), clear rate 100% both, and physics cost 0.174 -> 0.166 ms/frame, i.e. no measurable cost, because segments that moved less than their own radius are skipped. The residual 0.20% on L4 is the point test ignoring segment radius: a segment whose centre is outside can still overlap by up to 3.5px.",
+    "completed_date": "2026-09-11",
+    "archived_date": "2026-09-12"
   }
 ]
