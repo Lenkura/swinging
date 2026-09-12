@@ -18,7 +18,7 @@ export const LEVELS = [
       { shape: 'circle', r: 36, x: 0.66, y: 0.57, material: 'glass' },
     ],
     parScore: 1200,
-    pushParScore: 1800,
+    pushParScore: 3000,
     hint: 'Swing the rat into the target. Cleaner hits deal more damage!',
   },
   {
@@ -35,7 +35,7 @@ export const LEVELS = [
       { shape: 'rectangle', w: 55, h: 72, x: 0.76, y: 0.60, material: 'wood' },
     ],
     parScore: 1400,
-    pushParScore: 1800,
+    pushParScore: 3000,
     hint: 'Glass shatters fast. Wood takes more hits — keep the combo going!',
   },
   {
@@ -53,7 +53,7 @@ export const LEVELS = [
       { shape: 'rectangle', w: 68, h: 42, x: 0.64, y: 0.66, material: 'steel' },
     ],
     parScore: 2000,
-    pushParScore: 1800,
+    pushParScore: 3000,
     hint: 'Steel hits hard back. Build speed before going for the bottom block.',
   },
 
@@ -75,7 +75,7 @@ export const LEVELS = [
       { shape: 'rectangle', w: 14, h: 104, x: 0.58, y: 0.56, material: 'glass', isShield: true, breakSpeed: 100 },
     ],
     parScore: 2000,
-    pushParScore: 1200,
+    pushParScore: 3000,
     hint: 'A glass shield blocks the target. Hit it fast to smash through!',
   },
   {
@@ -94,7 +94,7 @@ export const LEVELS = [
       { shape: 'rectangle', w: 14, h: 88, x: 0.74, y: 0.54, material: 'wood', isShield: true, breakSpeed: 180 },
     ],
     parScore: 2400,
-    pushParScore: 800,
+    pushParScore: 3000,
     hint: 'Two shields, two targets. Break the wood shield with a big swing!',
   },
   {
@@ -112,7 +112,7 @@ export const LEVELS = [
       { shape: 'rectangle', w: 14, h: 114, x: 0.68, y: 0.53, material: 'wood', isShield: true, breakSpeed: 180 },
     ],
     parScore: 2800,
-    pushParScore: 1200,
+    pushParScore: 3000,
     hint: 'Two shields guard the steel vault. Combo up and punch through!',
   },
 
@@ -136,7 +136,7 @@ export const LEVELS = [
       { x: 0.50, y: 0.60, radius: 22 },
     ],
     parScore: 1800,
-    pushParScore: 1200,
+    pushParScore: 3000,
     hint: 'A bumper deflects the rat. Find the angle that lets you slip past!',
   },
   {
@@ -157,7 +157,7 @@ export const LEVELS = [
       { x: 0.62, y: 0.66, radius: 18 },
     ],
     parScore: 2200,
-    pushParScore: 800,
+    pushParScore: 3000,
     hint: 'Use the bumpers! A well-timed ricochet can chain hits on both targets.',
   },
   {
@@ -180,7 +180,7 @@ export const LEVELS = [
       { x: 0.70, y: 0.38, radius: 18 },
     ],
     parScore: 2800,
-    pushParScore: 600,
+    pushParScore: 3000,
     hint: 'Everything at once. Break the shield, route past the bumpers, chain the targets.',
   },
 ];
