@@ -62,7 +62,12 @@ fitToViewport();
 // --- State machine ---
 // States: PICKER | SWINGING | IMPACT | RESULT
 const RAT_MAX_HP = 100;
-const DAMAGE_SCALE = 200; // px²·step⁻² per HP — raise to nerf damage, lower to buff
+// px²·step⁻² per HP — raise to nerf damage, lower to buff.
+// TUNING GROUP: three feedback thresholds below are expressed in raw damage units and so
+// are derived from this value — damageIntensity's /600, and the shake/hit-stop gate at 300
+// with its /200 divisor. Lowering DAMAGE_SCALE raises damage, so those three scale in the
+// SAME direction by the SAME factor, in the same commit. At 200 they were 240, 120 and 80.
+const DAMAGE_SCALE = 80;
 
 let gameState = 'PICKER';
 let currentLevelId = 1;
@@ -104,7 +109,7 @@ function computePivot(level) {
 }
 
 function damageIntensity(damage) {
-  return Math.min(damage / 240, 1);
+  return Math.min(damage / 600, 1); // was /240 at DAMAGE_SCALE 200 — see the tuning group
 }
 
 // Three-part impact burst: red blood splash (rat), material-colored chunk
@@ -229,8 +234,8 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     flashTimer = FLASH_DURATION;
     squashTimer = SQUASH_DURATION;
 
-    if (damage > 120) {
-      shakeIntensity = Math.min(damage / 80, 10);
+    if (damage > 300) {
+      shakeIntensity = Math.min(damage / 200, 10);
       shakeTimer = SHAKE_DURATION;
       hitStopTimer = 0.04 + 0.04 * intensity; // 40-80ms, same threshold as shake
     }
@@ -247,7 +252,7 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     if (ratHp <= 0) {
       gameState = 'IMPACT';
       lastOutcome = 'SHATTER';
-      lastScore = calcPushScore(hitCount);
+      lastScore = calcPushScore(hitCount, RAT_VARIANTS[selectedVariant].parHits);
       playShatter();
       Physics.applyBreak(yoyo, 'SHATTER', hitPoint, variant.blastBonus);
       emitImpactBurst(hitPoint.x, hitPoint.y, 1, material, variant, 2);
