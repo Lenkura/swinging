@@ -4,11 +4,16 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "gate": "node dev/gate.mjs",
+    "batch": "node dev/run-batch.mjs",
+    "shots": "node dev/shots.mjs",
+    "serve": "node dev/serve.mjs 8080"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^2.0.0",
     "jsdom": "^25.0.1",
+    "playwright": "^1.63.0",
     "vitest": "^2.0.0"
   }
 }

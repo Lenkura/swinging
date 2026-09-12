@@ -1,7 +1,7 @@
 let pivot = { x: 0, y: 0 };
 let canvas = null;
 
-const callbacks = { pivotMove: null };
+const callbacks = { pivotMove: null, yank: null };
 
 export function init(canvasEl, pivotPos) {
   canvas = canvasEl;
@@ -11,6 +11,10 @@ export function init(canvasEl, pivotPos) {
 export function setPivot(p) { pivot = { ...p }; }
 
 export function onPivotMove(fn) { callbacks.pivotMove = fn; }
+
+// Pointer-down doubles as the yank: the pivot still snaps to the pointer, and
+// the press additionally asks for a rope unwind.
+export function onYank(fn) { callbacks.yank = fn; }
 
 export function attachToCanvas(canvasEl) {
   canvas = canvasEl;
@@ -37,6 +41,7 @@ function getCanvasXY(e) {
 function onPointerDown(e) {
   const pos = getCanvasXY(e);
   if (callbacks.pivotMove) callbacks.pivotMove({ x: pos.x, y: pos.y });
+  if (callbacks.yank) callbacks.yank();
 }
 
 function onPointerMove(e) {

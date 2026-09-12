@@ -157,7 +157,10 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 ## Key Concepts
 
 - **Pivot**: the hand/grip point; follows the pointer every frame (no button hold required). Defined per-level as `{x, y}` fractions of canvas size; overridden to the constraint anchor position during play.
-- **Tail attachment**: a Matter.js `Constraint` with `stiffness: 0.35`, anchored to the rat's tail base (`pointB` offset from body center) rather than its center — gravity torques the off-center body to hang and rotate below the grip point, so the rat is held by the tail, not a string. Never released — the rat stays attached until it shatters. Rendered as the rat's own tail stretching to the pivot using a sag/bow curve, replacing the old rope visual; the rat's rotation (`ctx.rotate`) follows the physics body's `angle` directly.
+- **Tail attachment (segmented rope)**: the tail is a chain of 10 collidable circular bodies (radius 5, each 5% of the rat's mass) running pivot -> segment 0 -> ... -> segment 9 -> the rat's tail-base offset (`-r*0.85, r*0.22`), so the rat still hangs by its tail rather than its centre. Built by `Physics.attachRope`; total reach matches `pushStringLength`. Segments collide with world geometry and obstacles but never with each other or the rat (see Collision categories). Wrapping is not simulated — it emerges from segments colliding. `engine.constraintIterations` is raised to 48 while a rope is attached (Matter's default 2 lets the chain stretch ~30% under load, lengthening the pendulum from 130 to 171px) and restored by `attachString`. The pre-rope single `Constraint` still exists behind `?dev=1&rope=0` purely so `dev/ab.mjs` can compare against it.
+- **Collision categories** (`physics.js` `CAT`/`MASK`): rat `0x0001`, targets and bumpers `0x0002`, fragments `0x0004`, rope `0x0010`, world (ground/walls) `0x0020`. Matter allows a pair only when *both* filters agree, so every intended pair is declared from both sides. Ground and walls previously set no filter at all and inherited Matter's default `0x0001` — the same bit the rat uses — which is why the rat fell through floors and why rope could not hit world geometry without also hitting the rat.
+- **Rope collision (manual CCD)**: Matter 0.19 has no continuous collision detection, and rope segments whip to ~432 px/step against 44px bumpers, so discrete collision misses most contacts. Two passes run after each `Engine.update`: `sweepRopeSegments` sweeps each segment from its previous to its current position (`Matter.Query.ray`, then a binary search for the last free point) and `resolveRopeLinks` does the same for the *line between* adjacent segments, since the rope is a chain of circles with gaps a link can cut through. Measured effect: segment penetration 2.2% -> 0%, link crossings 5-7.5% -> under 1%, cost ~0.21ms/frame. Segments moving less than their own radius are skipped, which is what keeps it cheap. Neither pass touches the rat: it is large enough for discrete collision and it carries the damage.
+- **Yank**: `pointerdown` (the pivot still snaps to the pointer) pulls the rat toward the pivot to slacken and unwind a caught rope — 0.6s cooldown. Non-accelerating *by construction*: tangential motion is damped, a radial component is added, and the result is clamped to the speed the rat already had, so it can never exceed it. This is load-bearing, not a convenience: with the rope, Level 8 is unwinnable without it (6/6 bot failures, zero hits). A snag prompt appears after 2.5s below 25 px/step and is suppressed once the player has yanked once.
 - **HP system**: `ratHp` starts at 100. Damage per hit = `speed² × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / DAMAGE_SCALE` (`DAMAGE_SCALE = 200`). HP floors at 0; the rat shatters (giblets) when HP reaches 0. `DAMAGE_SCALE` was raised to 2000 in an earlier pass on the (incorrect) assumption that real swings reach ~60% of `pushMaxSpeed`; playtesting showed actual swing speeds land far below that, producing 30-40 hits to clear Level 1, so it was corrected back down to 200 (~3-4 hits on Level 1 for a typical swing). The `pushMaxSpeed` values (750 standard / 625 heavy) and the speed-meter calibration remain unvalidated against real swing data and may need their own pass.
 - **Hit cooldown**: 0.35s lock-out after each registered hit. Prevents the physics engine from double-counting a single contact.
 - **Combo system**: Each hit within `COMBO_WINDOW` (1.0s) increments `comboCount`. Multiplier = `min(1 + comboCount × 0.5, 3.0)`. Resets if the window expires before the next hit.
@@ -167,7 +170,7 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 - **Materials**: defined in `target.js` — glass, wood, steel each have `shatterThreshold`, `crackThreshold`, `fragmentCount`, `fragmentSpread`, `yoyoDamage`.
 - **Damage states**: four overlay states driven by `ratHp / RAT_MAX_HP` — healthy (≥ 75%), dazed (50–75%, orbiting stars), injured (25–50%, wound marks + blood drips), critical (< 25%, red stars + more drips + × eyes). Independently, the rat's body/head fill blends from `variant.color` toward `variant.wornColor` as HP drops, and the per-hit `crackPattern` (generated once HP < 75%) renders as scuff marks on the rat's body via `drawCracks()`.
 - **Impact feedback**: every HP-damaging hit fires three `particles.js` bursts via `emitImpactBurst` — a red blood splash (circle), target-material chunk debris (`material.crackedColor`), and rat-fur chunk debris (`variant.chunkColor`), the latter two using the `shape: 'chunk'` (rotating rectangle) particle type. Burst size/count scale with `damageIntensity(damage)` (0–1, saturating at `damage = 240`): chunk radii range from their base size up to 3× at full intensity, and ~8% of chunks spawn 2.5–4× oversized for variety. SHATTER reuses the same burst at `scale: 2`.
-- **Giblets**: on shatter, 8 fragment bodies (circular Matter.js bodies) spawn with radial velocity, each rendered as an organic "flesh chunk" blob — a closed, quadratic-curve-smoothed outline through 8-9 vertices with jittered radii (`plugin.blobVerts`, generated once per fragment); removed from the world after 4000ms.
+- **Giblets**: on shatter, 8 fragment bodies (circular Matter.js bodies) spawn with a lobbed radial velocity (`spread × 10 × rand` px/step + small up-bias — kept well under ~50 px/step, the single-step tunneling threshold for the 50px walls/floor). Each carries a `plugin.piece` generated once at spawn: guaranteed 1 bone shard / 1 organ / 1 gut coil, the rest weighted flesh chunks (60/20/20). `drawFragments` branches per type — flesh (red blob, ragged fur-tuft edge in `variant.color`), bone (off-white shaft with knobbed ends), organ (dark maroon, baked gloss highlight), gut (two-pass pink tube) — all geometry precomputed, no per-frame randomness. Fragments collide with ground/walls (`0x0001` in the mask); first ground contact fires `fragment-landed` → `Renderer.paintSplat` (small decal splat), and airborne pieces shed blood-drip particles on a per-fragment cadence (`plugin.dripInterval`, advanced in the game loop). Removed from the world after 4000ms with an alpha fade.
 - **Moving targets**: a target with a `movement: { axis, range, period }` field oscillates sinusoidally around its spawn position along `axis` (`'x'` or `'y'`), `range` (fraction of canvas width/height) wide, over `period` seconds — driven by `Physics.updateMovingTargets(elapsed)`, called each frame during SWINGING. The body stays `isStatic`; only its position is repositioned via `Body.setPosition`, so collision/damage formulas are unaffected.
 - **Act structure**: 9 levels in 3 acts. Act 1 (The Sewer) — varied shapes, no new mechanics. Act 2 (The Warehouse) — introduces shields. Act 3 (The Lab) — introduces bumpers. An ACT CLEAR screen appears when the last level of an act is shattered.
 - **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel`.
@@ -199,7 +202,88 @@ Bumper fields: `x`, `y`, `radius`.
 - **Test files:** `tests/*.test.js` — covers `scoring.js`, `target.js`, `levels.js`, `input.js`
 - **Coverage threshold:** none enforced — `@vitest/coverage-v8` is available for ad-hoc reports
 - **Spec:** `TEST_SPEC.md` at project root
-- Integration tests for physics and renderer are deferred — currently manual browser testing. Use the browser console for Matter.js errors and the devtools Performance tab for frame timing.
+- Unit tests cover pure logic only. Physics, rendering and the wiring between them are covered by the browser gate below, not by Vitest.
+
+---
+
+## Dev Tooling — Playtest Bot & Telemetry
+
+A `?dev=1`-gated instrumentation layer inside the game, plus Playwright rigs
+outside it. All of it is dev-only: without the flag no `js/dev/*` file is ever
+fetched, and no dev global is defined.
+
+### Entry points
+
+| Command | What it does |
+|---|---|
+| `npm run gate` | Regression gate — seeded fixed-timestep runs across Acts 1–3, asserting positive invariants. Exits 0/1. ~40s. |
+| `npm run batch -- --runs 20` | Batch playtest — N seeded bot games in parallel headless contexts, aggregated. Results to `dev/runs/<timestamp>/` (gitignored). ~1.5s/run. |
+| `npm run shots` | Perceptual capture — drives to each damage state and the shatter, writing PNGs to `history/screenshots/` (committed). |
+| `npm run serve` | Static server on :8080. Play at `/?dev=1` to record your own runs. |
+| `node dev/smoke.mjs` | Platform check — confirms Playwright still drives the game on this machine. |
+
+`--headed` on the gate or batch shows the browser; `--help` on the batch lists
+its options. `node dev/ab.mjs` A/Bs two physics configurations at identical
+seeds on one page — it is how the rope was measured against the old constraint.
+
+### Dev-only URL knobs
+
+All default to shipped behaviour; they exist for tuning and A/B, not for play.
+
+| Param | Default | Effect |
+|---|---|---|
+| `rope=N` | 10 | Rope segment count; `0` restores the pre-rope single constraint |
+| `hand=N` | 0 | Max px the hand may travel per frame; `0` = uncapped |
+| `subs=N` | 1 | Physics sub-steps per frame |
+| `segcap=N` | 0 | Max px a rope segment may move per sub-step; `0` = unclamped |
+| `ccd=0` | on | Disables the rope's swept collision |
+| `calibrate` | off | Timed free-swing measurement in an empty arena |
+
+`hand`, `subs` and `segcap` were explored as fixes for rope tunneling and are
+**not** the fix — see the 2026-09-11 decision entry. They remain because they
+are useful tuning levers.
+
+### Recording your own runs
+
+Serve the project and open `/?dev=1`. Every completed level prints a summary to
+the console and stores the full document in `localStorage` (`yoyo_dev_runs`,
+last 10 runs, separate from `yoyo_progress`). `__ratsmashTelemetry.exportRuns()`
+downloads them all as JSON. A run is only recorded end-to-end if you reach the
+result screen — abandoning to the level select discards it.
+
+### Layout
+
+| File | Responsibility |
+|---|---|
+| `js/dev/telemetry.js` | Run recording and the summary schema. Reads state, never writes it. |
+| `js/dev/bot.js` | Swing policies (`pump`, `sweep`) and pointer dispatch. |
+| `js/dev/harness.js` | `window.__ratsmash` — state, `beginRun`, `runBot`, `setSeed`, `setFixedDt`. |
+| `dev/serve.mjs` | Dependency-free static server (correct ES-module MIME types). |
+| `dev/gate.mjs`, `dev/run-batch.mjs`, `dev/shots.mjs`, `dev/smoke.mjs` | The Node-side rigs. |
+
+`main.js` holds the seam: the dev flag, a dynamic import, no-op telemetry call
+sites, and an `initDev({...})` at the bottom that **injects** its module-scope
+internals into the harness rather than leaking them onto `window`.
+
+### Things to know before trusting a number
+
+- **A bot's swing profile is not a human's.** Bot data is valid for regression
+  detection and for A/B-ing one constant against another. Absolute calibration
+  — `DAMAGE_SCALE`, `pushMaxSpeed`, the speed meter — must rest on human-run
+  telemetry. Calibrating on bot swings would repeat the mistake that produced
+  the 30–40-hit Level 1.
+- **Real frame timing makes runs diverge**, even on the same seed, because
+  physics steps on the real `dt`. Pass `--fixed-dt` (or `fixedDt: 1/60`) for
+  exact reproducibility, at the cost of no longer measuring real-time
+  behaviour. The gate uses fixed dt; the batch defaults to real.
+- **The gate asserts positive invariants, not the absence of crashes.** Stubbing
+  out target spawning throws no error at all and still fails 9 checks — a
+  crash-only smoke run would pass it.
+- **Bounds in the gate are deliberately wide.** It catches regressions; it does
+  not enforce balance. Tightening them into balance assertions would make every
+  intentional tuning change look like a failure.
+- **Screenshots go to `history/screenshots/`, committed.** An earlier set was
+  written to a session temp directory and lost.
 
 ---
 

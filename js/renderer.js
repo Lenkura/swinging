@@ -72,6 +72,7 @@ export function draw({
   bumperBodies = [],
   fragmentBodies,
   stringConstraint,
+  ropeBodies = null,
   angularSpeed,
   hpFraction = 1.0,
   hitCount = 0,
@@ -96,14 +97,22 @@ export function draw({
 
   const ratVariant = yoyoBody ? RAT_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'] : null;
 
-  if (stringConstraint && yoyoBody && (state === 'SWINGING' || state === 'IDLE_ARMED')) {
-    drawTail(pivot, yoyoBody, angularSpeed, stringConstraint, ratVariant);
+  const showTail = stringConstraint && yoyoBody && (state === 'SWINGING' || state === 'IDLE_ARMED');
+  // A drawn tail sits behind the scenery; a physical rope must sit in front of
+  // it, or a rope caught on a bumper renders as a straight line disappearing
+  // behind the very obstacle it is snagged on.
+  if (showTail && !ropeBodies?.length) {
+    drawTail(pivot, yoyoBody, angularSpeed, stringConstraint, ratVariant, null);
   }
 
   drawTrail(yoyoBody, level);
   drawFragments(fragmentBodies);
   drawBumpers(bumperBodies);
   drawTargets(targetBodies);
+
+  if (showTail && ropeBodies?.length) {
+    drawTail(pivot, yoyoBody, angularSpeed, stringConstraint, ratVariant, ropeBodies);
+  }
 
   if (yoyoBody) {
     drawRat(yoyoBody, ratVariant, hpFraction, flash, squash);
@@ -166,7 +175,53 @@ function drawGround(level) {
   ctx.drawImage(cachedGroundCanvas, 0, canvasH - 49);
 }
 
-function drawTail(pivot, body, normalizedSpeed, constraint, variant) {
+/**
+ * Catmull-Rom through the given control points, so a 10-segment rope reads as
+ * a curve rather than a polygon. Returns a densified polyline the tapered
+ * stroker can walk.
+ */
+function smoothPolyline(pts, samplesPerSpan = 4) {
+  if (pts.length < 3) return pts;
+  const at = i => pts[Math.max(0, Math.min(pts.length - 1, i))];
+  const out = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+    for (let s = 0; s < samplesPerSpan; s++) {
+      const t = s / samplesPerSpan, t2 = t * t, t3 = t2 * t;
+      out.push({
+        x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+        y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+      });
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+
+/** Tapered stroke: thin at the hand, thickening toward the body. */
+function strokeTaperedTail(pts, r, variant) {
+  // Two passes (dark underlay, then colour) instead of shadowBlur: a shadowed
+  // stroke per span would mean 40+ blurred draws a frame, and task 86 is
+  // already about getting shadowBlur out of the per-frame path.
+  // Underlay kept narrow: at +1.9 the rope read as a thick stick next to the
+  // old thin drawn tail, which is a visual regression even though the
+  // geometry is now honest.
+  for (const [color, widen] of [['rgba(0,0,0,0.28)', 0.9], [variant.tailColor, 0]]) {
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (let i = 0; i < pts.length - 1; i++) {
+      const t = i / (pts.length - 1);
+      ctx.lineWidth = r * (0.08 + 0.22 * t) + widen;
+      ctx.beginPath();
+      ctx.moveTo(pts[i].x, pts[i].y);
+      ctx.lineTo(pts[i + 1].x, pts[i + 1].y);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawTail(pivot, body, normalizedSpeed, constraint, variant, ropeBodies) {
   const r = body.plugin.radius;
   const angle = body.angle;
   const cos = Math.cos(angle), sin = Math.sin(angle);
@@ -177,6 +232,18 @@ function drawTail(pivot, body, normalizedSpeed, constraint, variant) {
   const ey = body.position.y + baseLocalX * sin + baseLocalY * cos;
 
   const px = pivot.x, py = pivot.y;
+
+  // Segmented rope: the tail IS the physics. Draw where the bodies actually
+  // are, so a rope draped over a bumper looks draped instead of tracing a
+  // clean parabola through it.
+  if (ropeBodies && ropeBodies.length) {
+    const control = [{ x: px, y: py }];
+    for (const seg of ropeBodies) control.push({ x: seg.position.x, y: seg.position.y });
+    control.push({ x: ex, y: ey });
+    strokeTaperedTail(smoothPolyline(control), r, variant);
+    return;
+  }
+
   const dx = ex - px;
   const dy = ey - py;
   const dist = Math.sqrt(dx * dx + dy * dy);
@@ -210,7 +277,7 @@ function drawTail(pivot, body, normalizedSpeed, constraint, variant) {
     });
   }
 
-  // Draw a tapered tail — thin at the hand (t=0), thick where it meets the body (t=1)
+  // Thin at the hand (t=0), thick where it meets the body (t=1)
   ctx.shadowColor = 'rgba(0,0,0,0.25)';
   ctx.shadowBlur = 3;
   ctx.strokeStyle = variant.tailColor;
@@ -600,39 +667,141 @@ function drawCracks(body, pattern) {
 
 const GIBLET_COLORS = ['#cc0000', '#ff1111', '#ff3333', '#dd0000', '#ff4444'];
 
+// Trace the smoothed blob outline (quadratic curve toward each edge midpoint)
+// and return the projected vertices so callers can decorate the outline.
+function traceBlobPath(blobVerts, r) {
+  const verts = blobVerts.map(v => ({
+    angle: v.angle,
+    x: Math.cos(v.angle) * r * v.radiusMul,
+    y: Math.sin(v.angle) * r * v.radiusMul,
+  }));
+  const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  ctx.beginPath();
+  const startMid = mid(verts[verts.length - 1], verts[0]);
+  ctx.moveTo(startMid.x, startMid.y);
+  for (let i = 0; i < verts.length; i++) {
+    const next = verts[(i + 1) % verts.length];
+    const m = mid(verts[i], next);
+    ctx.quadraticCurveTo(verts[i].x, verts[i].y, m.x, m.y);
+  }
+  ctx.closePath();
+  return verts;
+}
+
+// Piece painters draw in local body space (translated + rotated by the
+// caller); all jitter comes from the spawn-time piece geometry.
+function drawFleshPiece(piece, r, furColor) {
+  const verts = traceBlobPath(piece.blobVerts, r);
+  ctx.fillStyle = GIBLET_COLORS[Math.floor(piece.colorRoll * GIBLET_COLORS.length)];
+  ctx.fill();
+  ctx.strokeStyle = '#660000';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Ragged fur edge: short tufts pointing outward along part of the outline
+  ctx.strokeStyle = furColor;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  let t = 0;
+  for (const v of verts) {
+    const rel = (v.angle - piece.furStart + Math.PI * 4) % (Math.PI * 2);
+    if (rel > piece.furSpan) continue;
+    const len = piece.tufts[t % piece.tufts.length] * r;
+    t++;
+    ctx.beginPath();
+    ctx.moveTo(v.x, v.y);
+    ctx.lineTo(v.x + Math.cos(v.angle) * len, v.y + Math.sin(v.angle) * len);
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+}
+
+function drawBonePiece(piece, r) {
+  const len = r * piece.lenMul;
+  const wid = r * piece.widMul;
+  const knob = r * piece.knobMul;
+  ctx.fillStyle = '#e8e0cc';
+  ctx.beginPath();
+  ctx.rect(-len + knob * 0.5, -wid, (len - knob * 0.5) * 2, wid * 2);
+  ctx.fill();
+  // Knobbed ends: paired lobes at each tip
+  for (const side of [-1, 1]) {
+    for (const off of [-0.55, 0.55]) {
+      ctx.beginPath();
+      ctx.arc(side * len, off * knob, knob * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // Single shading line sells the cylinder without per-frame gradients
+  ctx.strokeStyle = '#b5aa8e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-len * 0.6, wid * 0.35);
+  ctx.lineTo(len * 0.6, wid * 0.35);
+  ctx.stroke();
+}
+
+function drawOrganPiece(piece, r) {
+  traceBlobPath(piece.blobVerts, r);
+  ctx.fillStyle = '#5e1220';
+  ctx.fill();
+  ctx.strokeStyle = '#38080f';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Baked gloss highlight — position fixed at spawn, reads as wet sheen
+  ctx.beginPath();
+  ctx.ellipse(
+    Math.cos(piece.hiAngle) * r * piece.hiDist,
+    Math.sin(piece.hiAngle) * r * piece.hiDist,
+    r * 0.3, r * 0.16, piece.hiAngle, 0, Math.PI * 2
+  );
+  ctx.fillStyle = 'rgba(255,235,235,0.4)';
+  ctx.fill();
+}
+
+function drawGutPiece(piece, r) {
+  const len = r * piece.lenMul;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // Two-pass stroke: dark casing under a lighter core = tube read
+  for (const [color, mul] of [['#a34a55', 1.0], ['#d98a94', 0.55]]) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1.5, r * piece.tubeMul * 2 * mul);
+    ctx.beginPath();
+    for (let i = 0; i < piece.segs.length; i++) {
+      const s = piece.segs[i];
+      const x = (s.t - 0.5) * len;
+      const y = s.wobble * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'miter';
+}
+
 function drawFragments(frags) {
   const now = Date.now();
   for (const body of frags) {
     const age = (now - body.plugin.born) / 4000;
     const alpha = Math.max(0, 1 - age);
     const r = (body.circleRadius || 6) * 2.2;
-    const ci = Math.abs(Math.round(body.position.x * 7 + body.position.y * 3)) % GIBLET_COLORS.length;
+    const piece = body.plugin.piece;
     ctx.globalAlpha = alpha;
     ctx.save();
     ctx.translate(body.position.x, body.position.y);
     ctx.rotate(body.angle);
-
-    // Organic flesh-chunk blob: smooth a closed curve through jittered-radius
-    // vertices by quadratic-curving toward each edge's midpoint.
-    const verts = body.plugin.blobVerts.map(v => ({
-      x: Math.cos(v.angle) * r * v.radiusMul,
-      y: Math.sin(v.angle) * r * v.radiusMul,
-    }));
-    const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
-    ctx.beginPath();
-    const startMid = mid(verts[verts.length - 1], verts[0]);
-    ctx.moveTo(startMid.x, startMid.y);
-    for (let i = 0; i < verts.length; i++) {
-      const next = verts[(i + 1) % verts.length];
-      const m = mid(verts[i], next);
-      ctx.quadraticCurveTo(verts[i].x, verts[i].y, m.x, m.y);
+    if (piece.type === 'bone') {
+      drawBonePiece(piece, r);
+    } else if (piece.type === 'organ') {
+      drawOrganPiece(piece, r);
+    } else if (piece.type === 'gut') {
+      drawGutPiece(piece, r);
+    } else {
+      const variant = RAT_VARIANTS[body.plugin.variantKey || 'standard'];
+      drawFleshPiece(piece, r, variant.color);
     }
-    ctx.closePath();
-    ctx.fillStyle = GIBLET_COLORS[ci];
-    ctx.fill();
-    ctx.strokeStyle = '#660000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
     ctx.restore();
     ctx.globalAlpha = 1;
   }

@@ -9,6 +9,41 @@ import { generateCrackPattern } from './target.js';
 import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak, startWhoosh, updateWhoosh, stopWhoosh } from './audio.js';
 import { calcPushScore, comboMultiplier } from './scoring.js';
 
+// --- Dev instrumentation (?dev=1) ---------------------------------------
+// Dynamically imported so a normal player never fetches js/dev/*. Every call
+// site below is a no-op without the flag; nothing here may affect gameplay.
+const DEV = new URLSearchParams(location.search).has('dev');
+const NOOP_TELEMETRY = {
+  startRun() {}, endRun() { return null; }, recordHit() {}, sampleFrame() {},
+  setMeta() {}, isRecording() { return false; },
+};
+const Telemetry = DEV ? await import('./dev/telemetry.js') : NOOP_TELEMETRY;
+if (DEV) window.__ratsmashTelemetry = Telemetry;
+
+// Tagged onto each run so a bot number is never mistaken for a human one.
+// The harness (js/dev/harness.js) overwrites these before driving a run.
+let devSource = 'human';
+let devSeed = null;
+// Opt-in fixed timestep. Real frame times vary, so physics stepping on the
+// real dt makes two runs of the same seed diverge. Setting this trades
+// real-time fidelity for reproducibility; it stays null (real dt) unless a
+// runner asks for it, and is unreachable without ?dev=1.
+let devFixedDt = null;
+// Segmented rope. Now the default tail for every player. The dev override
+// (?dev=1&rope=0 for the old single constraint, or another segment count)
+// is kept because dev/ab.mjs and future tuning need to compare against it.
+const ROPE_SEGMENTS = 10;
+let ropeSegments = ROPE_SEGMENTS;
+// Dev knobs, all defaulting to current behaviour: ?dev=1&rope=10&hand=40&subs=4
+if (DEV) {
+  const q = new URLSearchParams(location.search);
+  if (q.has('rope')) ropeSegments = Number(q.get('rope')) || 0;
+  if (q.has('hand')) Physics.setHandMaxStep(Number(q.get('hand')) || 0);
+  if (q.has('subs')) Physics.setSubSteps(Number(q.get('subs')) || 1);
+  if (q.has('segcap')) Physics.setRopeConfig({ maxSegStep: Number(q.get('segcap')) || 0 });
+  if (q.has('ccd')) Physics.setRopeConfig({ ccd: q.get('ccd') !== '0' });
+}
+
 
 const canvas = document.getElementById('game-canvas');
 const CANVAS_W = 1100;
@@ -151,6 +186,11 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
   // Shield hit — check break threshold
     if (target.plugin.isShield) {
       hitCooldown = 0.35;
+      Telemetry.recordHit({
+        kind: speed >= target.plugin.breakSpeed ? 'shield-break' : 'shield-block',
+        speed, angleFactor: af, material: target.plugin.materialKey,
+        breakSpeed: target.plugin.breakSpeed, hpAfter: ratHp,
+      });
       if (speed >= target.plugin.breakSpeed) {
         Physics.removeTarget(target);
         playShieldBreak();
@@ -173,6 +213,11 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     hitCooldown = 0.35;
     playHit(target.plugin.materialKey, Math.min(damage / RAT_MAX_HP, 1), comboCount);
     playComboTone(comboCount);
+
+    Telemetry.recordHit({
+      kind: 'damage', speed, angleFactor: af, material: target.plugin.materialKey,
+      damage, combo: comboCount, multiplier: cm, hpAfter: ratHp, hitIndex: hitCount,
+    });
 
     if (af < 0.55) {
       hitLabel = { text: 'GLANCING!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#f4a261' };
@@ -211,6 +256,31 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     }
 });
 
+// Giblet touchdown — small blood splat into the decal layer, scaled by piece size
+Physics.on('fragment-landed', ({ x, size }) => {
+  Renderer.paintSplat(x, Math.min(size / 10, 1) * 0.4, 0.6);
+});
+
+// Yank: pull the rat toward the pivot to unwind a caught rope. Cooldown-gated
+// so it cannot be spammed; Physics.yankRope clamps it to never raise speed.
+const YANK_COOLDOWN = 0.6;
+let yankCooldown = 0;
+let yankCount = 0;
+// The yank is not a convenience: with the rope, Level 8 is unwinnable without
+// it (measured 6/6 failures, zero hits). Nothing else in the game teaches it,
+// so a prompt appears exactly when the player needs it.
+const SNAG_SPEED = 25;      // px/step below which the swing is going nowhere
+const SNAG_SECONDS = 2.5;
+let stuckTimer = 0;
+let snagHintShown = false;
+Input.onYank(() => {
+  if (gameState !== 'SWINGING' || yankCooldown > 0) return;
+  if (Physics.yankRope()) {
+    yankCooldown = YANK_COOLDOWN;
+    yankCount++;
+  }
+});
+
 // Input callbacks
 Input.onPivotMove(({ x, y }) => {
   if (gameState !== 'SWINGING') return;
@@ -226,6 +296,10 @@ function startLevel() {
 
   ratHp = RAT_MAX_HP;
   hitCount = 0;
+  yankCooldown = 0;
+  yankCount = 0;
+  stuckTimer = 0;
+  snagHintShown = false;
   hitCooldown = 0;
   comboCount = 0;
   comboTimer = 0;
@@ -248,12 +322,21 @@ function startLevel() {
   // Spawn rat and setup push-mode input
   const psl = level.pushStringLength || stringLength;
   Physics.spawnRat(pivot.x, pivot.y + psl, selectedVariant);
-  Physics.attachString(pivot.x, pivot.y, psl, 0.35);
+  if (ropeSegments > 0) {
+    Physics.attachRope(pivot.x, pivot.y, psl, ropeSegments);
+  } else {
+    Physics.attachString(pivot.x, pivot.y, psl, 0.35);
+  }
   Input.init(canvas, pivot);
   Input.attachToCanvas(canvas);
 
   UI.hidePicker();
   UI.setHint(level.hint || 'Move the mouse to swing the rat! Chain hits for a combo bonus.');
+
+  Telemetry.startRun({
+    level: level.id, levelName: level.name, variant: selectedVariant,
+    source: devSource, seed: devSeed,
+  });
 
   startWhoosh();
   gameState = 'SWINGING';
@@ -267,7 +350,8 @@ function gameLoop(timestamp) {
   requestAnimationFrame(gameLoop);
 
   if (lastTime === null) { lastTime = timestamp; return; }
-  const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+  const rawFrameMs = timestamp - lastTime;  // unclamped - clamping would hide long frames
+  const dt = devFixedDt !== null ? devFixedDt : Math.min(rawFrameMs / 1000, 0.05);
   lastTime = timestamp;
 
   // Physics step (all states except PICKER/RESULT where physics needn't run).
@@ -284,12 +368,24 @@ function gameLoop(timestamp) {
       }
       Physics.step(dt * 1000);
       if (hitCooldown > 0) hitCooldown -= dt;
+      if (yankCooldown > 0) yankCooldown -= dt;
       if (comboTimer > 0) {
         comboTimer -= dt;
         if (comboTimer <= 0) comboCount = 0;
       }
     }
     Particles.update(dt);
+    // Airborne giblets shed blood drips on their spawn-time cadence
+    for (const frag of Physics.getFragmentBodies()) {
+      if (frag.plugin.landed) continue;
+      frag.plugin.dripTimer += dt;
+      if (frag.plugin.dripTimer >= frag.plugin.dripInterval) {
+        frag.plugin.dripTimer = 0;
+        Particles.emit(frag.position.x, frag.position.y, {
+          count: 1, color: '#8f1420', speed: 20, gravity: 500, radius: 1.8, lifetime: 0.55,
+        });
+      }
+    }
     if (hitLabel.timer > 0) hitLabel.timer -= dt;
     if (shakeTimer > 0) shakeTimer -= dt;
     if (flashTimer > 0) flashTimer -= dt;
@@ -316,14 +412,37 @@ function gameLoop(timestamp) {
   // Render
   const level = currentLevel();
   let angularSpeed = 0;
+  let ratSpeed = 0;
   if (gameState === 'SWINGING') {
     const yb = Physics.getRatBody();
     if (yb) {
-      const spd = Math.sqrt(yb.velocity.x ** 2 + yb.velocity.y ** 2);
-      angularSpeed = Math.min(spd / RAT_VARIANTS[selectedVariant].pushMaxSpeed, 1);
+      ratSpeed = Math.sqrt(yb.velocity.x ** 2 + yb.velocity.y ** 2);
+      angularSpeed = Math.min(ratSpeed / RAT_VARIANTS[selectedVariant].pushMaxSpeed, 1);
     }
   }
   updateWhoosh(angularSpeed);
+
+  // Snag prompt: slow and not landing hits for a while means the rope is
+  // caught. Cleared as soon as the swing recovers, and never shown again once
+  // the player has yanked - they know the move by then.
+  if (gameState === 'SWINGING') {
+    if (ratSpeed < SNAG_SPEED) stuckTimer += dt; else stuckTimer = 0;
+    if (stuckTimer > SNAG_SECONDS && !snagHintShown && yankCount === 0) {
+      UI.setHint('Rope snagged? Click to yank it free.');
+      snagHintShown = true;
+    } else if (stuckTimer === 0 && snagHintShown) {
+      UI.setHint(currentLevel().hint || 'Move the mouse to swing the rat! Chain hits for a combo bonus.');
+      snagHintShown = false;
+    }
+  }
+
+  Telemetry.sampleFrame({
+    dt, rawFrameMs, state: gameState, speed: ratSpeed,
+    normalizedSpeed: angularSpeed, hp: ratHp,
+    ropeBend: ropeSegments > 0 ? Physics.getRopeBend() : 0,
+    ropeContacts: ropeSegments > 0 ? Physics.getRopeContactCount() : 0,
+    yanks: yankCount,
+  });
 
   // Pass constraint anchor as pivot so string + hand draw at mouse position
   const constraint = Physics.getStringConstraint();
@@ -338,6 +457,7 @@ function gameLoop(timestamp) {
     bumperBodies: Physics.getBumperBodies(),
     fragmentBodies: Physics.getFragmentBodies(),
     stringConstraint: constraint,
+    ropeBodies: Physics.getRopeBodies(),
     angularSpeed,
     hpFraction: ratHp / RAT_MAX_HP,
     hitCount,
@@ -354,6 +474,8 @@ function showResult() {
   Renderer.clearTrail();
   Input.detachFromCanvas();
   Physics.removeRat();
+
+  Telemetry.endRun({ outcome: lastOutcome, score: lastScore, hitCount });
 
   const level = currentLevel();
   saveProgress(currentLevelId, lastScore);
@@ -374,3 +496,33 @@ UI.buildLevelSelect(LEVELS, loadProgress());
 UI.showLevelSelect();
 UI.setHint('');
 requestAnimationFrame(gameLoop);
+
+// Hand the dev harness the module-scope internals it needs, rather than
+// leaking them onto window for it to find (L0105, L0133).
+if (DEV) {
+  const { initDev } = await import('./dev/harness.js');
+  initDev({
+    canvas,
+    getState: () => ({
+      gameState, level: currentLevelId, variant: selectedVariant,
+      hp: ratHp, maxHp: RAT_MAX_HP, hitCount, comboCount,
+      stringLength, pivot: { ...pivot },
+    }),
+    setFixedDt: s => { devFixedDt = s; },
+    setRopeSegments: n => { ropeSegments = n; },
+    setRopeConfig: cfg => Physics.setRopeConfig(cfg),
+    setSubSteps: n => Physics.setSubSteps(n),
+    setHandMaxStep: n => Physics.setHandMaxStep(n),
+    getHandMaxStep: () => Physics.getHandMaxStep(),
+    getRopeSegments: () => ropeSegments,
+    beginRun({ level, variant, source, seed }) {
+      currentLevelId = level;
+      selectedVariant = variant;
+      devSource = source;
+      devSeed = seed;
+      UI.hideResult();
+      UI.hideLevelSelect();
+      startLevel();
+    },
+  });
+}

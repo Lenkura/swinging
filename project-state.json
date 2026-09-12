@@ -5,7 +5,7 @@
   "last_session_date": "2026-07-03",
   "last_session_summary_path": "history/session-004-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Game-feel bundle (tasks 93-97) implemented on swinging/feat/game-feel-bundle (branched off tail-attachment-weight, whose code it depends on); syntax-checked and 61/61 Vitest tests pass. Remaining: task 98's browser playtest to perceptually verify all five effects (and tune FLASH/SQUASH durations, whoosh curve, splat sizes if needed), then task 99's CLAUDE.md Key Concepts write-up for the bundle (never queued — the code shipped in d771795 without a doc subtask), plus the still-pending tasks 76 and 45 playtests.",
+  "current_activity": "swinging/feat/segmented-rope is complete and ready to merge: tasks 116-124 done, rope shipped as the default tail with manual CCD, the yank and its snag prompt, and CLAUDE.md updated. Gate 91/91, vitest 61/61. NEXT after merge: task 125 (fresh human calibration on the rope build - the 2026-09-06 numbers do not survive it), then the deferred backlog - task 113 breakable targets, 115 obstacle difficulty, 79/80 backgrounds, 100 dead poly-decomp tag.",
   "action_plan": [
     {
       "id": 45,
@@ -27,9 +27,9 @@
       "id": 77,
       "task": "Add a ?debug=1 overlay that records and displays peak swing speed per swing, to ground the next pushMaxSpeed / speed-meter / DAMAGE_SCALE calibration in real data instead of assumptions",
       "priority": "high",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "Real swing-speed distribution (typical and peak) is captured from playtesting and logged in a decisions entry",
-      "context": "Root-cause fix for the task 63->75 miscalibration: the ~60%-of-pushMaxSpeed assumption was never measured. CLAUDE.md still flags pushMaxSpeed (750/625) and the meter as unvalidated."
+      "context": "Root-cause fix for the task 63->75 miscalibration: the ~60%-of-pushMaxSpeed assumption was never measured. CLAUDE.md still flags pushMaxSpeed (750/625) and the meter as unvalidated. SUPERSEDED 2026-09-06 by tasks 105-110: the ?dev=1 telemetry layer captures the same speed distribution as logged data rather than an on-screen readout, and an overlay would itself distort the perceptual review it was meant to support."
     },
     {
       "id": 78,
@@ -184,14 +184,224 @@
       "status": "pending",
       "done_when": "Key Concepts describes all five committed game-feel effects with their tuning constants, matching the pattern of the tail-attachment (#54), impact-feedback (#62), and moving-target (#74) doc passes",
       "context": "Documentation gap found 2026-07-06: tasks 93-97 shipped in commit d771795 but no CLAUDE.md doc subtask was ever queued (the 2026-07-03 docs commit only touched project-state.json). Sequenced after task 98 so any playtest tuning (flash/squash durations, whoosh curve, splat sizes) is captured with final values rather than documenting constants that may still move."
+    },
+    {
+      "id": 100,
+      "task": "index.html — remove the dead poly-decomp CDN <script> tag (or repoint to jsDelivr/unpkg with a regenerated SRI hash if concave decomposition is ever needed)",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Page loads with zero console errors; no game code references decomp (verified 2026-07-10: no decomp/setDecomp/Common.setDecomp match anywhere in js/), and CLAUDE.md's External deps section is updated to drop poly-decomp",
+      "context": "Found during the 2026-07-10 automated playtest: cdnjs returns 404 for poly-decomp/0.3.0/decomp.min.js, producing two console errors on every page load (404 + SRI/MIME refusal). The library is entirely unused — fragments are circular Matter.js bodies; blobVerts is render-only — so Matter.js never calls window.decomp. This also resolves the CORS/0-byte load flagged in task 45's context. Removal preferred over repointing; the CLAUDE.md SRI-preservation rule applies to tags that stay, not to deleting a dead tag."
+    },
+    {
+      "id": 101,
+      "task": "physics.js — giblet piece roster + landing: add 0x0001 to the fragment collision mask (fixes giblets falling through the floor — they currently collide only with each other); assign plugin.pieceType in spawnRatFragments (guaranteed bone/organ/gut + weighted flesh) with per-type precomputed geometry and dripInterval; onCollision branch emits fragment-landed {x, size} once per fragment on first ground contact",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "Giblets visibly bounce and come to rest on the floor in a browser shatter with no console errors",
+      "context": "First step of the 2026-07-11 gore-variety design. The mask omission made fragment restitution/friction dead values; landing contact is the prerequisite for task 103's splats. Implementation also required retuning the launch velocity (x80 -> x10 multiplier): the old burst speed was tuned for non-colliding giblets and both tunneled through the 50px walls/floor and froze pieces off-canvas-top at the 0.85s RESULT physics freeze. Verified 2026-07-11 in Playwright screenshots, zero game errors."
+    },
+    {
+      "id": 102,
+      "task": "renderer.js — per-type giblet painters in drawFragments: flesh (red blob, ragged fur edge from variant color), bone (elongated off-white shard, knobbed ends), organ (glossy maroon lump, baked highlight), gut (pink undulating tube); all geometry from plugin, no per-frame randomness or shadowBlur; keep the 4000ms fade",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "Shatter screenshot shows at least 3 visually distinct piece types, and the two rat variants show different fur-edge tones"
+    },
+    {
+      "id": 103,
+      "task": "main.js — giblet splats + drips: subscribe to fragment-landed -> Renderer.paintSplat(x, intensity scaled by piece size); advance per-fragment drip timers in the game loop's active block, emitting one small blood particle per interval while airborne",
+      "priority": "medium",
+      "status": "completed",
+      "done_when": "Splats appear under landing pieces and persist until Retry; a faint drip trail follows airborne pieces"
+    },
+    {
+      "id": 104,
+      "task": "Gore redesign regression + docs: npx vitest run stays 61/61; Playwright screenshot pass of a shatter for perceptual review (both variants); update CLAUDE.md's Giblets key concept (piece types, landing, splats/drips, mask fix)",
+      "priority": "medium",
+      "status": "completed",
+      "context": "Perceptual bar per the desktama learning — screenshots go to the user for sign-off rather than self-certifying the look. 2026-07-11: 61/61 green, CLAUDE.md updated, both-variant screenshots captured (all four piece types + splats + drips visible, zero game errors); awaiting user perceptual sign-off. 2026-09-06: those screenshots are GONE — they were written to the 2026-07-11 session's temp scratchpad, never committed, and the directory is no longer reachable (the L0055 blocked-temp-path trap). Regeneration is folded into task 109, which writes them to the committed history/screenshots/ instead. Code and docs halves remain done; only the perceptual sign-off is outstanding. SIGNED OFF 2026-09-06: user reviewed the regenerated screenshots and approved (\"graphical upgrades we have done look good\"). Task closed."
+    },
+    {
+      "id": 105,
+      "task": "Playwright platform smoke test: install playwright as a devDependency, download Chromium, and run a throwaway script that serves the project, loads index.html, and screenshots the level-select panel",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "The throwaway script produces a PNG showing the level-select grid and npx playwright --version reports cleanly under Windows; if Chromium download or launch fails, stop and revisit the approach rather than building on it",
+      "context": "Gate step for the 2026-09-06 approach-B decision, per L0079 (smoke-test a dependency on the actual platform before committing on paper criteria). Nothing else in tasks 106-110 is built until this passes. PASS 2026-09-06: playwright 1.63 + Chromium 153 install and drive the game under Windows; dev/smoke.mjs kept as the reusable platform check."
+    },
+    {
+      "id": 106,
+      "task": "dev/serve.mjs (dependency-free Node static server) + js/dev/telemetry.js + the main.js seam: ?dev=1 flag, dynamic import, hit-handler and per-frame hooks, start/end calls",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "Loading ?dev=1 and playing one level by hand prints a run summary whose hitsToClear matches the on-screen hit counter and whose peak speed is a plausible non-zero number; loading without the flag issues no js/dev/* network request",
+      "context": "Standalone value even if the bot never lands: human-run telemetry is the calibration ground truth, since a bot's swing profile is not a human's and calibrating constants on bot data would repeat the L0097 error in a new costume. PASS 2026-09-06: ?dev=1 run recorded 1500+ frames and 13 damaging hits with a console summary; no js/dev/* fetched without the flag. Non-dev play separately verified by canvas pixel read (HP bar 1.000 -> 0.512), since the HUD is canvas-drawn."
+    },
+    {
+      "id": 107,
+      "task": "js/dev/harness.js (window.__ratsmash dev API, seeded Math.random patch, injected main.js internals) + js/dev/bot.js (in-page pointer-dispatching swing policy)",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "__ratsmash.runBot({ level: 1, seed: 42 }) clears Level 1 unattended in a real browser with a SHATTER outcome, and the same seed twice produces identical hitsToClear",
+      "context": "The bot dispatches real PointerEvents at the canvas so input.js and getCanvasXY are exercised end-to-end rather than bypassed. The harness receives main.js internals by injection rather than reaching for globals (L0105, L0133). Open risk: Matter.js may seed its internal Common.random separately from Math.random, which would undercut the reproducibility check. PASS 2026-09-06: pump policy clears Level 1 unattended. Reproducibility needed an opt-in dev-only fixed timestep - real frame timing makes runs diverge on the same seed, which is inherent to driving a real browser. With fixedDt=1/60 seed 42 gives 11 hits twice; real-dt stays the default so batch numbers reflect actual play."
+    },
+    {
+      "id": 108,
+      "task": "dev/run-batch.mjs — headless Chromium across parallel contexts, N seeded games over a level/variant matrix, telemetry extracted per page into dev/runs/<timestamp>/, aggregate table printed (median hits to clear, speed percentiles, combo distribution, frame-time p95)",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "node dev/run-batch.mjs --runs 20 completes, writes 20 JSON files, prints the aggregate table with per-run console errors, and reports its wall-clock time so we know whether the batch is practical as a routine tool",
+      "context": "Open risk: headless Chromium throttles requestAnimationFrame in backgrounded contexts, which could distort frame timing in parallel runs. If it does, frame timing moves to a single foreground run and the batch reports only gameplay numbers. PASS 2026-09-06: 20 runs in 29.8s wall (1.5s/run), 100% shatter, zero errors. The feared rAF throttling in parallel headless contexts did NOT materialise - frame p95 16.7ms across 4 workers. Finding: heavy clears L1 in 4 hits median, standard in 9, so standard scores the 200 floor on a par-1800 level."
+    },
+    {
+      "id": 109,
+      "task": "npm run gate (fixed seeded run set asserting positive invariants, exit 0/1) + dev/shots.mjs (drive to a shatter per variant, write PNGs to history/screenshots/)",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "npm run gate exits 0 against current HEAD AND exits non-zero when target spawning is deliberately stubbed out; dev/shots.mjs writes both-variant shatter PNGs into the committed history/screenshots/",
+      "context": "Invariants are positive assertions (rat spawned, HP decreased, shatter fired, score non-zero) rather than absence-of-crash, per L0101. The deliberate-break check matters because a gate never observed failing is not known to work. This task also closes task 104's screenshot half durably, in-repo. PASS 2026-09-06: 70/70 checks in 40.2s, and exit 1 with 9 failures when target spawning was stubbed out - notably with ZERO thrown errors, so a crash-only smoke run would have passed the broken build (L0101 confirmed in practice). dev/shots.mjs captured 14 screenshots across both variants into the committed history/screenshots/."
+    },
+    {
+      "id": 110,
+      "task": "Docs and state for the playtest tooling: CLAUDE.md dev-tooling section (three entry points, telemetry schema, where runs land), .gitignore for dev/runs/, task 104 closed on user sign-off",
+      "priority": "medium",
+      "status": "completed",
+      "done_when": "CLAUDE.md documents all three entry points and the telemetry schema; git status is clean with run artifacts ignored but screenshots committed",
+      "context": "PASS 2026-09-06: CLAUDE.md Dev Tooling section documents all five entry points, the telemetry schema, the layout, and the caveats on trusting a number."
+    },
+    {
+      "id": 111,
+      "task": "js/dev/calibrate.js - calibration mode: empty arena (no targets/bumpers), live peak-speed readout overlay, timed window, calibration block appended to the telemetry document",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "?dev=1&calibrate runs a timed free swing and reports peak/p90/p50 against pushMaxSpeed",
+      "context": "Built 2026-09-06 so the user can measure their own swing ceiling. Verified end-to-end: empty arena, overlay updates, source=calibration, zero errors. AWAITING the human calibration session - no human run has been recorded yet; every number in the project so far is bot-generated."
+    },
+    {
+      "id": 112,
+      "task": "Human calibration session: user runs ?dev=1&calibrate for both variants at max effort, then a few normal levels; export the JSON and log the measured swing range in a decisions entry",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "A decisions entry records the human peak/p90/p50 swing speed for both variants, as measured rather than assumed, plus the gap between free-swing ceiling and in-play speeds",
+      "context": "The measurement pushMaxSpeed (750/625), the speed meter and DAMAGE_SCALE have never had. Only the user can produce it. Sequencing caution: a segmented rope (task 114) changes swing feel globally, so these numbers are the BEFORE baseline - do not re-tune DAMAGE_SCALE against them until rope lands, or the tuning happens twice. DONE 2026-09-06: 1 calibration run (standard, ~64s free swing) + 9 in-play runs (L2-L9 standard), read out of the browser localStorage directly. Zero errors across all 10 runs; worst frame p95 6.2ms."
+    },
+    {
+      "id": 113,
+      "task": "/brainstorm then implement breakable targets: wire up the outcome computed at physics.js:84 and discarded at main.js:166, and define what ends a level once targets can be destroyed",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Glass/wood/steel respond to impulse per their material config, the level-end condition is defined and implemented, and no material field remains dead",
+      "context": "User chose breakable targets 2026-09-06 over keeping them indestructible. This changes the core loop: today the rat shattering ends the level, and material.strength/crackThreshold/fragmentCount/fragmentSpread are dead config. Needs the design gate - the level-end question has no obvious answer."
+    },
+    {
+      "id": 114,
+      "task": "/brainstorm then implement segmented rope: replace the single tail Constraint with a chain of linked collidable bodies so the tail can catch on obstacles and lose momentum",
+      "priority": "high",
+      "status": "superseded",
+      "done_when": "The tail visibly catches and drags on bumpers and shields, the swing remains controllable, and the batch shows a re-measured baseline for hits-to-clear across all 9 levels",
+      "context": "User chose full replacement 2026-09-06. Matter.js Constraints are massless and collisionless, so catching is impossible without segmenting - this is the only approach that delivers it. Changes swing feel globally and forces a damage re-tune; the gate can detect the regressions and the batch can measure the new baseline, which is why this is tractable now and would not have been before. SUPERSEDED 2026-09-06 by the design gate output, tasks 116-121."
+    },
+    {
+      "id": 115,
+      "task": "Re-examine Act 2/3 obstacle difficulty once rope and breakable targets land: shield placement, breakSpeed thresholds, and level geometry",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Bot batch across L1-L9 shows a difficulty curve that rises across acts rather than inverting, and a shield-avoiding bot can no longer clear Act 2 levels",
+      "context": "Measured 2026-09-06: a bot whose picker filters shields out cleared 24/24 runs across L4-L9; the Act 2 finale (L6) fell in 4 hits / 2.4s against Level 1s 9 hits. Deferred until 113/114 land since both change the puzzle layer this would be tuning."
+    },
+    {
+      "id": 116,
+      "task": "physics.js - collision category cleanup: give ground/walls their own category (0x0020), add it to the rat mask so the rat stops passing through floor and walls, replace the fragments accidental 0x0001 with it, and audit the unassigned 0x0008 bit",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "A dev probe spawns the rat with no constraint and it comes to rest ON the ground rather than falling past the canvas; fragments report no contacts with the rat body; npm run gate still 70/70",
+      "context": "Hard prerequisite for the rope, not a tidy-up. Ground and walls were created with no collisionFilter so they inherited Matter default category 0x0001 - the same bit the rat explicitly uses - which means rope segments cannot be made to collide with world geometry without also colliding with the rat they hang from. DONE 2026-09-06: rat released from its constraint now rests at y=602, exactly ground-top(620) minus radius(18), where before it fell past the canvas. 0x0008 audited and removed - it appeared once in the fragment mask and was assigned to no body. Measured side-effect check: the rat never approaches the floor in normal play (lowest y 463-492 across L1/L5/L7, zero of 1014 frames near ground), so this changes nothing about current gameplay and only matters once the rope has mass and can drape."
+    },
+    {
+      "id": 117,
+      "task": "physics.js - build the segmented rope behind ?dev=1&rope=N: N bodies of length pushStringLength/N chained pivot -> segments -> rat tail-base offset, ~2% rat mass each, category 0x0010, colliding with world and obstacles but not each other or the rat",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "With rope=10 the bot clears Level 1 unattended and state().rope.length === 10; without the flag the gate is unchanged at 70/70, proving the old constraint path is untouched",
+      "context": "Flagged so old and new coexist and the batch can A/B them at identical seeds. The flag is removed in task 121 - a permanent one is debt. DONE 2026-09-07: rope=10 clears Level 1 on 4/4 seeds (3-5 hits, peak ~226), state().rope.length===10, pivot-to-rat span 131 vs the old constraint 130, gate 70/70 unflagged. Parameters were swept, not guessed - see the decision entry."
+    },
+    {
+      "id": 118,
+      "task": "renderer.js - drawTail draws a smooth curve through real segment positions, deleting the fabricated parabolic sag and speed-bow maths, keeping taper and variant colour",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "npm run shots -- --level 7 produces images where the tail visibly bends around geometry rather than tracing a clean parabola; images go to the user for perceptual review, not to an assertion",
+      "context": "DONE 2026-09-07: drawTail branches on ropeBodies and draws a Catmull-Rom curve through real segment positions; the fabricated sag/bow path is kept only for the un-roped mode and is deleted with the flag in task 121. Two findings during the pass: (1) the rope was rendering BEHIND bumpers and targets, so a rope caught on a bumper looked like a straight line vanishing behind the obstacle it was snagged on - the roped tail now draws after the scenery; (2) shadowBlur was dropped for the rope path in favour of a two-pass dark underlay, since a shadowed stroke per span would be 40+ blurred draws a frame. OPEN: contact is confirmed (segments held ~2px off the bumper surface) but reads as a graze, not a wrap - at stiffness 1.0 with 48 solver iterations the rope is nearly rigid. Whether wrap is strong enough to matter is task 119s question."
+    },
+    {
+      "id": 119,
+      "task": "input.js/main.js/physics.js - yank on pointerdown with cooldown (impulse along rat->pivot plus tangential damping, never energy-adding), plus wrap and yank counters in telemetry",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "A scripted bumper-level run records wrapContacts > 0 and a yank measurably reduces the wrap; AND a yank-spamming batch shows no sustained-speed or hits-to-clear advantage over a no-yank batch at the same seeds",
+      "context": "The riskiest step. A yank that adds energy becomes the dominant strategy and collapses the game into click-spam (L0076: every dense reward term is a new exploit surface), so the exploit check is a measurement rather than a judgement call. DONE 2026-09-07: yank on pointerdown, 0.6s cooldown, clamped so it can never raise speed. Verified at real swing speed (44-89 px/step): 0 of 6 yanks raised speed - the clamp binds every time, so a yank redirects velocity toward the pivot without changing its magnitude. Unwind confirmed: 5 of 5 yanks reduced rope bend, several dramatically (10.2->1.2, 16.9->0.06). Exploit A/B at identical seeds, spam 0.6s vs none: hits to clear identical on both L1 and L7, p50 speed within 2.5%, peak within 1 - no advantage. CAVEAT: ropeBend measures total turning along the rope, which conflates a genuine obstacle wrap with the rope crumpling when slack; L1 has no bumpers yet records the most contacts (92, all rope-vs-target)."
+    },
+    {
+      "id": 120,
+      "task": "Re-measure and re-tune: batch A/B rope vs no-rope across all 9 levels and both variants at identical seeds; widen gate bounds to the new baseline; change DAMAGE_SCALE only if the data demands it",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "A decisions entry carries a delta table (hits to clear, sustained speed, glancing %) rope vs no-rope, updated gate bounds, and before/after numbers for any constant that moved",
+      "context": "Expect the rope to make levels harder - it costs momentum, and the current damage numbers were implicitly built around a sustained speed of 109. Some of that is the point and some will be over-correction; the batch is what separates them. DONE 2026-09-09: 108-run A/B (9 levels x 2 variants x 3 seeds x 2 arms, identical seeds, fixed dt, one page switching only setRopeSegments). NO CONSTANT WAS CHANGED - the data did not demand it. See the decision entry for the numbers."
+    },
+    {
+      "id": 121,
+      "task": "Rope human pass and docs: user re-runs calibration on the rope build and signs off on feel; rewrite CLAUDE.md tail-attachment concept and document the rope; remove the rope=N flag",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "User sign-off on feel, a fresh calibration entry in the decisions log, and git grep rope= returns nothing outside history",
+      "context": "The 2026-09-06 human calibration (free-swing peak 1146, sustained 109) will not survive the rope, so it must be retaken against the new physics. DONE 2026-09-12: rope is now the default tail for every player (10 segments), the dev override survives as ?dev=1&rope=0 because dev/ab.mjs needs it to compare against the old constraint - a deliberate deviation from the original done_when, which assumed the flag was pure scaffolding. Snag prompt added for the yank discoverability gap. CLAUDE.md rewritten: tail-attachment concept, collision categories, manual CCD, yank, and a dev-knob table. Gate grew an L8 case with yanking (the level that soft-locks without it) and a rope-is-default invariant: 91/91. Verified with no dev flag at all: rope renders, hits register, zero errors, no dev globals. NOT DONE: a fresh human calibration - the rope invalidates the 2026-09-06 numbers, tracked as task 125."
+    },
+    {
+      "id": 122,
+      "task": "Pick the hand-speed cap and sub-step count by feel, then make them defaults and retune damage for the new speed range",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "A hand cap and sub-step count are chosen from browser play, set as defaults, DAMAGE_SCALE retuned against a fresh human calibration, and the rope no longer visibly passes through obstacles at speed",
+      "context": "User reported 2026-09-09 that the rope passes through obstacles when spinning fast. Root cause measured: updatePivot wrote the pointer position straight into the constraint, so the hand teleported up to 234px per frame (p90 107) and whipped the rat to 249px/step against 44px bumpers - Matter has no continuous collision detection, so more than half of all steps moved further than a bumper is wide. Sub-stepping alone cannot fix it (contacts never plateau: 48/39/100/157/266/288/843 at 1..24 sub-steps) and reducing gravity would not either, since the player drives the pivot directly. The hand cap bounds the system at its source: rat peak 249 -> 149 (hand 80) -> 101 (hand 40) -> 65 (hand 25). Implemented as dev-tunable with defaults unchanged so the user can choose by feel. CAVEAT: bot clear rates at low caps are unreliable - its pump policy was built for an uncapped hand and fails entirely at hand=25. UPDATE 2026-09-11: the user tested and the rope still tunnels. Measuring rope segment velocity directly (with sub-stepping, body.velocity IS per-sub-step displacement) shows why my hand=40 recommendation was wrong: I estimated rope displacement from the RAT peak, but rope segments whip far faster than the rat (432 vs 247 px/step). At hand=40/subs=4, 26.3% of rope samples still exceed the 44px bumper diameter; only hand=25 gets it to 1.4%, which is a large feel change. Sub-stepping does not help - 4 to 8 sub-steps made it slightly WORSE (26.3% to 30.5%), because better constraint solving stiffens the rope and it whips harder. A rope-segment speed clamp cuts over-44 samples to 3.5% but cannot bound displacement, because the constraint solver repositions bodies directly regardless of velocity (ropeMax stayed ~280 under a cap of 12). CONCLUSION: no parameter fixes this. Matter 0.19 has no continuous collision detection and this game sits squarely in the regime where discrete collision fails."
+    },
+    {
+      "id": 123,
+      "task": "physics.js - manual continuous collision detection for rope segments via Matter.Query.ray: sweep each segment from its previous to its new position each sub-step, and on a hit against a target or bumper place it at the contact point and kill its normal velocity",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "Rope segments no longer pass through targets or bumpers at any achievable speed, with the rat speed and hand behaviour left untouched, and the gate still green",
+      "context": "The correct fix for the tunneling the user reported. Matter 0.19 ships no CCD, but Matter.Query.ray is present and verified working against a bumper in this build. The rope is the only body that needs sweeping - the rat is large enough and carries the damage - so this stays contained and changes no gameplay feel, unlike the hand cap (task 122) which caps the skill ceiling and still leaves 26% of samples tunneling. DONE 2026-09-11: sweeping implemented in step() after each Engine.update, defaulting ON. Measured at the settings the user actually plays (hand uncapped, 1 sub-step): segments found INSIDE an obstacle fell from 2.19% to 0.00% on L7 and 2.58% to 0.20% on L4, while rope contacts rose 36->173 and 91->360 - the rope now registers what it was silently missing. Hits to clear unchanged (5->5, 6->5), clear rate 100% both, and physics cost 0.174 -> 0.166 ms/frame, i.e. no measurable cost, because segments that moved less than their own radius are skipped. The residual 0.20% on L4 is the point test ignoring segment radius: a segment whose centre is outside can still overlap by up to 3.5px."
+    },
+    {
+      "id": 124,
+      "task": "physics.js - link-level CCD: sweep the line between adjacent rope segments, not just the segments themselves, and widen segments to radius 5.0",
+      "priority": "high",
+      "status": "completed",
+      "done_when": "Rope links crossing an obstacle drop well below 1% with segment penetration at zero, no feel change and no meaningful perf cost",
+      "context": "Follow-up to task 123 after the user asked to strengthen it. Segment-level CCD had taken penetration to ~0 but the rope is a chain of circles with space between them, so the LINE joining two segments still cut obstacles 5-7.5% of the time - which is what remains visible as clipping. Geometry alone could not close it (10 segments at radius 6.5 reached 2.74%, and MORE segments was worse - 20 gave 4.19% - because a floppier rope whips harder). Result: link crossings 5-7.5% -> 0.46-0.75%, segment penetration 0%, cost 0.166 -> ~0.21 ms/frame (1.3% of budget)."
+    },
+    {
+      "id": 125,
+      "task": "Fresh human calibration on the rope build, then decide whether DAMAGE_SCALE needs retuning",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "A decisions entry records human peak/p90/p50 swing speed and hits-to-clear on the rope build, and either a retune with before/after numbers or an explicit note that the data did not require one",
+      "context": "The 2026-09-06 calibration (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) was measured on the single-constraint tail and does not survive the rope. Bot numbers moved a lot (hits 5 -> 3) but bot swings are not human swings, so this needs the user. Run ?dev=1&calibrate for both variants plus a few normal levels."
     }
   ],
   "recently_updated_files": [
-    "spec.md",
     "CLAUDE.md",
     "project-state.json",
-    ".gitignore",
-    "TEST_SPEC.md"
+    "js/main.js",
+    "js/dev/telemetry.js",
+    "js/dev/harness.js",
+    "js/dev/bot.js",
+    "dev/gate.mjs",
+    "dev/run-batch.mjs",
+    "dev/shots.mjs",
+    "dev/serve.mjs"
   ],
   "open_questions": [],
   "milestones": [
@@ -316,6 +526,56 @@
       "date": "2026-07-10",
       "decision": "Merged branch swinging/feat/game-feel-bundle into main",
       "rationale": "807fb04da3c71153a38a1cd6029b4e1b736b8ad5"
+    },
+    {
+      "date": "2026-07-11",
+      "decision": "Giblet gore-variety redesign (tasks 101-104): each shatter fragment gets a plugin.pieceType at spawn (guaranteed 1 bone shard / 1 organ / 1 gut coil, rest weighted flesh chunks with variant fur edge) with per-type geometry precomputed blobVerts-style; path-drawn per-type painters in drawFragments; fragment collision mask gains 0x0001 so giblets land on the floor (they previously collided only with each other and fell through — restitution/friction were dead values); first ground contact emits fragment-landed -> Renderer.paintSplat into the task-97 decal layer; airborne fragments shed small blood-drip particles on a precomputed cadence",
+      "rationale": "Approach A (typed roster, path-drawn) chosen over B (sprite-baked offscreen canvases — higher detail ceiling at zero per-frame cost, but extra canvas-lifecycle machinery for fidelity likely imperceptible at ~20px/4s) and C (physics-shaped bodies — breaks the physics-untouched constraint and changes collision behavior for barely-visible payoff). All detail is baked at spawn (no per-frame randomness or shadowBlur, consistent with task 86); splats/drips reuse the existing decal and particle systems. The mask fix is the enabling change for landing splats and delivers most of the realism payoff by itself."
+    },
+    {
+      "date": "2026-09-06",
+      "decision": "Playtest bot + dev telemetry via approach B (Playwright driving a real browser): a ?dev=1-gated in-game instrumentation layer (js/dev/telemetry.js, bot.js, harness.js, dynamically imported so a normal player fetches nothing) plus a Node-side rig (dev/serve.mjs, run-batch.mjs, shots.mjs, npm run gate). The bot dispatches real PointerEvents in-page so input.js is exercised end-to-end; runs are seeded for reproducibility; one telemetry schema covers bot, gate and human runs, tagged by source. Tasks 105-110.",
+      "rationale": "B chosen over A (two-lane harness with a Node/jsdom-stub batch lane, per L0108) and C (telemetry only, no bot). The user prioritised regression-gate plus tuning-data generation at batch scale. A was the recommendation on speed grounds — a stub lane runs dozens of games in seconds where a real browser costs wall-clock time — but B buys real render-path and real-input fidelity with no stub-drift risk, gets screenshots for free (closing task 104 durably), and parallel headless contexts should keep a 20-run batch practical. Playwright is a devDependency alongside vitest/jsdom, so spec.md's no-build-system constraint is untouched: the shipped game still loads as plain ES modules. Deliberately NOT part of this work: any change to gameplay constants (DAMAGE_SCALE, pushMaxSpeed, thresholds) — this measures, and tuning is a separate decision once numbers exist. Standing caveat: a bot's swing profile is not a human's, so bot data is valid for regression detection and relative A/B of constants, while absolute calibration must rest on human-run telemetry — calibrating constants on bot swings would repeat the L0097 unmeasured-premise error that produced the 30-40-hit Level 1."
+    },
+    {
+      "date": "2026-09-06",
+      "decision": "Playtest findings from the first instrumented session: (1) no ordinary target can be destroyed - physics.js:84 computes a SHATTER/CRACK/SURVIVE outcome per target hit, main.js:166 destructures it and never reads it, and removeTarget has one call site (the shield branch, main.js:181), so material.strength/crackThreshold/fragmentCount/fragmentSpread are dead config and only yoyoDamage is live; (2) Acts 2-3 obstacles are bypassable - a bot whose target picker explicitly filters shields out still cleared 24/24 runs across L4-L9, with the Act 2 finale (L6) clearing in 4 hits / 2.4s against Level 1s 9 hits, an inverted difficulty curve.",
+      "rationale": "Recorded as measurement, not yet as a fix. The user flagged both from play; the telemetry and a shield-avoiding bot independently confirmed them. Which way to resolve the target question is a design fork (indestructible-by-design with the misleading Brittle label removed, vs. targets becoming breakable) that changes the core loop, so it goes through the design gate rather than being patched."
+    },
+    {
+      "date": "2026-09-06",
+      "decision": "MEASURED human swing range (standard variant), replacing the assumption that has driven every balance decision to date. Free-swing calibration: peak 1146, p90 374, p50 177. In play across 9 runs (L2-L9): per-run peak p50 310 / max 400, sustained p50 109 (range 32-139), hits to clear min 4 / p50 6 / max 12, time to clear p50 9.5s, 35% of 66 hits glancing (angleFactor < 0.55).",
+      "rationale": "The premise behind the task 63-75 miscalibration was that real swings reach ~60% of pushMaxSpeed (=450 for standard). Measurement shows that is wrong in both directions depending on what is measured: sustained in-play speed is 109, only 14.5% of pushMaxSpeed, while a free swing peaks at 1146, i.e. 153% OF the supposed maximum. pushMaxSpeed=750 is therefore not a ceiling at all, yet in actual play peaks top out near 400 (53%), so the speed meter never fills past about half while playing - it is normalised against a speed only reachable when not playing. Bot comparison: bot peak speed (p50 ~320) tracks human peaks (310) closely, but bot SUSTAINED speed (p50 ~51) is less than half the human 109, and since damage scales with speed squared the bot understates human damage per typical hit by roughly 4.5x. Level-by-level the bot is not a human proxy at all - it cleared L6 in 4 hits/2.4s where the human needed 7 hits/10.6s, and needed 9 hits on L1 where the human cleared L2 in 4. Confirms bot data is usable for regression detection and peak-speed comparison, not for difficulty or absolute tuning. NOT YET MEASURED: the heavy variant (pushMaxSpeed 625) has no calibration run, and no human run exists for L1."
+    },
+    {
+      "date": "2026-09-06",
+      "decision": "Segmented rope design (tasks 116-121): replace the single tail Constraint with a Matter chain of ~10 collidable bodies; TRUE WRAP (the rope may coil a bumper and shorten the effective radius) with a player-initiated yank to unwind; the rat gains collision with ground and walls. Built behind ?dev=1&rope=N so the batch can A/B it at identical seeds, flag removed on merge.",
+      "rationale": "Wrap must emerge from real collision solving, so a hand-rolled Verlet rope was ruled out and the approach collapsed to a Matter body chain - the remaining variable is segment count and stiffness, which the batch runner can measure rather than guess. User chose true wrap over contact-drag-only, player-initiated release over auto-recovery or retry, and full rat/world collision. A collision-category cleanup is a hard prerequisite: ground and walls never set a collisionFilter and so inherited Matter default 0x0001, the same bit the rat uses, making it impossible for rope to collide with world geometry without colliding with the rat. The yank is deliberately energy-neutral (impulse toward the pivot plus tangential damping, on a cooldown) because an accelerating yank would become the dominant strategy; that risk is checked by measurement - a yank-spam batch must show no advantage - rather than by judgement."
+    },
+    {
+      "date": "2026-09-07",
+      "decision": "Rope parameters set by sweep: 10 segments, per-segment mass 5% of rat mass, engine.constraintIterations 48 while a rope is attached (Matter default 2 restored for the un-roped path). Circles of radius 3.5, stiffness 1.0, zero constraint damping, frictionAir 0.0005.",
+      "rationale": "Segment mass is the dominant term and the naive value was badly wrong. At 1-2% of rat mass the rope swallowed the swing entirely - peak speed collapsed from ~320 to 40 and the bot never cleared - because a near-massless chain cannot pull a body 100x heavier through Matter sequential solver. Raising constraintIterations helps (2% mass: 102 at 20 iters, 138 at 40, 161 at 60) but does not converge to usable, so a genuinely light rope is not achievable here. At 25% per segment the rope matches the no-rope baseline but totals 2.5x the rat mass and reads as a chain rather than a tail. 5% with 40-60 iterations clears 100% of runs at median peak 208-240 against a 315 baseline, i.e. a 25-30% momentum cost, which is the hindrance the rope exists to create. Frame p95 stays 16.7ms even at 60 iterations, so iteration count is not a perf constraint. Matter default 2 constraint iterations also let the 10-link chain stretch ~30% under the rat weight, lengthening the effective pendulum from 130 to 171px; at 48 iterations the span is 131."
+    },
+    {
+      "date": "2026-09-09",
+      "decision": "Rope vs no-rope measured across all 9 levels and both variants (108 runs, identical seeds, fixed timestep). Result: the rope makes the game EASIER, not harder - median hits to clear 5 -> 3 (-40%), time to clear 4.1s -> 2.7s (-33%) - despite cutting peak speed 337 -> 237 (-30%). DAMAGE_SCALE and every other gameplay constant left unchanged.",
+      "rationale": "The mechanism is the opposite of the intent and only measurement would have found it. Rope mass acts as a flywheel: peak speed falls 30% but SUSTAINED speed rises 23% (p50 50.1 -> 61.5) and glancing hits fall 36% (35.5% -> 22.8%). Since damage scales with speed squared and with angleFactor, a steady clean swing out-damages a peaky sloppy one, so fewer hits are needed. Momentum IS hindered as the feature intended - peak is down 30% - but peak is not what governs difficulty here. No constant was retuned because the rope moves bot median hits to clear to 3, inside the 3-4 design target, where no-rope sat at 5; the honest next step is a human re-calibration (task 121), not tuning against bot numbers. SOFT-LOCK FOUND: Level 8 with rope and no yank fails 6/6 with ZERO contacts and ZERO hits - the rope tangles slack and the bot cannot build a swing at all, so it never reaches the target. With a yank every 1.2s it clears 3/3. The yank is therefore load-bearing rather than a convenience, which retrospectively validates choosing player-initiated release over auto-recovery - but the game never tells the player that clicking yanks, so discoverability is now a real gap. Rope contacts are highest on the Act 2 shield levels L4 (80) and L6 (76)."
+    },
+    {
+      "date": "2026-09-10",
+      "decision": "Rope tunneling root-caused to unbounded hand speed, not gravity or rope parameters. Hand rate limit and physics sub-stepping added as dev-tunable knobs (?dev=1&hand=N&subs=N) with defaults unchanged; the user will choose values by feel before they become defaults.",
+      "rationale": "updatePivot wrote the pointer position directly into constraint.pointA, so the hand could teleport 234px in one frame (p50 10.6, p90 107.5) and whip the rat to a 249px/step peak against 44px bumpers. Matter has no continuous collision detection, and with p50 rat speed at 65px/step more than half of all steps already exceed a bumper diameter, so this was routine rather than a rare peak. Sub-stepping alone is not a fix: contact counts never plateau (48/39/100/157/266/288/843 at 1/2/4/8/12/16/24 sub-steps) because even 24 sub-steps leaves ~35px per sub-step, and each level is also a large difficulty change. Reducing gravity was rejected as the mechanism because the player drives the pivot directly, so player-driven speed is not bounded by gravity at all - the game would become floaty without fixing the cause. Capping the hand bounds the system where the energy actually enters. Chosen as a feel decision rather than a measured one because it caps the skill ceiling: today whipping the mouse faster is always better, which is why the human free-swing calibration hit 1146 while in-play sustained sat at 109. A correction worth recording: an earlier probe comparing body velocity against position delta was tautological, since Matter defines velocity AS the position delta, so it could not have distinguished real motion from solver correction as claimed."
+    },
+    {
+      "date": "2026-09-11",
+      "decision": "Rope tunneling fixed with manual continuous collision detection for rope segments only (Matter.Query.ray sweep plus an 8-step binary search for the last free point), default on. The hand cap, sub-stepping and segment speed clamp remain as dev knobs but are NOT the fix and stay at their original defaults.",
+      "rationale": "No parameter could fix this. Rope segments whip to 432 px/step against 44px bumpers; sub-stepping made it marginally worse (26.3% to 30.5% over-44 from 4 to 8 sub-steps) because better constraint solving stiffens the rope; a velocity clamp cannot bound displacement because the constraint solver repositions bodies directly, independent of velocity. Matter 0.19 ships no CCD and this game sits in the regime where discrete collision fails. Sweeping is contained to the rope because the rat is large and carries the damage, so the rat speed, the hand and the game feel are untouched - unlike the hand cap, which capped the skill ceiling AND still left 26% of samples tunneling. Cost is negligible because segments moving less than their own radius are skipped, which is most of them."
+    },
+    {
+      "date": "2026-09-12",
+      "decision": "Rope collision strengthened with a second CCD pass at link level plus segment radius 5.0. Link crossings fall from 5-7.5% to under 1% and segment penetration stays at zero.",
+      "rationale": "Per-segment sweeping fixed body penetration but not the visible clipping, because the rope is a chain of circles separated by 6px gaps and the line between two segments can cut an obstacle while neither endpoint is inside it. Closing the gap geometrically was measured and is insufficient on its own: 10 segments at radius 6.5 (zero gap) reached 2.74%, and adding segments made things WORSE (14 -> 3.11%, 20 -> 4.19%) because more links mean a floppier rope that whips harder. The link pass uses the same rewind-toward-previous-position trick as the segment sweep, so it is shape-agnostic and works for circles and rectangles alike, and it skips links that were already crossing before the step since rewinding those would freeze the rope against the obstacle. Radius 5.0 measured best of 3.5/5.0/6.5 with the link pass active."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
