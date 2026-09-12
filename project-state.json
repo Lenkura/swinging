@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-12",
   "last_session_summary_path": "history/session-005-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/fix/speed-meter-calibration (unmerged). Tasks 125 and 127 closed. L1 human data: standard median 10.5 hits, heavy 5, against a documented 3-4 target - both miss, standard by ~3x. The blocking issue is task 126: in play both variants swing at identical speed (p50 114), so heavy pays no cost for its 2.2x impactMultiplier and is strictly better on every axis (2.4x damage, half the glancing, bigger body). Any global DAMAGE_SCALE change must wait until 126 resolves, or it bakes the imbalance in. 126 needs the design gate.",
+  "current_activity": "On swinging/fix/speed-meter-calibration (3 commits, unmerged): heavy pushMaxSpeed corrected to 785 from measurement, calibration data logged, tasks 125 and 127 closed. NO gameplay constant has been changed this session by design. Three things queued from the L1 findings: 126 (variant rebalance - needs a design gate because damage cannot be a trade-off when destroying your own rat faster is always better, and the player-driven pivot cancels mass-based costs), 129 (L1 at ~10 hits on standard, blocked on 126), and 128 (level/obstacle cohesion, the user side note, probably follows 113 and 115). Next practical step: merge this branch, then run the 126 design gate.",
   "action_plan": [
     {
       "id": 45,
@@ -191,11 +191,11 @@
     },
     {
       "id": 126,
-      "task": "Rebalance the rat variants: heavy strictly dominates standard on score, so there is no reason to pick standard",
+      "task": "/brainstorm then rebalance the rat variants: what each rat is FOR, given that damage cannot be a trade-off in this game",
       "priority": "high",
       "status": "pending",
       "done_when": "Across a spread of levels the two variants clear in comparable hit counts, or heavy pays a cost that shows up in the score - measured, not assumed",
-      "context": "Measured 2026-09-12 from human play on the rope build. Heavy carries impactMultiplier 2.2 and mass 11.5 against standard 1.0 and 4.5, and swings only ~15% slower (calibration p50 113 vs 134). Since damage goes as speed squared, heavy nets 2.2 x (113/134)^2 = 1.56x effective damage - slower does not come close to paying for the multiplier. Observed: heavy median 3 hits vs standard 6, and because score is max(200, 3000-(hits-1)*500) that compounds into 1000-2500 vs 500. The lever is impactMultiplier, NOT DAMAGE_SCALE, which divides both variants equally. Needs the design gate: making heavy weaker, slower, or giving standard something of its own are different games. STRENGTHENED 2026-09-12 by L1 data, which invalidates the trade-off premise entirely: in actual play both variants swing at the SAME speed (p50 114.4 standard vs 114.1 heavy). The earlier -15% figure came from free-swing calibration and does not survive contact with real play, so heavy pays NO speed cost for its 2.2x multiplier. Observed damage per hit 18.3 vs 7.7 = 2.4x, matching the multiplier with nothing offsetting it. Heavy also lands cleaner (15% glancing vs 31%), plausibly because its radius is 22 against 18. Heavy is better on every measured axis: same speed, 2.4x damage, cleaner hits, bigger body. There is no trade-off to balance - the variant is simply strictly better."
+      "context": "Measured 2026-09-12 from human play on the rope build. Heavy carries impactMultiplier 2.2 and mass 11.5 against standard 1.0 and 4.5, and swings only ~15% slower (calibration p50 113 vs 134). Since damage goes as speed squared, heavy nets 2.2 x (113/134)^2 = 1.56x effective damage - slower does not come close to paying for the multiplier. Observed: heavy median 3 hits vs standard 6, and because score is max(200, 3000-(hits-1)*500) that compounds into 1000-2500 vs 500. The lever is impactMultiplier, NOT DAMAGE_SCALE, which divides both variants equally. Needs the design gate: making heavy weaker, slower, or giving standard something of its own are different games. STRENGTHENED 2026-09-12 by L1 data, which invalidates the trade-off premise entirely: in actual play both variants swing at the SAME speed (p50 114.4 standard vs 114.1 heavy). The earlier -15% figure came from free-swing calibration and does not survive contact with real play, so heavy pays NO speed cost for its 2.2x multiplier. Observed damage per hit 18.3 vs 7.7 = 2.4x, matching the multiplier with nothing offsetting it. Heavy also lands cleaner (15% glancing vs 31%), plausibly because its radius is 22 against 18. Heavy is better on every measured axis: same speed, 2.4x damage, cleaner hits, bigger body. There is no trade-off to balance - the variant is simply strictly better. SCOPE SET 2026-09-12: user chose a full design gate over a quick constant change. THE STRUCTURAL PROBLEM the design must solve: the goal is to destroy YOUR OWN rat in as few hits as possible and score is max(200, 3000-(hits-1)*500), so taking more damage per hit is purely good - there is no downside to trade against, and any variant with a higher multiplier is permanently strictly better. The usual counterweight is unavailable too: heavy mass 11.5 should swing slower, but the player drives the pivot directly so the hand overrides mass, which is why both variants clock identical in-play speed (114.1 vs 114.4). Mass-based trade-offs do not survive this control scheme. Options sketched and NOT chosen: cut heavy impactMultiplier 2.2 -> ~1.25; equalise damage and differentiate on feel/blast/appearance; keep heavy strong but apply a score penalty. Also note the arithmetic trap: standard needs ~3.3x damage to reach 4 hits on L1, which would drop heavy to ~1.4 hits, so DAMAGE_SCALE cannot move until this resolves."
     },
     {
       "id": 127,
@@ -205,6 +205,22 @@
       "done_when": "Several L1 runs on each variant are recorded and compared against the 3-4 hit target",
       "context": "The only level the 3-4 hit target was ever written against, and the one level with no rope-build data - the 2026-09-12 session covered L4-L8 only. Not blocking: L4 gives a usable read, and task 126 is the more interesting problem. DONE 2026-09-12: 4 human runs per variant on L1. Standard 11/17/10/6 hits (median 10.5, 7.1s, score 200 floor, 31% glancing). Heavy 4/5/5/5 (median 5, 3.5s, score 1000, 15% glancing). Both variants MISS the 3-4 hit target - standard by roughly 3x.",
       "completed_date": "2026-09-12T08:10:00"
+    },
+    {
+      "id": 128,
+      "task": "/brainstorm level design and obstacle cohesion across all 9 levels so they present a connected, escalating challenge",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Each act has a stated design intent, obstacles serve that intent rather than decorating it, and the measured difficulty curve rises across acts instead of inverting",
+      "context": "User side note 2026-09-12: the levels and obstacles need to present a cohesive challenge. Evidence already on hand: a shield-avoiding bot cleared 24/24 runs across L4-L9 (task 115 measurement), the Act 2 finale L6 fell in 4 hits to the bot where L1 took 9, and human L1 takes 10.5 hits on standard while human L6 heavy took 2 - so the curve is inverted for the player as well. The rope changes what obstacle geometry can do (a tail that catches is new level-design vocabulary) and breakable targets (task 113) would change it again, so this brainstorm should probably follow or absorb 113 and 115 rather than run before them."
+    },
+    {
+      "id": 129,
+      "task": "Known issue: Level 1 takes ~10 hits on standard against a documented 3-4 hit target",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "L1 clears in roughly 3-4 hits on standard for a human player",
+      "context": "Measured 2026-09-12 across 4 human runs: 11/17/10/6 hits, median 10.5, scoring the 200 floor every time on the game first level. Heavy sits at 5. Deliberately NOT fixed by moving DAMAGE_SCALE, because the ~3.3x standard needs would drop heavy to ~1.4 hits and bake the variant imbalance in permanently. Blocked on task 126."
     }
   ],
   "recently_updated_files": [
