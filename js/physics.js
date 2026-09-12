@@ -199,6 +199,48 @@ function sweepRopeSegments(prev) {
   }
 }
 
+/**
+ * Second CCD pass, at the link level.
+ *
+ * Sweeping each segment stops the bodies penetrating, but the rope is a chain
+ * of circles with space between them, so the LINE joining two segments can cut
+ * an obstacle while neither endpoint is inside it - measured at 5-7.5% of
+ * links. Closing the gap geometrically helps but cannot reach zero, because a
+ * link can sweep across an obstacle within a single step.
+ *
+ * Same trick as the segment sweep: if a link crosses now, walk both endpoints
+ * back toward where they were until it does not. Shape-agnostic, so it works
+ * for circles and rectangles alike.
+ */
+function resolveRopeLinks(prev) {
+  const obstacles = targetBodies.concat(bumperBodies);
+  if (!obstacles.length || ropeBodies.length < 2) return;
+  const w = ropeConfig.radius * 2;
+
+  for (let i = 0; i < ropeBodies.length - 1; i++) {
+    const a = ropeBodies[i], b = ropeBodies[i + 1];
+    if (!Query.ray(obstacles, a.position, b.position, w).length) continue;
+    const pa = prev[i], pb = prev[i + 1];
+    if (!pa || !pb) continue;
+    // Already crossing before the step: rewinding cannot help, and forcing it
+    // would freeze the rope against the obstacle.
+    if (Query.ray(obstacles, pa, pb, w).length) continue;
+
+    let free = 0, blocked = 1;
+    for (let k = 0; k < 6; k++) {
+      const t = (free + blocked) / 2;
+      const A = { x: pa.x + (a.position.x - pa.x) * t, y: pa.y + (a.position.y - pa.y) * t };
+      const B = { x: pb.x + (b.position.x - pb.x) * t, y: pb.y + (b.position.y - pb.y) * t };
+      if (Query.ray(obstacles, A, B, w).length) blocked = t; else free = t;
+    }
+    Body.setPosition(a, { x: pa.x + (a.position.x - pa.x) * free, y: pa.y + (a.position.y - pa.y) * free });
+    Body.setPosition(b, { x: pb.x + (b.position.x - pb.x) * free, y: pb.y + (b.position.y - pb.y) * free });
+    Body.setVelocity(a, { x: 0, y: 0 });
+    Body.setVelocity(b, { x: 0, y: 0 });
+    ropeContactCount++;
+  }
+}
+
 export function step(delta) {
   const dt = subSteps === 1 ? delta : delta / subSteps;
   const fraction = subSteps === 1 ? 1 : 1 / subSteps;
@@ -209,7 +251,7 @@ export function step(delta) {
       ? ropeBodies.map(s => ({ x: s.position.x, y: s.position.y }))
       : null;
     Engine.update(engine, dt);
-    if (prev) sweepRopeSegments(prev);
+    if (prev) { sweepRopeSegments(prev); resolveRopeLinks(prev); }
   }
 }
 
@@ -277,7 +319,10 @@ let ropeConfig = {
   massFrac: 0.05,       // per segment, as a fraction of rat mass
   iterations: 48,       // engine.constraintIterations while a rope is attached
   stiffness: 1.0,
-  radius: 3.5,
+  // 5.0 measured best with link-level CCD: spacing is 13px, so a 10px-wide
+  // segment leaves a 3px gap that the link pass then covers. Fatter (6.5) or
+  // thinner (3.5) both did slightly worse.
+  radius: 5.0,
   friction: 0.4,
   frictionAir: 0.0005,
   // Max px a segment may travel per sub-step. Rope segments whip faster than
