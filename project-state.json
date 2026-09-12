@@ -3,7 +3,7 @@
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
   "last_session_date": "2026-09-12",
-  "last_session_summary_path": "history/session-004-summary.md",
+  "last_session_summary_path": "history/session-005-summary.md",
   "last_solution_architect_review": null,
   "current_activity": "swinging/feat/segmented-rope merged to main (1889ba8) with its stacked parents - 20 commits covering the giblet redesign, the playtest/telemetry toolchain and the segmented rope. Gate 91/91, vitest 61/61 at merge. NEXT: task 125, a fresh human calibration on the rope build, since the 2026-09-06 numbers were measured on the single-constraint tail and do not survive it. Then the deferred backlog: 113 breakable targets (design gate needed - it changes what ends a level), 115 obstacle difficulty, 79/80 per-act backgrounds (the user asked for these on 2026-09-06), 100 the dead poly-decomp tag, 122 the optional hand cap.",
   "action_plan": [
