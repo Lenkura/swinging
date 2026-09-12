@@ -184,9 +184,9 @@
       "id": 125,
       "task": "Fresh human calibration on the rope build, then decide whether DAMAGE_SCALE needs retuning",
       "priority": "high",
-      "status": "pending",
+      "status": "in_progress",
       "done_when": "A decisions entry records human peak/p90/p50 swing speed and hits-to-clear on the rope build, and either a retune with before/after numbers or an explicit note that the data did not require one",
-      "context": "The 2026-09-06 calibration (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) was measured on the single-constraint tail and does not survive the rope. Bot numbers moved a lot (hits 5 -> 3) but bot swings are not human swings, so this needs the user. Run ?dev=1&calibrate for both variants plus a few normal levels."
+      "context": "The 2026-09-06 calibration (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) was measured on the single-constraint tail and does not survive the rope. Bot numbers moved a lot (hits 5 -> 3) but bot swings are not human swings, so this needs the user. Run ?dev=1&calibrate for both variants plus a few normal levels. 2026-09-12: calibration half DONE for both variants on the rope build. Standard p50 133.55 / p90 280.43 / p95 352.76 / peak 719.6 (7429 samples, 45s). Heavy p50 113.1 / p90 227.1 / p95 284.49 / peak 784.26. STILL NEEDED for the DAMAGE_SCALE half: in-play runs on the rope build, especially Level 1 - the level the 3-4 hit design target was written against, and the only rope-build in-play data is two L7 runs (7 and 8 hits)."
     }
   ],
   "recently_updated_files": [
@@ -379,6 +379,11 @@
       "date": "2026-09-12",
       "decision": "Merged branch swinging/feat/segmented-rope into main (with its stacked parents swinging/feat/playtest-bot-telemetry and swinging/feat/realistic-giblets, 20 commits)",
       "rationale": "1889ba8ab8cbd41534d52c85db1212d580e33977"
+    },
+    {
+      "date": "2026-09-12",
+      "decision": "Human calibration on the rope build. Standard: free-swing p50 133.6, p90 280.4, peak 719.6. Heavy: p50 113.1, p90 227.1, peak 784.3. Heavy pushMaxSpeed raised 625 -> 785 to match its measured ceiling; standard left at 750. DAMAGE_SCALE deliberately NOT changed.",
+      "rationale": "The rope costs real momentum, now measured on a human rather than the bot: against the 2026-09-06 pre-rope calibration, standard free-swing peak fell 1146 -> 719.6 (-37%), p90 374 -> 280.4 (-25%) and p50 177 -> 133.6 (-25%). That is the hindrance the rope was built for. It also fixed the speed meter almost by accident: standard now peaks at 96% of its pushMaxSpeed where it previously hit 153% and saturated, so the meter is correctly scaled for the first time. Heavy still overshot at 125%, so its value was raised to its measured 784 - safe because pushMaxSpeed is a presentation knob with exactly one use (normalising the meter and the whoosh in main.js:420) and never enters the damage formula, which keeps balance and presentation knobs orthogonal per L0120. DAMAGE_SCALE stays at 200 because the data does not yet support a change: the only rope-build in-play runs are two Level 7 clears at 7 and 8 hits, and Level 1 - the level the 3-4 hit target was actually written against - has no rope-build run at all. Changing a damage constant on two runs of the wrong level would repeat the reasoning-from-insufficient-data error this whole effort exists to prevent."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

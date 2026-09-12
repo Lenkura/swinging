@@ -10,7 +10,7 @@ export const RAT_VARIANTS = {
     impactMultiplier: 1.0,
     blastBonus: 1.0,
     maxSpeed: 1800,
-    pushMaxSpeed: 750,
+    pushMaxSpeed: 750,   // measured human free-swing peak 720 (96%), 2026-09-12
     color: '#8B5E3C',
     trimColor: '#C8A882',
     outlineColor: '#4A2C14',
@@ -34,7 +34,7 @@ export const RAT_VARIANTS = {
     impactMultiplier: 2.2,
     blastBonus: 1.4,
     maxSpeed: 1200,
-    pushMaxSpeed: 625,
+    pushMaxSpeed: 785,   // measured human free-swing peak, 2026-09-12
     color: '#4A5240',
     trimColor: '#7A8A6A',
     outlineColor: '#1E221A',
