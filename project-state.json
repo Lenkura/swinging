@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-12",
   "last_session_summary_path": "history/session-005-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "swinging/feat/segmented-rope merged to main (1889ba8) with its stacked parents - 20 commits covering the giblet redesign, the playtest/telemetry toolchain and the segmented rope. Gate 91/91, vitest 61/61 at merge. NEXT: task 125, a fresh human calibration on the rope build, since the 2026-09-06 numbers were measured on the single-constraint tail and do not survive it. Then the deferred backlog: 113 breakable targets (design gate needed - it changes what ends a level), 115 obstacle difficulty, 79/80 per-act backgrounds (the user asked for these on 2026-09-06), 100 the dead poly-decomp tag, 122 the optional hand cap.",
+  "current_activity": "On swinging/fix/speed-meter-calibration (1 commit, unmerged): heavy pushMaxSpeed corrected 625 -> 785 from measured calibration, CLAUDE.md updated. Task 125 closed - DAMAGE_SCALE deliberately unchanged, since human runs show the imbalance is between VARIANTS (heavy median 3 hits vs standard 6) rather than a global offset a divisor could fix. NEXT: task 126, variant rebalance via impactMultiplier - heavy strictly dominates on score (1000-2500 vs 500) so standard has no reason to exist; needs the design gate. Also queued: 127 (L1 runs), 113 breakable targets, 115 obstacle difficulty, 79/80 backgrounds, 100 poly-decomp.",
   "action_plan": [
     {
       "id": 45,
@@ -184,9 +184,26 @@
       "id": 125,
       "task": "Fresh human calibration on the rope build, then decide whether DAMAGE_SCALE needs retuning",
       "priority": "high",
-      "status": "in_progress",
+      "status": "completed",
       "done_when": "A decisions entry records human peak/p90/p50 swing speed and hits-to-clear on the rope build, and either a retune with before/after numbers or an explicit note that the data did not require one",
-      "context": "The 2026-09-06 calibration (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) was measured on the single-constraint tail and does not survive the rope. Bot numbers moved a lot (hits 5 -> 3) but bot swings are not human swings, so this needs the user. Run ?dev=1&calibrate for both variants plus a few normal levels. 2026-09-12: calibration half DONE for both variants on the rope build. Standard p50 133.55 / p90 280.43 / p95 352.76 / peak 719.6 (7429 samples, 45s). Heavy p50 113.1 / p90 227.1 / p95 284.49 / peak 784.26. STILL NEEDED for the DAMAGE_SCALE half: in-play runs on the rope build, especially Level 1 - the level the 3-4 hit design target was written against, and the only rope-build in-play data is two L7 runs (7 and 8 hits)."
+      "context": "The 2026-09-06 calibration (free-swing peak 1146, in-play sustained 109, hits to clear p50 6) was measured on the single-constraint tail and does not survive the rope. Bot numbers moved a lot (hits 5 -> 3) but bot swings are not human swings, so this needs the user. Run ?dev=1&calibrate for both variants plus a few normal levels. 2026-09-12: calibration half DONE for both variants on the rope build. Standard p50 133.55 / p90 280.43 / p95 352.76 / peak 719.6 (7429 samples, 45s). Heavy p50 113.1 / p90 227.1 / p95 284.49 / peak 784.26. STILL NEEDED for the DAMAGE_SCALE half: in-play runs on the rope build, especially Level 1 - the level the 3-4 hit design target was written against, and the only rope-build in-play data is two L7 runs (7 and 8 hits). CLOSED 2026-09-12: 10 in-play runs on the rope build (heavy L4x4/L5/L6/L7/L8, standard L4x2). Heavy median 3 hits (range 2-5), standard median 6 (n=2, L4 only). DAMAGE_SCALE left at 200 - the spread is between variants, which a global divisor cannot fix. Level 1 was never run and remains the one gap, but is no longer blocking.",
+      "completed_date": "2026-09-12T07:30:00"
+    },
+    {
+      "id": 126,
+      "task": "Rebalance the rat variants: heavy strictly dominates standard on score, so there is no reason to pick standard",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "Across a spread of levels the two variants clear in comparable hit counts, or heavy pays a cost that shows up in the score - measured, not assumed",
+      "context": "Measured 2026-09-12 from human play on the rope build. Heavy carries impactMultiplier 2.2 and mass 11.5 against standard 1.0 and 4.5, and swings only ~15% slower (calibration p50 113 vs 134). Since damage goes as speed squared, heavy nets 2.2 x (113/134)^2 = 1.56x effective damage - slower does not come close to paying for the multiplier. Observed: heavy median 3 hits vs standard 6, and because score is max(200, 3000-(hits-1)*500) that compounds into 1000-2500 vs 500. The lever is impactMultiplier, NOT DAMAGE_SCALE, which divides both variants equally. Needs the design gate: making heavy weaker, slower, or giving standard something of its own are different games."
+    },
+    {
+      "id": 127,
+      "task": "Level 1 in-play runs on the rope build to check the 3-4 hit design target directly",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "Several L1 runs on each variant are recorded and compared against the 3-4 hit target",
+      "context": "The only level the 3-4 hit target was ever written against, and the one level with no rope-build data - the 2026-09-12 session covered L4-L8 only. Not blocking: L4 gives a usable read, and task 126 is the more interesting problem."
     }
   ],
   "recently_updated_files": [
