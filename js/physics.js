@@ -1,4 +1,4 @@
-import { MATERIALS, evaluateImpact, generateCrackPattern } from './target.js';
+import { MATERIALS, evaluateImpact, generateCrackPattern, resolveShieldTier } from './target.js';
 import { RAT_VARIANTS } from './rat.js';
 
 const { Engine, Bodies, Body, Composite, Constraint, Events, World, Query } = Matter;
@@ -534,7 +534,10 @@ export function spawnTargets(levelTargets) {
   targetBodies.forEach(b => Composite.remove(world, b));
   targetBodies = [];
 
-  for (const td of levelTargets) {
+  for (const rawTd of levelTargets) {
+    // Shields name a tier; the tier supplies material and breakSpeed. Resolved
+    // here so both the circle and rectangle branches below get it for free.
+    const td = resolveShieldTier(rawTd);
     const x = td.x * canvasW;
     const y = td.y * canvasH;
     const material = MATERIALS[td.material];

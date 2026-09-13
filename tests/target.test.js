@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   evaluateImpact, getFragmentVerts, generateCrackPattern, MATERIALS,
   applyDamageCap, MAX_HIT_DAMAGE_FRACTION,
+  SHIELD_TIERS, resolveShieldTier, MAX_OBSERVED_CONTACT_SPEED,
 } from '../js/target.js'
 
 const glass = MATERIALS.glass   // strength: 220, crackThreshold: 85
@@ -223,5 +224,79 @@ describe('material yoyoDamage spread', () => {
 
   it('keeps steel above glass, so materials still differ in character', () => {
     expect(MATERIALS.steel.yoyoDamage).toBeGreaterThan(MATERIALS.glass.yoyoDamage)
+  })
+})
+
+// -------------------------------------------------------------------
+// Shield tiers. Guards are on SHAPE, not on pinned speeds (L0381), so
+// the next balance pass can retune freely and still be caught if it
+// breaks monotonicity or puts a tier out of reach.
+// -------------------------------------------------------------------
+describe('SHIELD_TIERS', () => {
+  const names = Object.keys(SHIELD_TIERS)
+
+  it('every tier names a real material and a positive speed', () => {
+    for (const [name, t] of Object.entries(SHIELD_TIERS)) {
+      expect(MATERIALS[t.material], `${name}.material`).toBeDefined()
+      expect(t.breakSpeed).toBeGreaterThan(0)
+    }
+  })
+
+  it('tiers rise: light < medium < heavy', () => {
+    expect(SHIELD_TIERS.light.breakSpeed).toBeLessThan(SHIELD_TIERS.medium.breakSpeed)
+    expect(SHIELD_TIERS.medium.breakSpeed).toBeLessThan(SHIELD_TIERS.heavy.breakSpeed)
+  })
+
+  it('every tier is REACHABLE — the guard the 180 tier needed', () => {
+    // breakSpeed 180 was never broken in 36 human contacts; the fastest contact
+    // ever recorded was 150.8. A tier above that is unreachable, not hard.
+    for (const [name, t] of Object.entries(SHIELD_TIERS)) {
+      expect(t.breakSpeed, `${name} must be reachable`).toBeLessThan(MAX_OBSERVED_CONTACT_SPEED)
+    }
+  })
+
+  it('tiers are visually distinct, or the tier cannot guide anyone', () => {
+    const materials = names.map(n => SHIELD_TIERS[n].material)
+    expect(new Set(materials).size).toBe(names.length)
+  })
+})
+
+describe('resolveShieldTier', () => {
+  it('fills material and breakSpeed from the tier', () => {
+    const out = resolveShieldTier({ isShield: true, shieldTier: 'medium', w: 12, h: 88 })
+    expect(out.breakSpeed).toBe(SHIELD_TIERS.medium.breakSpeed)
+    expect(out.material).toBe(SHIELD_TIERS.medium.material)
+  })
+
+  it('resolves each tier to its own values', () => {
+    for (const [name, t] of Object.entries(SHIELD_TIERS)) {
+      const out = resolveShieldTier({ isShield: true, shieldTier: name })
+      expect(out.breakSpeed).toBe(t.breakSpeed)
+      expect(out.material).toBe(t.material)
+    }
+  })
+
+  it('leaves a non-shield target completely alone', () => {
+    const td = { shape: 'circle', r: 36, material: 'glass' }
+    expect(resolveShieldTier(td)).toBe(td)
+  })
+
+  it('does not mutate the level data it is given', () => {
+    const td = { isShield: true, shieldTier: 'heavy' }
+    const out = resolveShieldTier(td)
+    expect(td.material).toBeUndefined()
+    expect(td.breakSpeed).toBeUndefined()
+    expect(out).not.toBe(td)
+  })
+
+  it('throws on an unknown tier rather than silently yielding breakSpeed 0', () => {
+    // A silent default would make the shield shatter on contact, which is worse
+    // than the bug it replaces because it would look like it worked.
+    expect(() => resolveShieldTier({ isShield: true, shieldTier: 'titanium' })).toThrow(/titanium/)
+  })
+
+  it('the tier wins over any material the level also sets', () => {
+    const out = resolveShieldTier({ isShield: true, shieldTier: 'light', material: 'steel' })
+    expect(out.material).toBe(SHIELD_TIERS.light.material)
   })
 })
