@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-13",
   "last_session_summary_path": "history/session-006-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Two threads in flight, stacked. (1) The task 126 rebalance is implemented and committed on swinging/fix/variant-difficulty-rebalance (5 commits, 68/68 vitest, 91/91 gate) but NOT yet measured - tasks 126 and 129 stay open until task 133. (2) Now building the tail-grab pickup on swinging/feat/tail-grab-pickup, branched off the rebalance rather than main, the same way segmented-rope stacked on its parents; task 133 needs both changes in one build anyway. The glitch was diagnosed, not guessed: the pivot teleports from the level position to the cursor on the first pointermove, whipping the rat. Grabbing the tail removes the jump by construction because the pointer is the grab point. Tasks 138-142; do 138 and 139 first, since 139 is a deliberately inert refactor that de-risks 140. NEXT: task 138.",
+  "current_activity": "The tail-grab pickup is COMPLETE on swinging/feat/tail-grab-pickup (tasks 138-142, 5 code commits, stacked on the unmerged rebalance branch). A level now opens with the rat slumped on the ground, tail sprawled and rope unanchored; a press within 44px of the tail tip anchors the rope at that exact point, and raising the hand hauls the rat up through ordinary physics. 74/74 vitest and 92/92 gate over five consecutive runs, plus committed screenshots of READY, the grab and the lift. NEITHER BRANCH IS MERGED and NOTHING IS MEASURED. The whole point of both changes now rests on task 133: human Level 1 runs on both variants, which closes 126 and 129 and also confirms task 132's picker labels and star thresholds by eye. Predicted L1: standard ~5.2 hits, heavy ~3.4 - a linear extrapolation, not a result. If standard lands at 6-7 the correction is parHits, NOT DAMAGE_SCALE. NEXT: task 133, then merge both branches.",
   "action_plan": [
     {
       "id": 45,
@@ -13,7 +13,7 @@
       "priority": "medium",
       "status": "pending",
       "done_when": "All 9 levels across 3 acts (Sewer/Warehouse/Lab) can be completed in sequence with no console errors, the CDN-loaded Matter.js/poly-decomp scripts load successfully, and `yoyo_progress` in localStorage reflects updated high scores and unlockedLevel",
-      "context": "Paused mid-playthrough — that session surfaced the tuning/feature feedback in tasks 63-74 (speed/damage recalibration, shape variety, moving targets, giblet blobs, trail tone-down). Resume the full playthrough once those land. NOTE: a DevTools screenshot from a prior debug session (blobcheck.png, since deleted) showed decomp.min.js failing to load with a CORS error (0 bytes transferred) while matter.min.js loaded fine — explicitly verify poly-decomp loads (SRI/crossorigin intact) during this playthrough."
+      "context": "Paused mid-playthrough — that session surfaced the tuning/feature feedback in tasks 63-74 (speed/damage recalibration, shape variety, moving targets, giblet blobs, trail tone-down). Resume the full playthrough once those land. NOTE: a DevTools screenshot from a prior debug session (blobcheck.png, since deleted) showed decomp.min.js failing to load with a CORS error (0 bytes transferred) while matter.min.js loaded fine — explicitly verify poly-decomp loads (SRI/crossorigin intact) during this playthrough. NOTE 2026-09-13: the poly-decomp CDN 404 flagged here was observed again during the tail-grab screenshot run - 'Refused to execute script ... MIME type (text/html)'. It is the dead tag task 100 removes, and it is harmless today because no concave decomposition is used."
     },
     {
       "id": 78,
@@ -251,41 +251,46 @@
       "id": 138,
       "task": "physics.js - align the physics ground with the drawn surface and rest the rat on it",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "groundBody's top sits at y 580 instead of 620, spawnRat places the rat on that surface rather than at pivot + pushStringLength, and a local serve shows the rat sitting ON the drawn ground with shattered fragments coming to rest on the same line. Gate re-run for knock-on.",
-      "context": "Required by the tail-grab, not optional: the two floors are 40px apart, so a rat posed on the ground would be almost entirely buried. Also fixes the pre-existing fragment sink that paintSplat currently papers over by drawing decals at the visual line."
+      "context": "Required by the tail-grab, not optional: the two floors are 40px apart, so a rat posed on the ground would be almost entirely buried. Also fixes the pre-existing fragment sink that paintSplat currently papers over by drawing decals at the visual line. DONE 2026-09-13 (commit 8c0e2e3): Ground aligned via GROUND_TOP_INSET, exported from physics.js and imported by renderer.js so the two cannot drift (L0182), plus getGroundTop(). The rat's resting spawn was NOT done here as originally planned - with the anchor still live it would simply have been hauled up, so there was no honest intermediate to verify; it moved to task 140. 68/68 vitest, 91/91 gate.",
+      "completed_date": "2026-09-13T02:30:00"
     },
     {
       "id": 139,
       "task": "physics.js - split attachRope into a chain build and anchorRope(x, y), with NO behaviour change",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "attachRope calls the two new pieces back to back and everything still behaves identically: npm run gate 91/91 and npx vitest run green.",
-      "context": "Deliberately inert on its own. Proving the refactor changes nothing before deferring the anchor is what keeps the next step debuggable - if READY misbehaves afterwards, the rope split is already ruled out."
+      "context": "Deliberately inert on its own. Proving the refactor changes nothing before deferring the anchor is what keeps the next step debuggable - if READY misbehaves afterwards, the rope split is already ruled out. DONE 2026-09-13 (commit 6bbeeb4): Inert as intended: 68/68 vitest and 91/91 gate across two runs, with no observable change. buildRope also gained a layout direction, which is what let the tail be laid along the ground in task 140.",
+      "completed_date": "2026-09-13T02:30:00"
     },
     {
       "id": 140,
       "task": "main.js + input.js - the READY state and the tail grab",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "startLevel stops at READY with the rope unanchored; grabTail(x, y) creates the anchor at the pointer, fires Telemetry.startRun and enters SWINGING; onYank carries the pointerdown position; beginRun auto-grabs. Gate still 91/91 (proving the rigs are unaffected) and by hand the game sits still until the tail is clicked, then swings with no jump.",
-      "context": "The two existing input handlers already early-return unless gameState is SWINGING, so READY is inert for pivot-follow and yank without restructuring input dispatch (L0107). The only gap is that onYank is called with no arguments, so the grab has no position to hit-test. Watch pivotTarget/pivotActual, which attachRope sets at build time and which must not be treated as live while unanchored."
+      "context": "The two existing input handlers already early-return unless gameState is SWINGING, so READY is inert for pivot-follow and yank without restructuring input dispatch (L0107). The only gap is that onYank is called with no arguments, so the grab has no position to hit-test. Watch pivotTarget/pivotActual, which attachRope sets at build time and which must not be treated as live while unanchored. DONE 2026-09-13 (commit a4c47aa): READY state, grabTail at 44px, onYank carrying its position, beginRun auto-grab. 91/91 gate proved the rigs were unaffected. Noted at the time: the non-dev path went vacuous (HP drop 1.000 -> 1.000) because the sweep never grabbed - closed by task 142.",
+      "completed_date": "2026-09-13T02:30:00"
     },
     {
       "id": 141,
       "task": "renderer.js - unanchored tail rendering, tail-tip highlight and grab prompt",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "drawTail omits the pivot control point when unanchored (otherwise the tail draws to a stale pivot), the tail tip pulses in READY, and a prompt tells the player to grab it. Observed on a local serve.",
-      "context": "Discoverability is load-bearing here, not polish: the grab is mandatory and the game cannot start without it (L0364)."
+      "context": "Discoverability is load-bearing here, not polish: the grab is mandatory and the game cannot start without it (L0364). DONE 2026-09-13 (commit 6d809a0): Two defects found here that tests could not have caught. (1) The tail was not drawn at all in READY, because showTail required a stringConstraint - exactly what the pick-up has not created yet - and drawTail prepended the stale level pivot as a control point. (2) SCREENSHOT CAUGHT WHAT THE GATE COULD NOT: the tail settled into a coil within a second, since pairwise constraints hold neighbours 13px apart but nothing keeps the chain straight. That made the tip position non-deterministic and broke the plan for task 142. Fixed with Physics.freezeForGrab, holding the pose static until the grab; the rendered tip then matched the predicted 350.5 exactly.",
+      "completed_date": "2026-09-13T02:30:00"
     },
     {
       "id": 142,
       "task": "dev/gate.mjs non-dev tail click, plus unit cases for the grab hit-test",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "done_when": "npx vitest run green and FIVE consecutive npm run gate runs at 91/91.",
-      "context": "The gate's non-dev path has no harness access, so it must click a deterministic tail position - which is why the tail spawns as a straight horizontal line at rest rather than being dropped and left to settle. Five runs rather than one because the last gate change presented as a 43% flake that a single run would have missed."
+      "context": "The gate's non-dev path has no harness access, so it must click a deterministic tail position - which is why the tail spawns as a straight horizontal line at rest rather than being dropped and left to settle. Five runs rather than one because the last gate change presented as a 43% flake that a single run would have missed. DONE 2026-09-13 (commit cf1d580): 74/74 vitest with six isGrabHit cases including the circular-not-square boundary, and FIVE consecutive gate runs at 92/92. The new check is a real positive invariant (L0101): a frozen rat cannot take a hit, so any HP loss proves the grab was accepted. Measured drops ranged 0.463 to 0.000, well clear of the 0.001 threshold.",
+      "completed_date": "2026-09-13T02:30:00"
     }
   ],
   "recently_updated_files": [
