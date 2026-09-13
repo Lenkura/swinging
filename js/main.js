@@ -60,7 +60,14 @@ window.addEventListener('resize', fitToViewport);
 fitToViewport();
 
 // --- State machine ---
-// States: PICKER | SWINGING | IMPACT | RESULT
+// States: PICKER | READY | SWINGING | IMPACT | RESULT
+// READY is the pick-up beat: the rat lies on the ground with its tail sprawled
+// beside it and the rope built but NOT anchored, waiting to be grabbed. It also
+// removes the jolt that used to open every level - the pivot teleported from
+// the level position to wherever the cursor happened to be on the first
+// pointermove, whipping the rat. After a grab the pointer IS the pivot, so
+// there is no jump left to make.
+const GRAB_RADIUS = 44;   // the tail tip is a 5px body; this is a touch target
 const RAT_MAX_HP = 100;
 // px²·step⁻² per HP — raise to nerf damage, lower to buff.
 // TUNING GROUP: three feedback thresholds below are expressed in raw damage units and so
@@ -90,6 +97,9 @@ const FLASH_DURATION = 0.05;
 const SQUASH_DURATION = 0.12;
 let lastTime = null;
 let pivot = { x: 0, y: 0 };
+// Where the loose tail tip was spawned, so READY can highlight it. Null on the
+// rope=0 dev path, which has no rope and starts swinging immediately.
+let tailTip = null;
 let stringLength = 130;
 let lastOutcome = null;
 let lastScore = 0;
@@ -278,7 +288,10 @@ const SNAG_SPEED = 25;      // px/step below which the swing is going nowhere
 const SNAG_SECONDS = 2.5;
 let stuckTimer = 0;
 let snagHintShown = false;
-Input.onYank(() => {
+Input.onYank(pos => {
+  // In READY the same press is the pick-up, not a yank. Edge-triggered on the
+  // press rather than on the pointer merely being over the tail (L0081).
+  if (gameState === 'READY') { grabTail(pos.x, pos.y); return; }
   if (gameState !== 'SWINGING' || yankCooldown > 0) return;
   if (Physics.yankRope()) {
     yankCooldown = YANK_COOLDOWN;
@@ -326,28 +339,72 @@ function startLevel() {
 
   // Spawn rat and setup push-mode input
   const psl = level.pushStringLength || stringLength;
-  Physics.spawnRat(pivot.x, pivot.y + psl, selectedVariant);
-  if (ropeSegments > 0) {
-    Physics.attachRope(pivot.x, pivot.y, psl, ropeSegments);
+  const variant = RAT_VARIANTS[selectedVariant];
+  const grabStart = ropeSegments > 0;
+
+  if (grabStart) {
+    // Slumped on the ground, tail sprawled toward the targets - that is where
+    // the room is, since pivots sit at x 220-264 and the nearest target at 638.
+    const ratX = pivot.x;
+    const ratY = Physics.getGroundTop() - variant.radius;
+    Physics.spawnRat(ratX, ratY, selectedVariant);
+    // Tail base in body-local space, matching buildRope's pointB and drawRat.
+    const tailBaseX = ratX - variant.radius * 0.85;
+    const tailBaseY = ratY + variant.radius * 0.22;
+    // buildRope lays segment 0 (the hand end) at the origin and runs the chain
+    // toward the rat, so the origin is the far tip and the direction points back.
+    tailTip = { x: tailBaseX + psl, y: tailBaseY };
+    Physics.buildRope(tailTip.x, tailTip.y, psl, ropeSegments, undefined, -1, 0);
   } else {
+    // ?dev=1&rope=0 keeps the pre-rope single constraint AND the old immediate
+    // start, so dev/ab.mjs still compares like with like.
+    tailTip = null;
+    Physics.spawnRat(pivot.x, pivot.y + psl, selectedVariant);
     Physics.attachString(pivot.x, pivot.y, psl, 0.35);
   }
   Input.init(canvas, pivot);
   Input.attachToCanvas(canvas);
 
   UI.hidePicker();
-  UI.setHint(level.hint || 'Move the mouse to swing the rat! Chain hits for a combo bonus.');
+  lastOutcome = null;
+  lastScore = 0;
+  impactTimer = 0;
 
+  if (grabStart) {
+    gameState = 'READY';
+    UI.setHint('Grab the rat by the tail to pick it up!');
+  } else {
+    beginSwinging();
+  }
+}
+
+/** Hand control to the player: telemetry starts here, not at spawn. */
+function beginSwinging() {
+  const level = currentLevel();
+  UI.setHint(level.hint || 'Move the mouse to swing the rat! Chain hits for a combo bonus.');
   Telemetry.startRun({
     level: level.id, levelName: level.name, variant: selectedVariant,
     source: devSource, seed: devSeed,
   });
-
   startWhoosh();
   gameState = 'SWINGING';
-  lastOutcome = null;
-  lastScore = 0;
-  impactTimer = 0;
+}
+
+/**
+ * The pick-up. Anchors the rope at the pointer, so the hand starts exactly
+ * where the player pressed and the rat is hauled up by the rope going taut
+ * rather than by any animation.
+ */
+function grabTail(x, y) {
+  if (gameState !== 'READY') return false;
+  const rope = Physics.getRopeBodies();
+  if (!rope.length) return false;
+  if (!Input.isGrabHit({ x, y }, rope[0].position, GRAB_RADIUS)) return false;
+  Physics.anchorRope(x, y);
+  Input.setPivot({ x, y });
+  pivot = { x, y };
+  beginSwinging();
+  return true;
 }
 
 // --- Game Loop ---
@@ -528,6 +585,12 @@ if (DEV) {
       UI.hideResult();
       UI.hideLevelSelect();
       startLevel();
+      // Bots drive the pointer, not the picker, so they auto-grab and every rig
+      // (gate, batch, ab) keeps working without knowing READY exists.
+      const rope = Physics.getRopeBodies();
+      if (gameState === 'READY' && rope.length) {
+        grabTail(rope[0].position.x, rope[0].position.y);
+      }
     },
   });
 }
