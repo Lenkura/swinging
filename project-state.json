@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-13",
   "last_session_summary_path": "history/session-006-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 126's rebalance is IMPLEMENTED and committed on branch swinging/fix/variant-difficulty-rebalance (4 commits: 47896ac scoring, 595df2b the damage tuning group, 5a87212 levels and picker, bef72f7 a gate fix). 68/68 vitest and 91/91 gate, the latter verified over 5 consecutive foreground runs. The variants are now an explicit difficulty selector: heavy impactMultiplier 2.2 -> 1.4, DAMAGE_SCALE 200 -> 80, per-variant parHits 5/3, and calcPushScore scores each rat against its own par so neither is taxed. WHAT IS NOT YET TRUE: nothing has been measured. The predicted Level 1 outcome (standard ~5.2 hits, heavy ~3.4) is a linear extrapolation from two medians, and tasks 126 and 129 both stay open until task 133 - human Level 1 runs on both variants - confirms or refutes it. If standard lands at 6-7 rather than 5, the correction is parHits, NOT another DAMAGE_SCALE move. Task 132 also needs its picker labels and star thresholds eyeballed during that same session. NEXT: task 133.",
+  "current_activity": "Two threads in flight, stacked. (1) The task 126 rebalance is implemented and committed on swinging/fix/variant-difficulty-rebalance (5 commits, 68/68 vitest, 91/91 gate) but NOT yet measured - tasks 126 and 129 stay open until task 133. (2) Now building the tail-grab pickup on swinging/feat/tail-grab-pickup, branched off the rebalance rather than main, the same way segmented-rope stacked on its parents; task 133 needs both changes in one build anyway. The glitch was diagnosed, not guessed: the pivot teleports from the level position to the cursor on the first pointermove, whipping the rat. Grabbing the tail removes the jump by construction because the pointer is the grab point. Tasks 138-142; do 138 and 139 first, since 139 is a deliberately inert refactor that de-risks 140. NEXT: task 138.",
   "action_plan": [
     {
       "id": 45,
@@ -213,7 +213,7 @@
       "priority": "high",
       "status": "pending",
       "done_when": "Several L1 runs per variant recorded, standard median near 5 hits and heavy near 3, both scoring off the 200 floor, written up as a decisions entry with the actual numbers.",
-      "context": "This is what actually closes 126 and 129 - the design's predicted table is a linear extrapolation from two medians, not a result. If standard lands at 6-7 rather than 5, the correction is parHits, NOT another DAMAGE_SCALE move. Bot data cannot substitute: on L1 the bot is roughly twice as effective as a human (bot standard 6 vs human 10.5)."
+      "context": "This is what actually closes 126 and 129 - the design's predicted table is a linear extrapolation from two medians, not a result. If standard lands at 6-7 rather than 5, the correction is parHits, NOT another DAMAGE_SCALE move. Bot data cannot substitute: on L1 the bot is roughly twice as effective as a human (bot standard 6 vs human 10.5). SEQUENCING 2026-09-13: do NOT run this until the tail-grab pickup (tasks 138-142) lands. Every level will then open with hauling the rat off the ground, which changes the first few seconds of play, so measuring now would mean measuring again afterwards. The user reported 'a couple of runs, outcome seems about right' on 2026-09-13 - encouraging, but informal and not the recorded per-variant medians this task asks for, so 126 and 129 stay open."
     },
     {
       "id": 134,
@@ -246,6 +246,46 @@
       "status": "pending",
       "done_when": "The next time DAMAGE_SCALE moves, the three derived thresholds move with it in the same commit and in the same direction.",
       "context": "Added after scaling those thresholds the wrong way during task 131 - the inverse felt intuitive because DAMAGE_SCALE is a divisor, and the wide-bounded gate passed anyway. The note at main.js:63 spells out the direction explicitly for this reason (L0169)."
+    },
+    {
+      "id": 138,
+      "task": "physics.js - align the physics ground with the drawn surface and rest the rat on it",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "groundBody's top sits at y 580 instead of 620, spawnRat places the rat on that surface rather than at pivot + pushStringLength, and a local serve shows the rat sitting ON the drawn ground with shattered fragments coming to rest on the same line. Gate re-run for knock-on.",
+      "context": "Required by the tail-grab, not optional: the two floors are 40px apart, so a rat posed on the ground would be almost entirely buried. Also fixes the pre-existing fragment sink that paintSplat currently papers over by drawing decals at the visual line."
+    },
+    {
+      "id": 139,
+      "task": "physics.js - split attachRope into a chain build and anchorRope(x, y), with NO behaviour change",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "attachRope calls the two new pieces back to back and everything still behaves identically: npm run gate 91/91 and npx vitest run green.",
+      "context": "Deliberately inert on its own. Proving the refactor changes nothing before deferring the anchor is what keeps the next step debuggable - if READY misbehaves afterwards, the rope split is already ruled out."
+    },
+    {
+      "id": 140,
+      "task": "main.js + input.js - the READY state and the tail grab",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "startLevel stops at READY with the rope unanchored; grabTail(x, y) creates the anchor at the pointer, fires Telemetry.startRun and enters SWINGING; onYank carries the pointerdown position; beginRun auto-grabs. Gate still 91/91 (proving the rigs are unaffected) and by hand the game sits still until the tail is clicked, then swings with no jump.",
+      "context": "The two existing input handlers already early-return unless gameState is SWINGING, so READY is inert for pivot-follow and yank without restructuring input dispatch (L0107). The only gap is that onYank is called with no arguments, so the grab has no position to hit-test. Watch pivotTarget/pivotActual, which attachRope sets at build time and which must not be treated as live while unanchored."
+    },
+    {
+      "id": 141,
+      "task": "renderer.js - unanchored tail rendering, tail-tip highlight and grab prompt",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "drawTail omits the pivot control point when unanchored (otherwise the tail draws to a stale pivot), the tail tip pulses in READY, and a prompt tells the player to grab it. Observed on a local serve.",
+      "context": "Discoverability is load-bearing here, not polish: the grab is mandatory and the game cannot start without it (L0364)."
+    },
+    {
+      "id": 142,
+      "task": "dev/gate.mjs non-dev tail click, plus unit cases for the grab hit-test",
+      "priority": "high",
+      "status": "pending",
+      "done_when": "npx vitest run green and FIVE consecutive npm run gate runs at 91/91.",
+      "context": "The gate's non-dev path has no harness access, so it must click a deterministic tail position - which is why the tail spawns as a straight horizontal line at rest rather than being dropped and left to settle. Five runs rather than one because the last gate change presented as a 43% flake that a single run would have missed."
     }
   ],
   "recently_updated_files": [
@@ -457,6 +497,11 @@
       "date": "2026-09-13",
       "decision": "Task 126 resolved by design gate: the rat variants become an explicit difficulty selector with par-relative scoring. Heavy impactMultiplier 2.2 -> 1.4, DAMAGE_SCALE 200 -> 80, per-variant parHits (standard 5, heavy 3), calcPushScore gains a parHits parameter, and the picker gets Hard/Easy labels. No score tax.",
       "rationale": "The game has no cost axis at all: the rat's only resource is HP and spending HP is winning, so impactMultiplier is one-sided and any variant carrying more of it is permanently strictly better (L0250). Reading the code settled what the task description left open - main.js:247 ends the level when the rat's own HP hits 0 and calcPushScore(hitCount) is the only scored term, so targets are anvils and hits are the sole metric. Two findings redirected the fix. First, calcPushScore has a live gradient only from 1 to 6 hits and standard's measured median of 10.5 sits four hits past the end of it, so a standard player improving 17 -> 11 hits sees no score change at all; that unscorable band, not the variant gap, is the substance of task 129, and no score multiplier addresses it. Second, the hard/easy axis is already physically real and shipped: radius 22 vs 18 produces 15% vs 31% glancing hits through angleFactor, which is a shaped cost rather than a described one (L0373). So the design keeps the precision gap as the difficulty axis, closes the unjustified raw-damage gap on top of it, and pulls both variants inside the live scoring range. Par-relative scoring was chosen over the flat score multiplier sketched in the earlier options because the 500-per-hit curve is steep enough that any sane multiplier has to be re-derived every time a hit count moves; scoring each variant against its own par lets both reach 3000 by mastery, makes standard's harder par pay more for the same absolute feat, and - with parHits defaulting to 1 - leaves the existing function behaviour and all 6 scoring tests untouched. REJECTED: per-material variant affinity (a real strategic choice, but a larger new mechanic); equalising power and differentiating on feel alone (removes strategy); relabel-plus-multiplier only (3 lines, but leaves 129 unfixed on the 200 floor). ACCEPTED CONSEQUENCES: cross-variant high scores stop being directly comparable, and saved scores earned on the old scale will be beaten easily - no migration for a single-player local game. COUPLING CHECK (L0169): three feedback constants read raw damage magnitude - damageIntensity /240, shakeIntensity /80, and hitStopTimer derived from the former - so their divisors scale by the same 2.5 (to 96 and 32) to hold felt output constant and keep hit count the only variable this change introduces (L0227). Noted while checking: damageIntensity currently peaks at 0.08 of its range, so burst scaling and hit-stop are effectively dormant at today's damage values - logged as its own task rather than fixed by accident."
+    },
+    {
+      "date": "2026-09-13",
+      "decision": "Add a READY state between PICKER and SWINGING: the rat starts slumped on the ground with its tail stretched out beside it, and the player grabs the tail tip to begin play. The lift is done by the game's own physics - grabbing creates the pivot constraint at the pointer, and raising the hand pulls the rope taut and hauls the rat up - rather than by an animation or a snap.",
+      "rationale": "The reported glitch on entering a level was diagnosed rather than assumed: the rat spawns motionless at pivot + pushStringLength (L1: pivot y 310, rat y 440) and nothing moves until the first pointermove over the canvas, at which point the pivot TELEPORTS from the level-defined position to wherever the cursor happens to be - usually still over the Launch button - and whips the rat. A tail grab fixes this by construction, because the pointer IS the grab point, so there is no jump left to make. Chosen over two alternatives: a scripted lift tween (an input-locked animation is the same class of thing that reads as glitchy, and it re-creates in code what gravity already does) and an instant snap on grab (cheapest, but it relocates the teleport to the moment of the grab rather than removing it). The physics lift also turned out to be the LEAST code: attachRope already builds the segment chain, the segment-to-segment constraints and the rat link as separate blocks, with the pivot anchor (stringConstraint, pointA -> ropeBodies[0]) as one distinct block, so deferring that single block is the whole feature and ropeBodies[0] becomes the free tail tip that serves as the grab target. TWO CONSTRAINTS BUILT IN RATHER THAN BOLTED ON: (1) the grab is now mandatory, and an untaught mandatory affordance is a hard stop - the game cannot start at all if the player does not find it - which is L0364 logged from this very project when the yank quietly became load-bearing while still untaught; hence a prompt, a pulsing tip highlight, and a hit radius sized for touch rather than for the 5px segment body. (2) the dev rigs drive beginRun() directly (gate.mjs, run-batch.mjs, ab.mjs), so beginRun auto-grabs and no rig needs special-casing. BLOCKER FOUND DURING DESIGN: the physics floor and the drawn floor do not line up - groundBody's top surface is at y 620, the canvas bottom edge, while drawGround paints its surface line at y 580. Fragments already sink 40px into the dirt and paintSplat hides it by drawing decals at the visual line regardless of where the body actually is. A rat posed on the ground would be almost entirely buried, so aligning the ground is a required part of this change, not a bonus; it also fixes the pre-existing fragment sink. Levels are unaffected because the lowest target sits around y 459. ACCEPTED CONSEQUENCE: every level now opens with hauling the rat up, so bot baselines shift and task 133's human measurement must wait until this lands, or the rebalance gets measured twice."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
