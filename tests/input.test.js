@@ -131,3 +131,39 @@ describe('coordinate scaling', () => {
     expect(pos.y).toBeCloseTo(270)
   })
 })
+
+// -------------------------------------------------------------------
+// isGrabHit — the tail pick-up test. Generous on purpose: the tip is a
+// 5px physics body, and a missed grab leaves the player unable to start
+// the level at all, so a false negative costs far more than a false positive.
+// -------------------------------------------------------------------
+describe('isGrabHit', () => {
+  const tip = { x: 350, y: 566 }
+
+  it('a press exactly on the tip is a hit', () => {
+    expect(Input.isGrabHit({ x: 350, y: 566 }, tip, 44)).toBe(true)
+  })
+
+  it('a press inside the radius is a hit', () => {
+    expect(Input.isGrabHit({ x: 380, y: 586 }, tip, 44)).toBe(true)   // 36.1 away
+  })
+
+  it('a press just outside the radius is a miss', () => {
+    expect(Input.isGrabHit({ x: 350, y: 611 }, tip, 44)).toBe(false)  // 45 away
+  })
+
+  it('the boundary itself counts as a hit', () => {
+    expect(Input.isGrabHit({ x: 394, y: 566 }, tip, 44)).toBe(true)   // exactly 44
+  })
+
+  it('is circular, not a bounding box', () => {
+    // Inside a 44 square, outside a 44 circle: 56.6 away on the diagonal.
+    expect(Input.isGrabHit({ x: 390, y: 606 }, tip, 44)).toBe(false)
+  })
+
+  it('a missing pointer or tip is a miss, never a throw', () => {
+    expect(Input.isGrabHit(null, tip, 44)).toBe(false)
+    expect(Input.isGrabHit({ x: 350, y: 566 }, null, 44)).toBe(false)
+  })
+})
+
