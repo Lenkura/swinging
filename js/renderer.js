@@ -1,6 +1,7 @@
 import { RAT_VARIANTS } from './rat.js';
 import { MATERIALS } from './target.js';
 import * as Particles from './particles.js';
+import { GROUND_TOP_INSET } from './physics.js';
 
 let canvas, ctx;
 let canvasW, canvasH;
@@ -27,7 +28,7 @@ export function paintSplat(x, intensity, scale = 1) {
     decalCanvas.height = canvasH;
     decalCtx = decalCanvas.getContext('2d');
   }
-  const groundTop = canvasH - 40; // surface line drawn by drawGround
+  const groundTop = canvasH - GROUND_TOP_INSET; // surface line drawn by drawGround
   const count = Math.round((3 + intensity * 5) * scale);
   for (let i = 0; i < count; i++) {
     const sx = x + (Math.random() - 0.5) * (70 + intensity * 90) * scale;

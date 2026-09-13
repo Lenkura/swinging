@@ -12,6 +12,14 @@ const { Engine, Bodies, Body, Composite, Constraint, Events, World, Query } = Ma
 // through floors and why rope could not be made to hit world geometry without
 // also hitting the rat it hangs from. 0x0008 appeared in the fragment mask but
 // was never assigned to any body; it is gone.
+// The drawn ground surface sits this far above the canvas bottom - drawGround
+// paints its surface line there. The physics floor has to match it, or bodies
+// come to rest 40px inside the dirt: that was true until the tail-grab needed a
+// rat posed on the ground, and paintSplat had been papering over it by drawing
+// decals at the visual line regardless of where the body actually was. Exported
+// and imported by renderer.js so the two definitions cannot drift apart (L0182).
+export const GROUND_TOP_INSET = 40;
+
 export const CAT = {
   RAT: 0x0001,
   TARGET: 0x0002,   // targets and bumpers
@@ -66,7 +74,8 @@ export function init(width, height) {
   });
   world = engine.world;
 
-  groundBody = Bodies.rectangle(width / 2, height + 25, width * 3, 50, {
+  // Half-height 25, so the centre sits 25 below the surface the player sees.
+  groundBody = Bodies.rectangle(width / 2, height - GROUND_TOP_INSET + 25, width * 3, 50, {
     isStatic: true, label: 'ground', friction: 0.6, restitution: 0.2,
     collisionFilter: { category: CAT.WORLD, mask: MASK.WORLD },
   });
@@ -772,6 +781,9 @@ export function detachString() {
     stringConstraint = null;
   }
 }
+
+/** Y of the ground surface bodies come to rest on - the line drawGround paints. */
+export function getGroundTop() { return canvasH - GROUND_TOP_INSET; }
 
 export function getRatBody() { return ratBody; }
 export function getTargetBodies() { return targetBodies; }
