@@ -355,6 +355,7 @@ function startLevel() {
     // toward the rat, so the origin is the far tip and the direction points back.
     tailTip = { x: tailBaseX + psl, y: tailBaseY };
     Physics.buildRope(tailTip.x, tailTip.y, psl, ropeSegments, undefined, -1, 0);
+    Physics.freezeForGrab();
   } else {
     // ?dev=1&rope=0 keeps the pre-rope single constraint AND the old immediate
     // start, so dev/ab.mjs still compares like with like.
@@ -520,6 +521,7 @@ function gameLoop(timestamp) {
     fragmentBodies: Physics.getFragmentBodies(),
     stringConstraint: constraint,
     ropeBodies: Physics.getRopeBodies(),
+    grabTip: gameState === 'READY' ? (Physics.getRopeBodies()[0]?.position ?? tailTip) : null,
     angularSpeed,
     hpFraction: ratHp / RAT_MAX_HP,
     hitCount,

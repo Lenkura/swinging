@@ -422,6 +422,19 @@ export function buildRope(originX, originY, length, segments = 10, stiffness = r
 }
 
 /**
+ * Holds the pre-grab pose exactly as spawned by making the rat and every rope
+ * segment static. Without this the chain settles into a pile within a second:
+ * pairwise constraints keep neighbours 13px apart but nothing keeps the tail
+ * straight, so it coils. Freezing buys a tidy laid-out tail AND a tail tip at a
+ * position that can be computed rather than observed - which dev/gate.mjs needs,
+ * having no harness access on the non-dev path. anchorRope thaws it.
+ */
+export function freezeForGrab() {
+  if (ratBody) Body.setStatic(ratBody, true);
+  ropeBodies.forEach(b => Body.setStatic(b, true));
+}
+
+/**
  * Hangs an already-built rope from a hand position - this is the grab. Creates
  * the one constraint buildRope deliberately leaves out, and only then do
  * pivotTarget/pivotActual become live: until a hand is holding the tail there
@@ -429,6 +442,9 @@ export function buildRope(originX, originY, length, segments = 10, stiffness = r
  */
 export function anchorRope(x, y, stiffness = ropeConfig.stiffness) {
   if (!ropeBodies.length || stringConstraint) return null;
+  // Thaw whatever freezeForGrab froze - the grab is where physics takes over.
+  if (ratBody) Body.setStatic(ratBody, false);
+  ropeBodies.forEach(b => Body.setStatic(b, false));
   pivotTarget = { x, y };
   pivotActual = { x, y };
   // Hand -> first segment. Length 0: the rope's own segments provide reach.

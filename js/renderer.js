@@ -74,6 +74,7 @@ export function draw({
   fragmentBodies,
   stringConstraint,
   ropeBodies = null,
+  grabTip = null,
   angularSpeed,
   hpFraction = 1.0,
   hitCount = 0,
@@ -98,7 +99,12 @@ export function draw({
 
   const ratVariant = yoyoBody ? RAT_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'] : null;
 
-  const showTail = stringConstraint && yoyoBody && (state === 'SWINGING' || state === 'IDLE_ARMED');
+  // In READY the rope exists but nothing holds it - the tail lies on the ground
+  // waiting to be grabbed - so it has to draw despite there being no anchor.
+  const showTail = yoyoBody && (
+    (stringConstraint && (state === 'SWINGING' || state === 'IDLE_ARMED')) ||
+    (state === 'READY' && !!ropeBodies?.length)
+  );
   // A drawn tail sits behind the scenery; a physical rope must sit in front of
   // it, or a rope caught on a bumper renders as a straight line disappearing
   // behind the very obstacle it is snagged on.
@@ -126,6 +132,7 @@ export function draw({
 
   drawSpeedMeter(angularSpeed);
   if (stringConstraint) drawPivotHand(pivot, state);
+  if (state === 'READY' && grabTip) drawGrabHint(grabTip);
   drawHpBar(hpFraction);
   drawHitCounter(hitCount);
   drawCombo(comboCount);
@@ -238,7 +245,9 @@ function drawTail(pivot, body, normalizedSpeed, constraint, variant, ropeBodies)
   // are, so a rope draped over a bumper looks draped instead of tracing a
   // clean parabola through it.
   if (ropeBodies && ropeBodies.length) {
-    const control = [{ x: px, y: py }];
+    // With no constraint there is no hand yet, so the tail starts at its own
+    // free tip; prepending the stale level pivot would draw a line to nowhere.
+    const control = constraint ? [{ x: px, y: py }] : [];
     for (const seg of ropeBodies) control.push({ x: seg.position.x, y: seg.position.y });
     control.push({ x: ex, y: ey });
     strokeTaperedTail(smoothPolyline(control), r, variant);
@@ -863,6 +872,39 @@ function drawSpeedMeter(normalizedSpeed) {
   ctx.font = 'bold 10px system-ui';
   ctx.textAlign = 'center';
   ctx.fillText('SPIN', cx, cy + 14);
+}
+
+/**
+ * Marks the tail tip in READY. Not decoration: the grab is mandatory and the
+ * game cannot start without it, so an unfound tip is a dead game (L0364). The
+ * solid core stays fully opaque through the pulse so the target never fades
+ * out, and the ring only breathes around it.
+ */
+function drawGrabHint(tip) {
+  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 1000 * 4);
+  ctx.save();
+
+  ctx.beginPath();
+  ctx.arc(tip.x, tip.y, 16 + pulse * 11, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(249,199,79,${0.7 - pulse * 0.4})`;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(tip.x, tip.y, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#f9c74f';
+  ctx.fill();
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.font = 'bold 15px system-ui';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 4;
+  ctx.fillText('Grab the tail!', tip.x, tip.y - 34);
+  ctx.restore();
 }
 
 function drawPivotHand(pivot, state) {
