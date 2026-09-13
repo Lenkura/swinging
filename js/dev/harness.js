@@ -90,6 +90,9 @@ export function initDev(injected) {
         rat: ratState(),
         targets: (Physics.getTargetBodies() || []).map(b => ({
           x: b.position.x, y: b.position.y, isShield: Boolean(b.plugin.isShield),
+          // Exposed so shield tiers are inspectable: a tier resolves to these two
+          // values, and without them a mis-resolved tier is invisible to any rig.
+          material: b.plugin.materialKey, breakSpeed: b.plugin.breakSpeed,
         })),
         rope: (Physics.getRopeBodies() || []).map(b => ({
           x: Math.round(b.position.x), y: Math.round(b.position.y),

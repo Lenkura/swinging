@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getLevel, saveProgress, loadProgress, LEVELS } from '../js/levels.js'
+import { SHIELD_TIERS } from '../js/target.js'
 
 const SAVE_KEY = 'yoyo_progress'
 
@@ -53,13 +54,18 @@ describe('getLevel', () => {
     expect(level.pivot.y).toBeLessThanOrEqual(1)
   })
 
-  it('each target has shape, x, y, material fields', () => {  // spec row 7
+  it('each target has shape, x, y, and exactly one appearance source', () => {  // spec row 7
+    // Appearance comes from `material` for a normal target and from `shieldTier`
+    // for a shield, which resolves to a material. Requiring exactly one of the
+    // two is stricter than the original "must have material" and keeps its
+    // intent: every target is fully specified by its level data.
     for (const level of LEVELS) {
       for (const target of level.targets) {
         expect(typeof target.shape).toBe('string')
         expect(typeof target.x).toBe('number')
         expect(typeof target.y).toBe('number')
-        expect(typeof target.material).toBe('string')
+        const sources = [target.material, target.shieldTier].filter(v => typeof v === 'string')
+        expect(sources, `L${level.id} target appearance`).toHaveLength(1)
       }
     }
   })
@@ -130,5 +136,38 @@ describe('saveProgress', () => {
     const data = loadProgress()
     expect(data.highScores[1]).toBe(1000)
     expect(data.highScores[2]).toBe(2500)
+  })
+})
+
+// -------------------------------------------------------------------
+// Shields are authored by tier, never by a raw speed. The point is that
+// a level cannot reintroduce an unreachable threshold by hand.
+// -------------------------------------------------------------------
+describe('level shield authoring', () => {
+  const shields = LEVELS.flatMap(l =>
+    (l.targets || []).filter(t => t.isShield).map(t => ({ level: l.id, t })))
+
+  it('there are shields to check', () => {
+    expect(shields.length).toBeGreaterThan(0)
+  })
+
+  it('every shield names a known tier', () => {
+    for (const { level, t } of shields) {
+      expect(Object.keys(SHIELD_TIERS), `L${level} shieldTier`).toContain(t.shieldTier)
+    }
+  })
+
+  it('no shield carries a hand-written breakSpeed', () => {
+    // The tier table is the single dial; a raw override is how the unreachable
+    // 180 threshold got in, and how two dials for one thing would come back.
+    for (const { level, t } of shields) {
+      expect(t.breakSpeed, `L${level} should use shieldTier, not breakSpeed`).toBeUndefined()
+    }
+  })
+
+  it('no shield hardcodes a material — the tier supplies it', () => {
+    for (const { level, t } of shields) {
+      expect(t.material, `L${level} shield material comes from its tier`).toBeUndefined()
+    }
   })
 })

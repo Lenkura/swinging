@@ -94,7 +94,7 @@
 | 4 | Returns LEVELS[0] (fallback) for id = 0 | Boundary | High |
 | 5 | Returned level has required fields: id, name, pivot, targets, parScore, stringLength | Structure | High |
 | 6 | pivot has x and y fields (both numbers in 0–1 range) | Structure | Medium |
-| 7 | Each target has shape, x, y, material fields | Structure | Medium |
+| 7 | Each target has shape, x, y, and exactly one appearance source (`material`, or `shieldTier` for shields) | Structure | Medium |
 
 ### Edge cases and unhappy paths
 

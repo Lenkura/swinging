@@ -316,6 +316,12 @@ function drawTrail(yoyo, level) {
   }
 }
 
+/** "#a8d8ea" -> "rgba(168,216,234,0.35)". Used to tint a shield by its tier. */
+function hexToRgba(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
 function blendHexColors(hexA, hexB, t) {
   const a = parseInt(hexA.slice(1), 16);
   const b = parseInt(hexB.slice(1), 16);
@@ -545,10 +551,15 @@ function drawTargets(targets) {
   for (const body of targets) {
     const mat = MATERIALS[body.plugin.materialKey];
     const isShield = body.plugin.isShield;
+    // A shield keeps its translucent, glowing look but takes its TIER's colour:
+    // the tier resolves to a material, and if every shield rendered the same
+    // pale blue the player could not tell a light one from a heavy one, which
+    // is the entire point of tiering them (glass = light, wood = medium,
+    // steel = heavy). Previously this was hardcoded to rgba(180,230,255,0.35).
     const fillColor = isShield
-      ? 'rgba(180,230,255,0.35)'
+      ? hexToRgba(mat.color, 0.35)
       : (body.plugin.cracked ? mat.crackedColor : mat.color);
-    const strokeColor = isShield ? '#88ddff' : mat.outlineColor;
+    const strokeColor = isShield ? mat.color : mat.outlineColor;
 
     if (body.plugin.isCircle) {
       drawCircleBody(body, fillColor, strokeColor);

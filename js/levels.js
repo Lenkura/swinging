@@ -72,7 +72,7 @@ export const LEVELS = [
     pushStringLength: 140,
     targets: [
       { shape: 'rectangle', w: 70, h: 92, x: 0.72, y: 0.56, material: 'wood' },
-      { shape: 'rectangle', w: 14, h: 104, x: 0.58, y: 0.56, material: 'glass', isShield: true, breakSpeed: 100 },
+      { shape: 'rectangle', w: 14, h: 104, x: 0.58, y: 0.56, isShield: true, shieldTier: 'light' },
     ],
     parScore: 2000,
     pushParScore: 3000,
@@ -89,9 +89,9 @@ export const LEVELS = [
     pushStringLength: 130,
     targets: [
       { shape: 'rectangle', w: 56, h: 76, x: 0.68, y: 0.54, material: 'wood' },
-      { shape: 'rectangle', w: 12, h: 88, x: 0.57, y: 0.54, material: 'glass', isShield: true, breakSpeed: 100 },
+      { shape: 'rectangle', w: 12, h: 88, x: 0.57, y: 0.54, isShield: true, shieldTier: 'light' },
       { shape: 'rectangle', w: 56, h: 76, x: 0.82, y: 0.54, material: 'steel' },
-      { shape: 'rectangle', w: 14, h: 88, x: 0.74, y: 0.54, material: 'wood', isShield: true, breakSpeed: 180 },
+      { shape: 'rectangle', w: 14, h: 88, x: 0.74, y: 0.54, isShield: true, shieldTier: 'medium' },
     ],
     parScore: 2400,
     pushParScore: 3000,
@@ -108,8 +108,8 @@ export const LEVELS = [
     pushStringLength: 120,
     targets: [
       { shape: 'rectangle', w: 82, h: 102, x: 0.78, y: 0.53, material: 'steel', movement: { axis: 'y', range: 0.04, period: 2.5 } },
-      { shape: 'rectangle', w: 12, h: 114, x: 0.60, y: 0.53, material: 'glass', isShield: true, breakSpeed: 100 },
-      { shape: 'rectangle', w: 14, h: 114, x: 0.68, y: 0.53, material: 'wood', isShield: true, breakSpeed: 180 },
+      { shape: 'rectangle', w: 12, h: 114, x: 0.60, y: 0.53, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 14, h: 114, x: 0.68, y: 0.53, isShield: true, shieldTier: 'heavy' },
     ],
     parScore: 2800,
     pushParScore: 3000,
@@ -173,7 +173,7 @@ export const LEVELS = [
       { shape: 'rectangle', w: 55, h: 76, x: 0.74, y: 0.52, material: 'wood' },
       { shape: 'circle', r: 28, x: 0.66, y: 0.66, material: 'glass' },
       { shape: 'rectangle', w: 60, h: 86, x: 0.86, y: 0.56, material: 'steel', movement: { axis: 'x', range: 0.03, period: 2.0 } },
-      { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.52, material: 'glass', isShield: true, breakSpeed: 100 },
+      { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.52, isShield: true, shieldTier: 'medium' },
     ],
     bumpers: [
       { x: 0.48, y: 0.54, radius: 22 },
