@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { evaluateImpact, getFragmentVerts, generateCrackPattern, MATERIALS } from '../js/target.js'
+import {
+  evaluateImpact, getFragmentVerts, generateCrackPattern, MATERIALS,
+  applyDamageCap, MAX_HIT_DAMAGE_FRACTION,
+} from '../js/target.js'
 
 const glass = MATERIALS.glass   // strength: 220, crackThreshold: 85
 const wood  = MATERIALS.wood    // strength: 620, crackThreshold: 260
@@ -153,5 +156,72 @@ describe('generateCrackPattern', () => {
 
   it('generateCrackPattern(6) returns 6 lines (as called in physics.js)', () => {  // spec row 6
     expect(generateCrackPattern(6)).toHaveLength(6)
+  })
+})
+
+// -------------------------------------------------------------------
+// applyDamageCap — the per-hit bound on HP loss.
+// Measured 2026-09-13: 34% of human hits would otherwise end a level
+// outright. Asserted against MAX_HIT_DAMAGE_FRACTION rather than the
+// literal 40, so retuning the fraction stays legal (L0352).
+// -------------------------------------------------------------------
+describe('applyDamageCap', () => {
+  const HP = 100
+  const ceiling = HP * MAX_HIT_DAMAGE_FRACTION
+
+  it('passes a small hit through untouched', () => {
+    expect(applyDamageCap(12.5, HP)).toBe(12.5)
+  })
+
+  it('clamps a hit that would end the level outright', () => {
+    expect(applyDamageCap(426, HP)).toBe(ceiling)
+  })
+
+  it('the ceiling itself passes through unchanged', () => {
+    expect(applyDamageCap(ceiling, HP)).toBe(ceiling)
+  })
+
+  it('a hit just under the ceiling is not clamped', () => {
+    expect(applyDamageCap(ceiling - 0.01, HP)).toBeCloseTo(ceiling - 0.01)
+  })
+
+  it('scales with maxHp rather than assuming 100', () => {
+    expect(applyDamageCap(999, 250)).toBe(250 * MAX_HIT_DAMAGE_FRACTION)
+    expect(applyDamageCap(999, 50)).toBe(50 * MAX_HIT_DAMAGE_FRACTION)
+  })
+
+  it('guarantees no hit can end a full-HP rat on its own', () => {
+    expect(applyDamageCap(Number.MAX_SAFE_INTEGER, HP)).toBeLessThan(HP)
+  })
+
+  it('leaves zero and negative values alone rather than inventing damage', () => {
+    expect(applyDamageCap(0, HP)).toBe(0)
+    expect(applyDamageCap(-5, HP)).toBe(-5)
+  })
+})
+
+// -------------------------------------------------------------------
+// Material spread — a shape assertion, not pinned values (L0381).
+// The point of the 2026-09-13 rebalance is that no material dominates,
+// which is a property of the spread rather than of any one number.
+// -------------------------------------------------------------------
+describe('material yoyoDamage spread', () => {
+  const values = Object.values(MATERIALS).map(m => m.yoyoDamage)
+
+  it('every material declares a positive yoyoDamage', () => {
+    for (const [name, m] of Object.entries(MATERIALS)) {
+      expect(typeof m.yoyoDamage, `${name}.yoyoDamage`).toBe('number')
+      expect(m.yoyoDamage).toBeGreaterThan(0)
+    }
+  })
+
+  it('no material deals more than 1.5x another', () => {
+    // Steel was 2.67x glass, which made it strictly better and inverted the
+    // difficulty curve: tougher material damaged your own rat more.
+    expect(Math.max(...values) / Math.min(...values)).toBeLessThanOrEqual(1.5)
+  })
+
+  it('keeps steel above glass, so materials still differ in character', () => {
+    expect(MATERIALS.steel.yoyoDamage).toBeGreaterThan(MATERIALS.glass.yoyoDamage)
   })
 })

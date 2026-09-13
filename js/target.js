@@ -1,3 +1,40 @@
+/**
+ * No single hit may remove more than this fraction of the rat's HP.
+ *
+ * Damage goes as speed squared and swing speed varies about 4x within a run, so
+ * the damage distribution has a very long tail: measured 2026-09-13 over 61
+ * human hits, p50 was 41 but p75 was 113 and the max 426 against a 100 HP rat -
+ * 34% of all hits ended the level outright, including 60% of steel hits. The
+ * medians were already right; only the tail was broken, so the fix is a bound
+ * rather than a rescale. This is the explicit bound a one-sided knob needs
+ * (L0250): more damage per hit is purely good in this game, so nothing else
+ * stops it climbing.
+ *
+ * The clamp applies to the HP subtraction ONLY. Screen shake, hit-stop and the
+ * particle burst all read the raw uncapped value, so a monster hit still feels
+ * enormous while removing 40 HP - and the feedback constants in main.js stay
+ * tuned against raw damage, exactly as they were.
+ */
+export const MAX_HIT_DAMAGE_FRACTION = 0.40;
+
+/** Clamp a raw damage value to the per-hit ceiling. Pure; maxHp is passed in. */
+export function applyDamageCap(rawDamage, maxHp) {
+  return Math.min(rawDamage, maxHp * MAX_HIT_DAMAGE_FRACTION);
+}
+
+/**
+ * `yoyoDamage` is the ONLY field here with a mechanical effect - it is how much
+ * hitting this material hurts your own rat, which is how you win. `strength`,
+ * `crackThreshold` and `hardnessFactor` feed evaluateImpact, whose result
+ * main.js destructures and never uses, and regular targets are never removed.
+ *
+ * The spread is deliberately narrow (0.85 / 1.0 / 1.15, was 0.6 / 1.0 / 1.6).
+ * Because damage is purely good, a wide spread made steel strictly better than
+ * glass and inverted the difficulty curve - the tougher material damaged your
+ * own rat more, so the hard levels were the easy ones to score on. Keep overall
+ * pace on DAMAGE_SCALE, which is the single pace dial; scaling every
+ * yoyoDamage by the same factor is that same dial under another name (L0409).
+ */
 export const MATERIALS = {
   glass: {
     strength: 220,
@@ -7,7 +44,7 @@ export const MATERIALS = {
     restitution: 0.1,
     density: 0.002,
     hardnessFactor: 0.6,
-    yoyoDamage: 0.6,
+    yoyoDamage: 0.85,   // was 0.6; see the narrowed spread note above MATERIALS
     color: '#a8d8ea',
     crackedColor: '#6ba3be',
     outlineColor: '#3a7ca5',
@@ -37,7 +74,7 @@ export const MATERIALS = {
     restitution: 0.55,
     density: 0.012,
     hardnessFactor: 1.6,
-    yoyoDamage: 1.6,
+    yoyoDamage: 1.15,   // was 1.6; steel one-shot the rat on 60% of hits
     color: '#8a9ba8',
     crackedColor: '#5a6b78',
     outlineColor: '#2c3e50',
