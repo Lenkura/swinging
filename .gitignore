@@ -24,3 +24,4 @@ history/*.flag
 dev/runs/
 dev/*.png
 dev/_verify*.mjs
+temp/
