@@ -291,7 +291,7 @@ are useful tuning levers.
 
 Serve the project and open `/?dev=1`. Every completed level prints a summary to
 the console and stores the full document in `localStorage` (`yoyo_dev_runs`,
-last 10 runs, separate from `yoyo_progress`). `__ratsmashTelemetry.exportRuns()`
+last 100 runs, separate from `yoyo_progress`). `__ratsmashTelemetry.exportRuns()`
 downloads them all as JSON. A run is only recorded end-to-end if you reach the
 result screen — abandoning to the level select discards it.
 
