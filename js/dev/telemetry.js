@@ -168,6 +168,9 @@ export function endRun({ outcome, score, hitCount }) {
     maxCombo: run.hits.reduce((m, h) => Math.max(m, h.combo || 0), 0),
     speed: summarise(run._speeds),
     damage: summarise(damaging.map(h => h.damage)),
+    // Uncapped, so the tail stays visible after applyDamageCap flattens `damage`
+    // to a ceiling. The 2026-09-13 cap was derived from exactly this series.
+    rawDamage: summarise(damaging.map(h => h.rawDamage ?? h.damage)),
     angleFactor: summarise(damaging.map(h => h.angleFactor)),
     frameMs: summarise(run._frameMs),
     ropeBend: summarise(run._bend),

@@ -5,7 +5,7 @@ import * as Particles from './particles.js';
 import * as UI from './ui.js';
 import { RAT_VARIANTS } from './rat.js';
 import { LEVELS, getLevel, saveProgress, loadProgress } from './levels.js';
-import { generateCrackPattern } from './target.js';
+import { generateCrackPattern, applyDamageCap } from './target.js';
 import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak, startWhoosh, updateWhoosh, stopWhoosh } from './audio.js';
 import { calcPushScore, comboMultiplier } from './scoring.js';
 
@@ -74,6 +74,8 @@ const RAT_MAX_HP = 100;
 // are derived from this value — damageIntensity's /600, and the shake/hit-stop gate at 300
 // with its /200 divisor. Lowering DAMAGE_SCALE raises damage, so those three scale in the
 // SAME direction by the SAME factor, in the same commit. At 200 they were 240, 120 and 80.
+// Those three read rawDamage, NOT the capped value (see applyDamageCap in target.js), so
+// the per-hit cap does not silently mute them - it bounds play, not feel.
 const DAMAGE_SCALE = 80;
 
 let gameState = 'PICKER';
@@ -222,16 +224,22 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
     comboCount++;
     comboTimer = COMBO_WINDOW;
 
-    const damage = speed * speed * af * (material.yoyoDamage || 1.0) * (yoyo.plugin.impactMultiplier || 1.0) * cm / DAMAGE_SCALE;
+    // rawDamage drives how the hit FEELS - shake, hit-stop, particle burst - and
+    // is deliberately unbounded, so a monster swing still reads as one. Only the
+    // HP subtraction is capped, which is what stops a single hit ending a level.
+    const rawDamage = speed * speed * af * (material.yoyoDamage || 1.0) * (yoyo.plugin.impactMultiplier || 1.0) * cm / DAMAGE_SCALE;
+    const damage = applyDamageCap(rawDamage, RAT_MAX_HP);
     ratHp = Math.max(0, ratHp - damage);
     hitCount++;
     hitCooldown = 0.35;
-    playHit(target.plugin.materialKey, Math.min(damage / RAT_MAX_HP, 1), comboCount);
+    playHit(target.plugin.materialKey, Math.min(rawDamage / RAT_MAX_HP, 1), comboCount);
     playComboTone(comboCount);
 
     Telemetry.recordHit({
       kind: 'damage', speed, angleFactor: af, material: target.plugin.materialKey,
-      damage, combo: comboCount, multiplier: cm, hpAfter: ratHp, hitIndex: hitCount,
+      // Both, on purpose: once damage is capped it reads as a flat ceiling, and
+      // the tail that justified the cap would be invisible to the next analysis.
+      damage, rawDamage, combo: comboCount, multiplier: cm, hpAfter: ratHp, hitIndex: hitCount,
     });
 
     if (af < 0.55) {
@@ -240,12 +248,15 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, materia
       hitLabel = { text: 'CLEAN HIT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#80ffdb' };
     }
 
-    const intensity = damageIntensity(damage);
+    // Feedback reads rawDamage, not the capped value: these three constants were
+    // tuned against raw damage and still are, so the cap changes how the game
+    // PLAYS without changing how a big hit LOOKS.
+    const intensity = damageIntensity(rawDamage);
     flashTimer = FLASH_DURATION;
     squashTimer = SQUASH_DURATION;
 
-    if (damage > 300) {
-      shakeIntensity = Math.min(damage / 200, 10);
+    if (rawDamage > 300) {
+      shakeIntensity = Math.min(rawDamage / 200, 10);
       shakeTimer = SHAKE_DURATION;
       hitStopTimer = 0.04 + 0.04 * intensity; // 40-80ms, same threshold as shake
     }
