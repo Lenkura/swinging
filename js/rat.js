@@ -8,7 +8,7 @@ export const RAT_VARIANTS = {
     friction: 0.05,
     frictionAir: 0.025,
     impactMultiplier: 1.0,
-    parHits: 5,          // hard mode: radius 18 glances ~31% of hits, so par is higher
+    parHits: 4,          // measured L1 median, 2026-09-13; was 5 from a bad prediction
     blastBonus: 1.0,
     maxSpeed: 1800,
     pushMaxSpeed: 750,   // measured human free-swing peak 720 (96%), 2026-09-12
@@ -33,7 +33,7 @@ export const RAT_VARIANTS = {
     friction: 0.08,
     frictionAir: 0.015,
     impactMultiplier: 1.4,   // was 2.2; see the 2026-09-13 variant-difficulty decision
-    parHits: 3,          // easy mode: radius 22 glances ~15% of hits, so par is lower
+    parHits: 3,          // measured L1 median, 2026-09-13 - matched the prediction exactly
     blastBonus: 1.4,
     maxSpeed: 1200,
     pushMaxSpeed: 785,   // measured human free-swing peak, 2026-09-12
