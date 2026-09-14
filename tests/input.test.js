@@ -167,3 +167,53 @@ describe('isGrabHit', () => {
   })
 })
 
+// -------------------------------------------------------------------
+// clampToZone — confines the hand to a level's movement zone.
+// Zone is {x, y, w, h} as canvas fractions, x/y the top-left corner.
+// -------------------------------------------------------------------
+describe('clampToZone', () => {
+  const W = 1100
+  const H = 620
+  // x 220..660, y 124..434
+  const zone = { x: 0.2, y: 0.2, w: 0.4, h: 0.5 }
+  const clamp = (x, y, z = zone) => Input.clampToZone(x, y, z, W, H)
+
+  it('a point inside passes through untouched', () => {
+    expect(clamp(400, 300)).toEqual({ x: 400, y: 300 })
+  })
+
+  it('clamps past each edge independently', () => {
+    expect(clamp(100, 300).x).toBeCloseTo(220)   // left
+    expect(clamp(900, 300).x).toBeCloseTo(660)   // right
+    expect(clamp(400, 50).y).toBeCloseTo(124)    // top
+    expect(clamp(400, 600).y).toBeCloseTo(434)   // bottom
+  })
+
+  it('leaves the other axis alone when one is clamped', () => {
+    expect(clamp(100, 300).y).toBe(300)
+    expect(clamp(400, 600).x).toBe(400)
+  })
+
+  it('clamps both axes at a corner', () => {
+    const p = clamp(50, 900)
+    expect(p.x).toBeCloseTo(220)
+    expect(p.y).toBeCloseTo(434)
+  })
+
+  it('the boundary itself is inside', () => {
+    expect(clamp(220, 124)).toEqual({ x: 220, y: 124 })
+    expect(clamp(660, 434)).toEqual({ x: 660, y: 434 })
+  })
+
+  it('a level with no zone is unaffected — this is what keeps it inert', () => {
+    expect(Input.clampToZone(9999, -9999, null, W, H)).toEqual({ x: 9999, y: -9999 })
+    expect(Input.clampToZone(400, 300, undefined, W, H)).toEqual({ x: 400, y: 300 })
+  })
+
+  it('scales with the canvas rather than assuming a size', () => {
+    const half = Input.clampToZone(9999, 9999, zone, W / 2, H / 2)
+    expect(half.x).toBeCloseTo(660 / 2)
+    expect(half.y).toBeCloseTo(434 / 2)
+  })
+})
+

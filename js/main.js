@@ -313,7 +313,10 @@ Input.onYank(pos => {
 // Input callbacks
 Input.onPivotMove(({ x, y }) => {
   if (gameState !== 'SWINGING') return;
-  Physics.updatePivot(x, y);
+  // Confined to the level's movement zone, if it declares one. Levels without a
+  // handZone are unaffected, so this is inert until a level opts in.
+  const p = Input.clampToZone(x, y, currentLevel().handZone, CANVAS_W, CANVAS_H);
+  Physics.updatePivot(p.x, p.y);
 });
 
 function startLevel() {
@@ -533,6 +536,7 @@ function gameLoop(timestamp) {
     stringConstraint: constraint,
     ropeBodies: Physics.getRopeBodies(),
     grabTip: gameState === 'READY' ? (Physics.getRopeBodies()[0]?.position ?? tailTip) : null,
+    handZone: level.handZone ?? null,
     angularSpeed,
     hpFraction: ratHp / RAT_MAX_HP,
     hitCount,

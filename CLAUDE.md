@@ -260,7 +260,12 @@ stated reason, not as values copied from the previous level.
 
 Required fields: `id`, `act`, `name`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`.
 
-Optional fields: `hint`, `pushStringLength` (overrides `stringLength`), `pushParScore` (default 1500), `bumpers[]`.
+Optional fields: `hint`, `pushStringLength` (overrides `stringLength`), `pushParScore` (default 1500), `bumpers[]`, `handZone`.
+
+**`handZone`** — `{ x, y, w, h }` as canvas fractions, `x`/`y` being the top-left corner. Confines the hand to that rectangle: the pivot keeps following the pointer inside it and stops at the boundary. A level without one is unaffected. Two things to get right when you add one:
+
+- **The tail-grab point must lie inside the zone**, or the level cannot be started at all — a level opens with the grab target at `pivot.x + pushStringLength` on the ground, and if that falls outside the zone the player cannot reach it.
+- It bounds **where** the hand may be, not how fast it may move. A per-frame speed cap was tried in 2026-09-11 and rejected for capping the skill ceiling; limiting position is meant to do the opposite, by making placement matter.
 
 Target fields: `shape` (`'rectangle'` or `'circle'`), `x`, `y`, `material`, and for rectangles `w`/`h`, for circles `r`. Shield targets add `isShield: true` and `shieldTier` (`'light'`, `'medium'` or `'heavy'`) **instead of** `material` — the tier supplies both the break speed and the colour, and writing a raw `breakSpeed` or `material` on a shield fails the suite. Optional `movement: { axis: 'x'|'y', range, period }` makes the target oscillate — `range` is a fraction of canvas width (`axis: 'x'`) or height (`axis: 'y'`), `period` is the full oscillation in seconds.
 

@@ -75,6 +75,7 @@ export function draw({
   stringConstraint,
   ropeBodies = null,
   grabTip = null,
+  handZone = null,
   angularSpeed,
   hpFraction = 1.0,
   hitCount = 0,
@@ -96,6 +97,10 @@ export function draw({
   drawBackground(level);
   drawGround(level);
   if (decalCanvas) ctx.drawImage(decalCanvas, 0, 0);
+  // Drawn early so it reads as part of the arena rather than an overlay, and
+  // never covers a target. A zone the player cannot see cannot guide anyone -
+  // the same lesson the shield tiers taught when all three drew one colour.
+  if (handZone) drawHandZone(handZone);
 
   const ratVariant = yoyoBody ? RAT_VARIANTS[yoyoBody.plugin?.variantKey || 'standard'] : null;
 
@@ -314,6 +319,42 @@ function drawTrail(yoyo, level) {
     ctx.fillStyle = v.trailColor + alpha + ')';
     ctx.fill();
   }
+}
+
+/**
+ * The region the hand is confined to. Deliberately quiet - a dashed boundary and
+ * a barely-there wash - because it is present for the whole level and must read
+ * as the shape of the arena rather than as a warning.
+ */
+function drawHandZone(zone) {
+  const x = zone.x * canvasW;
+  const y = zone.y * canvasH;
+  const w = zone.w * canvasW;
+  const h = zone.h * canvasH;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.045)';
+  ctx.fillRect(x, y, w, h);
+
+  ctx.setLineDash([9, 7]);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.32)';
+  ctx.strokeRect(x, y, w, h);
+
+  // Corner ticks: the dashes alone read as decorative at a glance, and the
+  // corners are what tell the player this is a bounded region.
+  ctx.setLineDash([]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 2.5;
+  const t = Math.min(18, w * 0.18, h * 0.18);
+  for (const [cx, cy, sx, sy] of [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]]) {
+    ctx.beginPath();
+    ctx.moveTo(cx + sx * t, cy);
+    ctx.lineTo(cx, cy);
+    ctx.lineTo(cx, cy + sy * t);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 /** "#a8d8ea" -> "rgba(168,216,234,0.35)". Used to tint a shield by its tier. */
