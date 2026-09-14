@@ -1,68 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
-  evaluateImpact, getFragmentVerts, generateCrackPattern, MATERIALS,
+  getFragmentVerts, generateCrackPattern, MATERIALS,
   applyDamageCap, MAX_HIT_DAMAGE_FRACTION,
   SHIELD_TIERS, resolveShieldTier, MAX_OBSERVED_CONTACT_SPEED,
 } from '../js/target.js'
-
-const glass = MATERIALS.glass   // strength: 220, crackThreshold: 85
-const wood  = MATERIALS.wood    // strength: 620, crackThreshold: 260
-const steel = MATERIALS.steel   // strength: 1400, crackThreshold: 800
-
-// -------------------------------------------------------------------
-// evaluateImpact
-// -------------------------------------------------------------------
-describe('evaluateImpact', () => {
-  // Happy paths
-  it('returns SHATTER when impulse exceeds material strength', () => {  // spec row 1
-    expect(evaluateImpact(300, 1.0, glass, 1.0)).toBe('SHATTER')
-  })
-
-  it('returns CRACK when impulse is between crackThreshold and strength', () => {  // spec row 2
-    expect(evaluateImpact(150, 1.0, glass, 1.0)).toBe('CRACK')
-  })
-
-  it('returns SURVIVE when impulse is below crackThreshold', () => {  // spec row 3
-    expect(evaluateImpact(50, 1.0, glass, 1.0)).toBe('SURVIVE')
-  })
-
-  // Boundary: exact thresholds
-  it('returns SHATTER at exact strength boundary', () => {  // spec row 4
-    expect(evaluateImpact(glass.strength, 1.0, glass, 1.0)).toBe('SHATTER')
-  })
-
-  it('returns CRACK at exact crackThreshold boundary', () => {  // spec row 5
-    expect(evaluateImpact(glass.crackThreshold, 1.0, glass, 1.0)).toBe('CRACK')
-  })
-
-  it('returns SURVIVE one unit below crackThreshold', () => {  // spec row 6
-    expect(evaluateImpact(glass.crackThreshold - 1, 1.0, glass, 1.0)).toBe('SURVIVE')
-  })
-
-  // Unhappy paths: zero inputs
-  it('returns SURVIVE when speed is 0', () => {  // spec row 7
-    expect(evaluateImpact(0, 1.0, glass, 1.0)).toBe('SURVIVE')
-  })
-
-  it('returns SURVIVE when mass is 0', () => {  // spec row 8
-    expect(evaluateImpact(500, 0, glass, 1.0)).toBe('SURVIVE')
-  })
-
-  it('returns SURVIVE when impactMultiplier is 0', () => {  // spec row 9
-    expect(evaluateImpact(500, 1.0, glass, 0)).toBe('SURVIVE')
-  })
-
-  // Cross-variant: multiplier effect
-  it('heavy yoyo (2.2×) shatters glass that standard (1.0×) only cracks', () => {  // spec row 10
-    const speed = 120  // impulse with 1.0 mult = 120 → CRACK (85–220); with 2.2 mult = 264 → SHATTER
-    expect(evaluateImpact(speed, 1.0, glass, 1.0)).toBe('CRACK')
-    expect(evaluateImpact(speed, 1.0, glass, 2.2)).toBe('SHATTER')
-  })
-
-  it('returns SHATTER on very large speed for any material', () => {
-    expect(evaluateImpact(100000, 1.0, steel, 1.0)).toBe('SHATTER')
-  })
-})
 
 // -------------------------------------------------------------------
 // getFragmentVerts

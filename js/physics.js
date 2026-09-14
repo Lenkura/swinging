@@ -1,4 +1,4 @@
-import { MATERIALS, evaluateImpact, generateCrackPattern, resolveShieldTier } from './target.js';
+import { MATERIALS, generateCrackPattern, resolveShieldTier } from './target.js';
 import { RAT_VARIANTS } from './rat.js';
 
 const { Engine, Bodies, Body, Composite, Constraint, Events, World, Query } = Matter;
@@ -123,7 +123,6 @@ function onCollision(event) {
       const yoyo = isYoyoA ? bodyA : bodyB;
       const speed = Math.sqrt(yoyo.velocity.x ** 2 + yoyo.velocity.y ** 2);
       const material = MATERIALS[target.plugin.materialKey];
-      const impactMultiplier = yoyo.plugin.impactMultiplier;
 
       const normal = pair.collision?.normal;
       let angleFactor = 1.0;
@@ -132,11 +131,9 @@ function onCollision(event) {
         angleFactor = 0.3 + 0.7 * dot;
       }
 
-      const outcome = evaluateImpact(speed * angleFactor, yoyo.mass, material, impactMultiplier);
       emit('yoyo-hit-target', {
         target,
         yoyo,
-        outcome,
         speed,
         angleFactor,
         hitPoint: { x: (bodyA.position.x + bodyB.position.x) / 2, y: (bodyA.position.y + bodyB.position.y) / 2 },

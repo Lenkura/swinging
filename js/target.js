@@ -67,27 +67,32 @@ export function applyDamageCap(rawDamage, maxHp) {
 }
 
 /**
- * `yoyoDamage` is the ONLY field here with a mechanical effect - it is how much
- * hitting this material hurts your own rat, which is how you win. `strength`,
- * `crackThreshold` and `hardnessFactor` feed evaluateImpact, whose result
- * main.js destructures and never uses, and regular targets are never removed.
+ * Campaign materials are COSMETIC plus exactly one dial.
+ *
+ * `yoyoDamage` scales how much hitting this material hurts your own rat, which
+ * is how you win; `restitution` is read by physics; the four colours and
+ * `label` are drawn. That is the whole list - nothing else here affects play,
+ * because targets in the nine campaign levels are indestructible.
+ *
+ * Six fields were removed on 2026-09-14 after an audit found no reader for any
+ * of them: `strength` and `crackThreshold` fed evaluateImpact, whose result was
+ * destructured and discarded; `fragmentCount`, `fragmentSpread` and `density`
+ * were read by nothing at all; and `hardnessFactor` was worse than dead - it
+ * still held 0.6/1.0/1.6, the pre-rebalance yoyoDamage values, so a stale
+ * duplicate of a live dial sat next to it inviting a misread. The values live
+ * on in git history and in the destructible-targets design, which needs its own
+ * material table anyway.
  *
  * The spread is deliberately narrow (0.85 / 1.0 / 1.15, was 0.6 / 1.0 / 1.6).
- * Because damage is purely good, a wide spread made steel strictly better than
- * glass and inverted the difficulty curve - the tougher material damaged your
- * own rat more, so the hard levels were the easy ones to score on. Keep overall
- * pace on DAMAGE_SCALE, which is the single pace dial; scaling every
- * yoyoDamage by the same factor is that same dial under another name (L0409).
+ * Because damage is purely good here, a wide spread made steel strictly better
+ * than glass and inverted the difficulty curve - the tougher material damaged
+ * your own rat more, so the hard levels were the easy ones to score on. Keep
+ * overall pace on DAMAGE_SCALE, the single pace dial; scaling every yoyoDamage
+ * by the same factor is that same dial under another name (L0409).
  */
 export const MATERIALS = {
   glass: {
-    strength: 220,
-    crackThreshold: 85,
-    fragmentCount: 10,
-    fragmentSpread: 1.6,
     restitution: 0.1,
-    density: 0.002,
-    hardnessFactor: 0.6,
     yoyoDamage: 0.85,   // was 0.6; see the narrowed spread note above MATERIALS
     color: '#a8d8ea',
     crackedColor: '#6ba3be',
@@ -96,13 +101,7 @@ export const MATERIALS = {
     label: 'Brittle',
   },
   wood: {
-    strength: 620,
-    crackThreshold: 260,
-    fragmentCount: 6,
-    fragmentSpread: 0.85,
     restitution: 0.2,
-    density: 0.004,
-    hardnessFactor: 1.0,
     yoyoDamage: 1.0,
     color: '#c4a265',
     crackedColor: '#8b6914',
@@ -111,13 +110,7 @@ export const MATERIALS = {
     label: 'Sturdy',
   },
   steel: {
-    strength: 1400,
-    crackThreshold: 800,
-    fragmentCount: 0,
-    fragmentSpread: 0.3,
     restitution: 0.55,
-    density: 0.012,
-    hardnessFactor: 1.6,
     yoyoDamage: 1.15,   // was 1.6; steel one-shot the rat on 60% of hits
     color: '#8a9ba8',
     crackedColor: '#5a6b78',
@@ -155,12 +148,16 @@ export function getFragmentVerts(count) {
   return count >= 10 ? RECT_FRAGMENTS_10 : RECT_FRAGMENTS_6;
 }
 
-export function evaluateImpact(speed, mass, material, impactMultiplier) {
-  const impulse = speed * mass * impactMultiplier;
-  if (impulse >= material.strength) return 'SHATTER';
-  if (impulse >= material.crackThreshold) return 'CRACK';
-  return 'SURVIVE';
-}
+// evaluateImpact was removed on 2026-09-14. It computed SHATTER/CRACK/SURVIVE
+// from `impulse = speed * mass * impactMultiplier` and physics.js passed the
+// result in the hit event, where main.js destructured and discarded it - so it
+// had never done anything. It is NOT being kept for the destructible-targets
+// work either: measurement showed that formula gives heavy 3.58x standard's
+// impulse at identical speed (mass 11.5 vs 4.5, which is otherwise inert since
+// the hand drives the pivot), leaving standard unable to shatter steel in 25
+// recorded hits while heavy managed it 23% of the time. That design rejects
+// this formula, so leaving the function here would only invite wiring up the
+// wrong model.
 
 export function generateCrackPattern(count = 5) {
   const lines = [];
