@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-14",
   "last_session_summary_path": "history/session-007-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 128's design gate is CLOSED and implementation is queued as tasks 153-157, with 158-160 gated behind the pilot measurement. THE FINDING THAT DROVE IT: the nine levels are one level with different furniture - the pivot sits at x 0.20-0.24 in all nine, everything else at x 0.48-0.86, rope length 120-150. That explains the flat curve, the shield-avoiding bot clearing 24/24, and placement dominating shield tier, all at once. Acts now pose spatial questions instead of introducing mechanics: Act 1 open, Act 2 constrained (movement zones), Act 3 hazardous (blades, and the game's first fail state, decided once here rather than separately per feature). NEXT: task 153, the act-intent note, deliberately before the mechanics so zones and blades do not become two more pieces of furniture. Then 154 (zone mechanic, inert), 155 (re-lay Act 2), and 156 - which is a REAL GATE: if constrained space does not produce more deliberate play, 157-160 should not proceed as designed. Working on branch swinging/docs/expand-level-design-scope.",
+  "current_activity": "Task 154 is DONE on branch swinging/feat/movement-zones, stacked on swinging/docs/act-intent-note (153). The movement zone mechanic exists and is inert - no level declares a handZone yet - so it was verifiable on its own: the hand clamps to exact zone bounds and the zone renders legibly. 94/94 vitest, 92/92 gate. Also fixed a latent observability gap: the dev harness had been reporting a hand position that could never change, so Physics.getPivot() now exposes the live constraint anchor as state().hand. NEXT: task 155 - re-lay Act 2 (L4-L6) against the constrained intent with a handZone each and real pivot/rope-length variation, PLUS the test that every level's tail-grab point falls inside its own zone, because a level whose grab point sits outside its zone cannot be started. Then 156, the human pilot measurement, which is a REAL GATE on 157-160.",
   "action_plan": [
     {
       "id": 45,
@@ -207,18 +207,20 @@
     {
       "id": 153,
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "task": "Write the act-intent design note into CLAUDE.md",
       "done_when": "The note names, for each act, a question the previous act does not ask; states which obstacles belong to which act and why; and records that pivot position and rope length are per-level design variables rather than near-constants.",
-      "context": "This is the artifact 128's done_when asks for and the thing the level work is measured against. Deliberately BEFORE the mechanics: writing the intent down first is what stops zones and blades becoming two more pieces of furniture in the same room, which is the failure mode the whole task exists to fix."
+      "context": "This is the artifact 128's done_when asks for and the thing the level work is measured against. Deliberately BEFORE the mechanics: writing the intent down first is what stops zones and blades becoming two more pieces of furniture in the same room, which is the failure mode the whole task exists to fix. DONE 2026-09-14: CLAUDE.md gains a Level Design section - the measured evidence that the nine levels are one arrangement, a table mapping each act to a question the previous one does not ask, the rule for deciding which act an obstacle belongs to (restricts where you may be = Act 2; punishes what you do = Act 3; neither = decoration), and pivot/pushStringLength named as first-class per-level choices. The stale Act structure bullet that described acts as introducing mechanics now points here. Also corrected an adjacent doc error found while editing: damageIntensity was documented as saturating at damage 240 when it is /600 and reads the raw uncapped value.",
+      "completed_date": "2026-09-14T13:00:00"
     },
     {
       "id": 154,
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "task": "Movement zone mechanic - handZone, clampToZone, rendering. No level changes yet",
       "done_when": "levels.js accepts an optional handZone {x,y,w,h}; a pure clampToZone in input.js is unit-tested for inside, each edge, corner, and an absent zone passing through untouched; main.js clamps in the onPivotMove handler; the zone is DRAWN. Screenshot shows the hand stopping at the boundary.",
-      "context": "Inert on its own because no level declares a zone yet, which makes it independently verifiable before any level depends on it. The zone must be visible: an invisible constraint cannot guide anyone, which is exactly what the shield tiers taught on 2026-09-14 when identical-looking tiers made the feature pointless."
+      "context": "Inert on its own because no level declares a zone yet, which makes it independently verifiable before any level depends on it. The zone must be visible: an invisible constraint cannot guide anyone, which is exactly what the shield tiers taught on 2026-09-14 when identical-looking tiers made the feature pointless. DONE 2026-09-14: clampToZone in input.js (7 unit cases - inside, each edge independently, the other axis untouched, corner, boundary inclusive, absent zone, and canvas-relative scaling), the clamp wired into onPivotMove, handZone documented, and the zone drawn as a dashed boundary with corner ticks and a faint wash. levels.js is UNCHANGED, so the step is genuinely inert. Verified numerically as well as visually: driving the pointer to (5,5) and (1090,610) put the hand at exactly the zone corners (110,173.6) and (484,384.4) while an interior point passed through untouched. 94/94 vitest, 92/92 gate. FOUND WHILE VERIFYING: the harness reported main.js's module-scope `pivot`, which is written at spawn and at the grab and never again, so it read as stale the instant the pointer moved and no rig could observe hand position at all. Added Physics.getPivot() (the constraint anchor) and exposed it as state().hand.",
+      "completed_date": "2026-09-14T14:00:00"
     },
     {
       "id": 155,

@@ -88,6 +88,10 @@ export function initDev(injected) {
       return {
         ...deps.getState(),
         rat: ratState(),
+        // The live hand, taken from the constraint anchor. getState()'s `pivot`
+        // is main.js's module value, written at spawn and at the grab and never
+        // again - keep both, but this is the one that tracks the pointer.
+        hand: Physics.getPivot(),
         targets: (Physics.getTargetBodies() || []).map(b => ({
           x: b.position.x, y: b.position.y, isShield: Boolean(b.plugin.isShield),
           // Exposed so shield tiers are inspectable: a tier resolves to these two

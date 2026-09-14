@@ -830,6 +830,18 @@ export function detachString() {
   }
 }
 
+/**
+ * Where the hand actually is, which is the constraint's anchor rather than the
+ * level's starting pivot. Exposed because the harness previously reported
+ * main.js's `pivot`, which is written at spawn and at the grab and never again -
+ * so it read as stale the moment the pointer moved, and any rig checking hand
+ * position was checking a value that could not change.
+ */
+export function getPivot() {
+  if (stringConstraint) return { ...stringConstraint.pointA };
+  return pivotActual ? { ...pivotActual } : null;
+}
+
 /** Y of the ground surface bodies come to rest on - the line drawGround paints. */
 export function getGroundTop() { return canvasH - GROUND_TOP_INSET; }
 
