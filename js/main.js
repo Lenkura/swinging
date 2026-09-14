@@ -194,7 +194,7 @@ UI.onNext(() => {
 });
 
 // Physics collision event
-Physics.on('yoyo-hit-target', ({ target, yoyo, outcome, speed, hitPoint, material, angleFactor }) => {
+Physics.on('yoyo-hit-target', ({ target, yoyo, speed, hitPoint, material, angleFactor }) => {
   const af = angleFactor ?? 1.0;
   const variant = RAT_VARIANTS[yoyo.plugin?.variantKey || 'standard'];
 

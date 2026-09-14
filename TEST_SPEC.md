@@ -6,31 +6,18 @@
 
 ---
 
-## Impact Evaluation
+## Impact Evaluation — REMOVED 2026-09-14
 
-**Source:** `js/target.js` → `evaluateImpact(speed, mass, material, impactMultiplier)`
-**Priority:** High
+`evaluateImpact` and its ten rows were deleted. The function computed
+SHATTER/CRACK/SURVIVE from `impulse = speed x mass x impactMultiplier` and
+physics.js passed the result in the hit event, where main.js destructured and
+discarded it — so it had never affected play. It was not retained for the
+destructible-targets work either: that formula gives the heavy rat 3.58x the
+standard rat's impulse at identical speed, because it folds in `mass`, which is
+otherwise inert since the player drives the pivot directly. Measured over real
+hits, standard could not shatter steel at all while heavy managed 23%.
 
-### Expected behaviours
-
-| # | Behaviour | Test type | Priority |
-|---|---|---|---|
-| 1 | Returns SHATTER when impulse (speed × mass × multiplier) ≥ material.strength | Happy path | High |
-| 2 | Returns CRACK when impulse ≥ crackThreshold but < strength | Happy path | High |
-| 3 | Returns SURVIVE when impulse < crackThreshold | Happy path | High |
-| 4 | Returns SHATTER at exact strength boundary | Boundary | High |
-| 5 | Returns CRACK at exact crackThreshold boundary | Boundary | High |
-| 6 | Returns SURVIVE at one below crackThreshold | Boundary | High |
-| 7 | Returns SURVIVE when speed = 0 | Unhappy path | High |
-| 8 | Returns SURVIVE when mass = 0 | Unhappy path | High |
-| 9 | Returns SURVIVE when impactMultiplier = 0 | Unhappy path | High |
-| 10 | impactMultiplier scales outcome (heavy yoyo shatters what standard cracks) | Cross-variant | High |
-
-### Edge cases and unhappy paths
-
-- Zero speed, zero mass, zero multiplier — all should SURVIVE (impulse = 0)
-- Very large speed — should SHATTER any material
-- `impactMultiplier` of 2.2 (heavy yoyo) should push borderline hits into SHATTER
+See CLAUDE.md → **Materials** for what a campaign material does now.
 
 ---
 
