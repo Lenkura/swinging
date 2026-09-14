@@ -500,5 +500,25 @@
     "done_when": "Glass/wood/steel respond to impulse per their material config, the level-end condition is defined and implemented, and no material field remains dead",
     "context": "User chose breakable targets 2026-09-06 over keeping them indestructible. This changes the core loop: today the rat shattering ends the level, and material.strength/crackThreshold/fragmentCount/fragmentSpread are dead config. Needs the design gate - the level-end question has no obvious answer. SUPERSEDED 2026-09-14 by task 151. Same discovery as 147, filed from the other direction. Its premise - retrofit destructible targets into the existing campaign - was rejected on 2026-09-14: score rewards fewer hits, so exhausting the board would score 4000 on L1 for never touching your rat, which forces a fail state onto a game that has none, and the 3-4 hit pacing leaves the mechanic no room. Its line references (physics.js:84, main.js:166) had also drifted.",
     "archived_date": "2026-09-14"
+  },
+  {
+    "id": 146,
+    "task": "Human re-measure after the damage cap - a spread of levels including L1",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "Runs recorded across Act 1, 2 and 3 including L1, with hit counts in a 3-5 band everywhere and zero one-shot clears, appended to history/calibration/human-runs-log.csv. Play with ?dev=1 so telemetry captures it.",
+    "context": "The predictions rest on 61 hits, and on a SINGLE run for six of the nine levels - L4 and L5 contributed one hit each, so the per-level simulation there draws one value repeatedly. Only L8 (9 runs) and L9 (14 runs) have real samples. The cap's effect is robust because it rests on all 61 hits, but the per-level curve is not yet evidence. Nothing merges until this passes. DONE 2026-09-13: 88 post-cap human runs across all 9 levels and both variants: median 4 hits, range 3-7, ZERO one-hit clears against 34% before, every level's median inside the 3-5 target band, and the difficulty curve rising rather than inverted (Act 1 mean 3.60, Act 2 3.68, Act 3 3.81). Applied damage never exceeded 40 while raw damage reached 1381 - the cap absorbed the tail on 86 of 88 runs. NOTE: the export mixed builds - 12 pre-cap runs survived in localStorage because the store cap had just been raised to 100, and all three apparent one-hit clears were those, with damage.max 112-280. Post-cap runs are identifiable by the rawDamage summary field, which only the new build writes.",
+    "completed_date": "2026-09-13T05:00:00",
+    "archived_date": "2026-09-14"
+  },
+  {
+    "id": 145,
+    "task": "Remove the Hard/Easy picker labels, settled by task 143",
+    "priority": "high",
+    "status": "completed",
+    "done_when": "index.html rat-desc spans no longer claim a difficulty difference, and CLAUDE.md's Variant difficulty entry records that the precision axis was measured and refuted.",
+    "context": "The labels assert a difficulty gap that measurement inverted: standard glances 19.3% against heavy's 28.6%. Sequence AFTER task 144 - if damage is re-pitched, hit counts change and the variant comparison is worth re-reading on the new numbers before deciding what the rats should finally be. DONE 2026-09-13: the picker now reads 'Lean & scrappy' / 'Bulky & messy', describing appearance only. Deliberately NOT a revert to the original 'Quick & nimble' / 'Heavy & mean', which would have restored a different false claim - both rats clock the same in-play speed (114.4 vs 114.1) and heavy actually clears marginally faster, so 'quick' was never true of standard. The new copy names what is genuinely observable: size (radius 18 vs 22), giblet spread on shatter (blastBonus 1.0 vs 1.4) and trail length. CLAUDE.md's Variant entry is rewritten from a difficulty selector to a feel choice, and the new-variant blockquote now warns against assuming radius buys difficulty, citing the 31/15 claim that measured back at 19.4/20.3. 84/84 vitest, 92/92 gate.",
+    "completed_date": "2026-09-13T05:30:00",
+    "archived_date": "2026-09-14"
   }
 ]
