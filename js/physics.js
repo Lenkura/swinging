@@ -1,4 +1,4 @@
-import { MATERIALS, evaluateImpact, generateCrackPattern } from './target.js';
+import { MATERIALS, evaluateImpact, generateCrackPattern, resolveShieldTier } from './target.js';
 import { RAT_VARIANTS } from './rat.js';
 
 const { Engine, Bodies, Body, Composite, Constraint, Events, World, Query } = Matter;
@@ -12,6 +12,14 @@ const { Engine, Bodies, Body, Composite, Constraint, Events, World, Query } = Ma
 // through floors and why rope could not be made to hit world geometry without
 // also hitting the rat it hangs from. 0x0008 appeared in the fragment mask but
 // was never assigned to any body; it is gone.
+// The drawn ground surface sits this far above the canvas bottom - drawGround
+// paints its surface line there. The physics floor has to match it, or bodies
+// come to rest 40px inside the dirt: that was true until the tail-grab needed a
+// rat posed on the ground, and paintSplat had been papering over it by drawing
+// decals at the visual line regardless of where the body actually was. Exported
+// and imported by renderer.js so the two definitions cannot drift apart (L0182).
+export const GROUND_TOP_INSET = 40;
+
 export const CAT = {
   RAT: 0x0001,
   TARGET: 0x0002,   // targets and bumpers
@@ -66,7 +74,8 @@ export function init(width, height) {
   });
   world = engine.world;
 
-  groundBody = Bodies.rectangle(width / 2, height + 25, width * 3, 50, {
+  // Half-height 25, so the centre sits 25 below the surface the player sees.
+  groundBody = Bodies.rectangle(width / 2, height - GROUND_TOP_INSET + 25, width * 3, 50, {
     isStatic: true, label: 'ground', friction: 0.6, restitution: 0.2,
     collisionFilter: { category: CAT.WORLD, mask: MASK.WORLD },
   });
@@ -343,10 +352,19 @@ let ropeConfig = {
 export function setRopeConfig(cfg) { Object.assign(ropeConfig, cfg); }
 export function getRopeConfig() { return { ...ropeConfig }; }
 
-export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ropeConfig.stiffness) {
+/**
+ * Builds the segment chain and every constraint EXCEPT the pivot anchor, so a
+ * tail can exist without a hand holding it - lying on the ground waiting to be
+ * picked up. `dirX`/`dirY` is the unit direction the chain is laid out along
+ * from the origin: straight down for a hanging rope, sideways for a tail
+ * sprawled on the floor. Call anchorRope() to hang it from a hand.
+ *
+ * Segments are spawned at rest in their final positions rather than dropped and
+ * left to settle, so the tail tip lands somewhere computable - dev/gate.mjs has
+ * no harness access on the non-dev path and has to click it.
+ */
+export function buildRope(originX, originY, length, segments = 10, stiffness = ropeConfig.stiffness, dirX = 0, dirY = 1) {
   detachRope();
-  pivotTarget = { x: pivotX, y: pivotY };
-  pivotActual = { x: pivotX, y: pivotY };
   // Matter solves constraints twice per step by default, which is nowhere near
   // enough for a 10-link chain: the links stretch ~30% under the rat's weight,
   // lengthening the pendulum and absorbing the energy a swing puts in. Restored
@@ -364,7 +382,8 @@ export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ro
     // Circles, not thin rectangles: a 3px-thick box chain jitters and can
     // tunnel, and for draping over obstacles the silhouette comes from the
     // renderer anyway.
-    const seg = Bodies.circle(pivotX, pivotY + (i + 0.5) * segLen, ropeConfig.radius, {
+    const along = (i + 0.5) * segLen;
+    const seg = Bodies.circle(originX + dirX * along, originY + dirY * along, ropeConfig.radius, {
       label: 'rope',
       friction: ropeConfig.friction,   // grips when wrapped rather than sliding off
       frictionAir: ropeConfig.frictionAir,  // 10 segments of drag adds up
@@ -376,16 +395,6 @@ export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ro
     ropeBodies.push(seg);
     Composite.add(world, seg);
   }
-
-  // Pivot -> first segment. Length 0: the rope's own segments provide reach.
-  stringConstraint = Constraint.create({
-    pointA: { x: pivotX, y: pivotY },
-    bodyB: ropeBodies[0],
-    length: 0,
-    stiffness,
-    damping: 0,
-  });
-  ropeConstraints.push(stringConstraint);
 
   for (let i = 0; i < segments - 1; i++) {
     ropeConstraints.push(Constraint.create({
@@ -409,6 +418,54 @@ export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ro
   }));
 
   Composite.add(world, ropeConstraints);
+  return ropeBodies;
+}
+
+/**
+ * Holds the pre-grab pose exactly as spawned by making the rat and every rope
+ * segment static. Without this the chain settles into a pile within a second:
+ * pairwise constraints keep neighbours 13px apart but nothing keeps the tail
+ * straight, so it coils. Freezing buys a tidy laid-out tail AND a tail tip at a
+ * position that can be computed rather than observed - which dev/gate.mjs needs,
+ * having no harness access on the non-dev path. anchorRope thaws it.
+ */
+export function freezeForGrab() {
+  if (ratBody) Body.setStatic(ratBody, true);
+  ropeBodies.forEach(b => Body.setStatic(b, true));
+}
+
+/**
+ * Hangs an already-built rope from a hand position - this is the grab. Creates
+ * the one constraint buildRope deliberately leaves out, and only then do
+ * pivotTarget/pivotActual become live: until a hand is holding the tail there
+ * is no pivot for updatePivot to move.
+ */
+export function anchorRope(x, y, stiffness = ropeConfig.stiffness) {
+  if (!ropeBodies.length || stringConstraint) return null;
+  // Thaw whatever freezeForGrab froze - the grab is where physics takes over.
+  if (ratBody) Body.setStatic(ratBody, false);
+  ropeBodies.forEach(b => Body.setStatic(b, false));
+  pivotTarget = { x, y };
+  pivotActual = { x, y };
+  // Hand -> first segment. Length 0: the rope's own segments provide reach.
+  stringConstraint = Constraint.create({
+    pointA: { x, y },
+    bodyB: ropeBodies[0],
+    length: 0,
+    stiffness,
+    damping: 0,
+  });
+  ropeConstraints.push(stringConstraint);
+  Composite.add(world, stringConstraint);
+  return stringConstraint;
+}
+
+export function isRopeAnchored() { return stringConstraint !== null; }
+
+/** Build and hang in one call - the original behaviour, unchanged for callers. */
+export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ropeConfig.stiffness) {
+  buildRope(pivotX, pivotY, length, segments, stiffness);
+  anchorRope(pivotX, pivotY, stiffness);
   return ropeBodies;
 }
 
@@ -477,7 +534,10 @@ export function spawnTargets(levelTargets) {
   targetBodies.forEach(b => Composite.remove(world, b));
   targetBodies = [];
 
-  for (const td of levelTargets) {
+  for (const rawTd of levelTargets) {
+    // Shields name a tier; the tier supplies material and breakSpeed. Resolved
+    // here so both the circle and rectangle branches below get it for free.
+    const td = resolveShieldTier(rawTd);
     const x = td.x * canvasW;
     const y = td.y * canvasH;
     const material = MATERIALS[td.material];
@@ -772,6 +832,9 @@ export function detachString() {
     stringConstraint = null;
   }
 }
+
+/** Y of the ground surface bodies come to rest on - the line drawGround paints. */
+export function getGroundTop() { return canvasH - GROUND_TOP_INSET; }
 
 export function getRatBody() { return ratBody; }
 export function getTargetBodies() { return targetBodies; }

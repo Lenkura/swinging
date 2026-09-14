@@ -10,7 +10,14 @@
 export const SCHEMA_VERSION = 1;
 
 const RUN_STORE_KEY = 'yoyo_dev_runs';   // separate from yoyo_progress
-const MAX_STORED_RUNS = 10;
+// Measured 2026-09-13, not estimated: a stored run is 1.4-2.3 KB (the raw
+// per-frame arrays are deleted below and the series is downsampled), so a long
+// human run is nearer 4 KB. localStorage allows ~5 MB per origin - note that
+// navigator.storage.estimate() reports the whole-origin budget, which is much
+// larger and NOT the localStorage cap. 100 runs is 200-400 KB, under 10% of it.
+// store() already warns and continues if a write ever fails, so overshooting
+// costs a run, not a playtest.
+const MAX_STORED_RUNS = 100;
 const SERIES_HZ = 20;                    // downsample the frame series for storage
 
 let run = null;          // the run in progress, or null
@@ -161,6 +168,9 @@ export function endRun({ outcome, score, hitCount }) {
     maxCombo: run.hits.reduce((m, h) => Math.max(m, h.combo || 0), 0),
     speed: summarise(run._speeds),
     damage: summarise(damaging.map(h => h.damage)),
+    // Uncapped, so the tail stays visible after applyDamageCap flattens `damage`
+    // to a ceiling. The 2026-09-13 cap was derived from exactly this series.
+    rawDamage: summarise(damaging.map(h => h.rawDamage ?? h.damage)),
     angleFactor: summarise(damaging.map(h => h.angleFactor)),
     frameMs: summarise(run._frameMs),
     ropeBend: summarise(run._bend),
@@ -216,7 +226,7 @@ function store(doc) {
   try {
     const all = getRuns();
     all.push(doc);
-    // Quota is finite and a run document is not small; keep the newest N.
+    // Quota is finite; keep the newest N. See MAX_STORED_RUNS for the sizing.
     while (all.length > MAX_STORED_RUNS) all.shift();
     localStorage.setItem(RUN_STORE_KEY, JSON.stringify(all));
   } catch (err) {

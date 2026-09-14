@@ -81,6 +81,41 @@ const t0 = Date.now();
     const r = document.getElementById('game-canvas').getBoundingClientRect();
     return { left: r.left, top: r.top, width: r.width, height: r.height };
   });
+  // The rat now starts on the ground and must be picked up by the tail before
+  // the game will run at all, so the non-dev path has to perform the grab. The
+  // position is computable rather than observed because the pre-grab pose is
+  // frozen (physics.js freezeForGrab): rat at pivot.x, tail base 0.85r to its
+  // left, tip one rope-length beyond that. This path has no harness to ask.
+  const L1_PIVOT_X = 0.22, L1_PSL = 130, RAT_R = 18, GROUND_INSET = 40;
+  const tipX = L1_PIVOT_X * 1100 - RAT_R * 0.85 + L1_PSL;
+  const tipY = 620 - GROUND_INSET - RAT_R + RAT_R * 0.22;
+  await page.mouse.click(
+    rect.left + tipX * (rect.width / 1100),
+    rect.top + tipY * (rect.height / 620)
+  );
+  await page.waitForTimeout(120);
+
+  // What the non-dev path actually needs to prove is that the seam - a
+  // top-level await, a dynamic import and no-op call sites - did not break
+  // the shipped game. That fails as an exception or a frozen frame, so
+  // "the canvas is still animating in response to input" is the invariant.
+  //
+  // Sampled BEFORE the sweep, not after. Since DAMAGE_SCALE dropped to 80 the
+  // sweep usually lands enough hits to shatter the rat outright (HP drop was
+  // 1.9-49%, now routinely 100%), and the RESULT screen it ends on is
+  // legitimately static - sampling there failed ~43% of runs for no real fault.
+  const frameHash = () => page.evaluate(() => {
+    const c = document.getElementById('game-canvas');
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let h = 0;
+    for (let i = 0; i < d.length; i += 997 * 4) h = (h * 31 + d[i] + d[i + 1] * 3) | 0;
+    return h;
+  });
+  const h1 = await frameHash();
+  await page.mouse.move(rect.left + 300 * (rect.width / 1100), rect.top + 200 * (rect.height / 620));
+  await page.waitForTimeout(400);
+  const h2 = await frameHash();
+
   // Amplitude and centre are aimed at Level 1's target (x=726); a sweep that
   // only spans 140-660 never connects and makes this check flaky.
   const swingStart = Date.now();
@@ -104,21 +139,14 @@ const t0 = Date.now();
   // by the four seeded bot cases below, which execute the same handler.
   console.log(`  INFO  HP drop this run: ${hpBefore.toFixed(3)} -> ${hpAfter.toFixed(3)}`);
 
-  // What the non-dev path actually needs to prove is that the seam - a
-  // top-level await, a dynamic import and no-op call sites - did not break
-  // the shipped game. That fails as an exception or a frozen frame, so
-  // "the canvas is still animating in response to input" is the invariant.
-  const frameHash = () => page.evaluate(() => {
-    const c = document.getElementById('game-canvas');
-    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-    let h = 0;
-    for (let i = 0; i < d.length; i += 997 * 4) h = (h * 31 + d[i] + d[i + 1] * 3) | 0;
-    return h;
-  });
-  const h1 = await frameHash();
-  await page.mouse.move(rect.left + 300 * (rect.width / 1100), rect.top + 200 * (rect.height / 620));
-  await page.waitForTimeout(400);
-  const h2 = await frameHash();
+  // This one IS asserted, unlike the drop magnitude above, because the grab is
+  // a hard prerequisite: a frozen rat cannot take a single hit, so any HP loss
+  // at all proves the pick-up was accepted. It is the positive invariant for the
+  // new mandatory affordance (L0101) - a silently missed grab would otherwise
+  // leave every check below passing against a game that never started.
+  check('tail grab started the game (HP dropped at all)', hpAfter < hpBefore - 0.001,
+    `${hpBefore.toFixed(3)} -> ${hpAfter.toFixed(3)}`);
+
   check('canvas animates under input (seam did not freeze the game)', h1 !== h2, `${h1} vs ${h2}`);
   check('no page errors in non-dev play', errors.length === 0, errors.join(' | '));
   await page.close();
