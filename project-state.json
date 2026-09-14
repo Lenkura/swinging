@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-14",
   "last_session_summary_path": "history/session-006-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Five branches of balance and feel work are MERGED to main (merge c4da675, 26 commits): par-relative scoring, the tail-grab pick-up, ground alignment, the per-hit damage cap, the narrowed material spread and shield tiers. Every change was validated on human play: Level 1 went from a median 10.5 hits permanently on the 200 score floor to a median 4; one-hit clears fell from 34% of runs to zero across 88 runs with every level inside a 3-5 hit band and the difficulty curve rising rather than inverted; and no shield tier sits at 0% where the old 180 threshold never once opened in 36 contacts. 98/98 vitest and 92/92 gate on merged main. The variants were settled as a feel choice - measurement refuted the precision axis the difficulty selector was built on. 21 live items remain; the nearest follow-ons from this work are 150 (separate medium and heavy shield tiers, on more data), 147 (decide what materials should DO - four of their fields are decorative because evaluateImpact s outcome is discarded), 113 (breakable targets, which is the same discovery from the other side) and 135 (per-level parHits). No work is in flight and the tree is clean.",
+  "current_activity": "Task 147 is CLOSED on branch swinging/refactor/material-field-cleanup (commit 38f508a, not yet merged): campaign materials are now cosmetic plus one dial - yoyoDamage, restitution, four colours and a label - with six dead fields and evaluateImpact removed. 87/87 vitest, 92/92 gate. Task 113 is SUPERSEDED: it was the same discovery from the other direction, and its retrofit premise was rejected. Destructible targets are now task 151, DESIGNED AND DEFERRED as an alternate-win level type - clear the board with rat HP as the budget - which leaves the nine tuned levels alone and produces the first genuinely two-sided material trade this game has had. Also logged 152: getFragmentVerts is dead in the same way, but may be useful geometry for 151. NEXT: merge this branch, then pick from 150 (separate the shield tiers), 135 (per-level parHits), 128 (level cohesion) or 151 when there is appetite for a multi-session feature.",
   "action_plan": [
     {
       "id": 45,
@@ -99,9 +99,9 @@
       "id": 113,
       "task": "/brainstorm then implement breakable targets: wire up the outcome computed at physics.js:84 and discarded at main.js:166, and define what ends a level once targets can be destroyed",
       "priority": "high",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "Glass/wood/steel respond to impulse per their material config, the level-end condition is defined and implemented, and no material field remains dead",
-      "context": "User chose breakable targets 2026-09-06 over keeping them indestructible. This changes the core loop: today the rat shattering ends the level, and material.strength/crackThreshold/fragmentCount/fragmentSpread are dead config. Needs the design gate - the level-end question has no obvious answer."
+      "context": "User chose breakable targets 2026-09-06 over keeping them indestructible. This changes the core loop: today the rat shattering ends the level, and material.strength/crackThreshold/fragmentCount/fragmentSpread are dead config. Needs the design gate - the level-end question has no obvious answer. SUPERSEDED 2026-09-14 by task 151. Same discovery as 147, filed from the other direction. Its premise - retrofit destructible targets into the existing campaign - was rejected on 2026-09-14: score rewards fewer hits, so exhausting the board would score 4000 on L1 for never touching your rat, which forces a fail state onto a game that has none, and the 3-4 hit pacing leaves the mechanic no room. Its line references (physics.js:84, main.js:166) had also drifted."
     },
     {
       "id": 115,
@@ -174,9 +174,10 @@
       "id": 147,
       "task": "Decide what materials should DO, now that they are known to be decorative",
       "priority": "medium",
-      "status": "pending",
+      "status": "completed",
       "done_when": "Either evaluateImpact's outcome is wired to something mechanical (targets removed on shatter, giving high-damage materials a scarcity cost), or a note records that materials are intentionally cosmetic and the dead fields are removed.",
-      "context": "Found while designing 144: evaluateImpact computes SHATTER/CRACK/SURVIVE from strength, crackThreshold and hardnessFactor, and main.js:195 destructures the outcome and never uses it; removeTarget is called only for shields. So four material fields affect nothing and yoyoDamage is the only mechanical one. This is also the reason materials cannot carry a real trade-off today - they have no cost dimension, the same wall task 126 hit."
+      "context": "Found while designing 144: evaluateImpact computes SHATTER/CRACK/SURVIVE from strength, crackThreshold and hardnessFactor, and main.js:195 destructures the outcome and never uses it; removeTarget is called only for shields. So four material fields affect nothing and yoyoDamage is the only mechanical one. This is also the reason materials cannot carry a real trade-off today - they have no cost dimension, the same wall task 126 hit. CLOSED 2026-09-14 via the second branch of its own done_when (commit 38f508a): campaign materials are cosmetic plus one dial, and the dead fields are gone. A material is now yoyoDamage, restitution, four colours and a label. 87/87 vitest, 92/92 gate. The 'wire it up' branch moved to task 151.",
+      "completed_date": "2026-09-14T11:00:00"
     },
     {
       "id": 148,
@@ -203,6 +204,22 @@
       "status": "pending",
       "done_when": "Medium and heavy show a clear gap in per-run break rate across at least ~20 runs per tier, either by widening the threshold gap or by placing heavy shields where the approach is slower.",
       "context": "Measured 2026-09-14: medium 61% and heavy 57% per-run are within noise of each other at n=23 and n=7. The cause is placement, not the table - players arrive at heavy shields at p50 72.0 against medium's 53.1, cancelling most of the threshold gap. Heavy contacts reached 120.6, so a threshold near 110 would stay reachable. Not urgent: the defect this was raised for (a tier that never opened) is fixed."
+    },
+    {
+      "id": 151,
+      "task": "Destructible targets as an alternate-win level type - clear the board before your rat dies",
+      "priority": "medium",
+      "status": "pending",
+      "done_when": "A second level type exists where destroying every target is the win and rat HP is the budget; materials there trade swings against HP so neither dominates; the nine campaign levels are unchanged; and the balance is measured on human runs.",
+      "context": "Designed 2026-09-14 and deliberately deferred - see that day's decision entry for the full reasoning. Replaces task 113's retrofit premise. Key design points already settled: target damage must be DECOUPLED from self damage, or the HP cost of clearing a target works out to targetHP x yoyoDamage and the fastest material is also the cheapest, collapsing the trade. Indicative shape - glass ~2 swings / ~150 HP, wood ~4 / ~120, steel ~8 / ~100 - with score on swings and the budget in HP, so glass is the greedy line and steel the safe one. Needs its OWN material table, because the ~6x spread that makes this work (2.5/1.0/0.42) contradicts the campaign's <=1.5x guard, which is correct there and wrong here. This is a multi-session feature: second win condition in the state machine, a second level set, mode-aware scoring, level-select and progress UI, and its own balance pass."
+    },
+    {
+      "id": 152,
+      "task": "Decide whether getFragmentVerts and its vertex tables should also go",
+      "priority": "low",
+      "status": "pending",
+      "done_when": "Either removed along with its tests, or a note records what it is kept for.",
+      "context": "Found during the 147 audit but left alone because it was outside the scope agreed with the user. getFragmentVerts and the RECT_FRAGMENTS_10/6 tables have no production caller - only tests reference them - so they are dead in the same way the six material fields were. They may be worth keeping as ready-made geometry for task 151, which will want target fragments; decide then rather than now."
     }
   ],
   "recently_updated_files": [
@@ -469,6 +486,11 @@
       "date": "2026-09-14",
       "decision": "Merged branch swinging/feat/shield-tiers into main, carrying its three stacked parents (variant-difficulty-rebalance, tail-grab-pickup, damage-cap-material-spread) - 26 commits.",
       "rationale": "c4da675e2d3f2ca573378ee9d766b32026aca40a"
+    },
+    {
+      "date": "2026-09-14",
+      "decision": "Task 147 answered in two halves. For the campaign: materials are intentionally cosmetic plus one damage dial, and six dead fields plus evaluateImpact are removed. Destructible targets move to a NEW alternate-win level type, designed and deferred rather than retrofitted into the nine tuned levels.",
+      "rationale": "147 and 113 turned out to be the same discovery from opposite directions - 113 filed it on 2026-09-06 as 'wire up the outcome computed at physics.js:84 and discarded at main.js:166' (line numbers since drifted to 135 and 195), and 144's design re-found the dead code without noticing the existing item. THE CAMPAIGN HALF: an audit found no reader for strength, crackThreshold, hardnessFactor, density, fragmentCount or fragmentSpread. hardnessFactor was worse than unused - it still held 0.6/1.0/1.6, the pre-rebalance yoyoDamage values, so a stale copy of a live dial sat next to the real one. evaluateImpact was removed with them, and deliberately NOT kept as a seed for the future mode: its impulse = speed x mass x impactMultiplier formula gives heavy 3.58x standard at identical speed because it folds in mass, which is inert everywhere else since the player drives the pivot; measured, standard could not shatter steel in 25 hits while heavy managed 23%. Keeping it would have invited wiring up a model already known to re-create the imbalance task 126 removed. THE FEATURE HALF, deferred: the user reframed destructible targets as a separate level type with an INVERTED win condition - clear every target, with rat HP as the budget - rather than retrofitting the nine levels. That is strictly better. Retrofitting would have needed a fail state for running out of targets (because score rewards fewer hits, exhausting the board would otherwise score 4000 on L1 for never touching your rat), and the 3-4 hit pacing leaves a destruction mechanic almost no room to fire. The alternate-win framing also produces the game's first genuinely two-sided trade: with target damage decoupled from self damage, glass clears in few swings but costs a lot of HP while steel is cheap in HP but slow, so neither dominates - which is exactly what tasks 126 and 144 went looking for and could not find. It needs a roughly 6x yoyoDamage spread (2.5/1.0/0.42), contradicting the campaign's <=1.5x guard, so those levels need their OWN material table - which also keeps the nine tuned levels untouched."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
