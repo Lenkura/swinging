@@ -193,11 +193,64 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 - **Materials**: defined in `target.js` — glass, wood, steel. **A campaign material is cosmetic plus exactly one dial.** `yoyoDamage` scales how much hitting that material hurts your own rat, which is how you win; `restitution` is read by physics; `color`/`crackedColor`/`outlineColor`/`glowColor` and `label` are drawn. That is the complete list, because targets in the nine campaign levels are indestructible (`removeTarget` is called only for shields). Six dead fields and `evaluateImpact` were removed 2026-09-14 after an audit found no reader — see **Adding Content** before reaching for a new one. The spread is deliberately narrow (**0.85 / 1.0 / 1.15**, was 0.6 / 1.0 / 1.6): because damage is purely good, a wide spread made steel strictly better than glass and *inverted* the difficulty curve — the tougher material damaged your own rat more, so the hard levels were the easy ones to score on. Measured 2026-09-13: steel one-shot the rat on 60% of hits against glass's 23%.
 - **Per-hit damage cap**: `applyDamageCap` in `target.js` clamps HP loss to `MAX_HIT_DAMAGE_FRACTION` (0.40) of `RAT_MAX_HP`. Damage goes as speed² and swing speed varies ~4× within a run, so the distribution has a very long tail — measured over 61 human hits, p50 41 but p75 113 and max 426, meaning **34% of hits ended a level outright**. The medians were already right; only the tail was broken, so the fix is a bound rather than a rescale, and it is the explicit bound a one-sided knob needs. **The cap applies to the HP subtraction only** — screen shake, hit-stop, the particle burst and the hit sound all read the raw uncapped value, so a monster hit still feels enormous while removing 40 HP. That is also what keeps the three feedback constants correctly aimed at raw damage rather than needing a re-derivation.
 - **Damage states**: four overlay states driven by `ratHp / RAT_MAX_HP` — healthy (≥ 75%), dazed (50–75%, orbiting stars), injured (25–50%, wound marks + blood drips), critical (< 25%, red stars + more drips + × eyes). Independently, the rat's body/head fill blends from `variant.color` toward `variant.wornColor` as HP drops, and the per-hit `crackPattern` (generated once HP < 75%) renders as scuff marks on the rat's body via `drawCracks()`.
-- **Impact feedback**: every HP-damaging hit fires three `particles.js` bursts via `emitImpactBurst` — a red blood splash (circle), target-material chunk debris (`material.crackedColor`), and rat-fur chunk debris (`variant.chunkColor`), the latter two using the `shape: 'chunk'` (rotating rectangle) particle type. Burst size/count scale with `damageIntensity(damage)` (0–1, saturating at `damage = 240`): chunk radii range from their base size up to 3× at full intensity, and ~8% of chunks spawn 2.5–4× oversized for variety. SHATTER reuses the same burst at `scale: 2`.
+- **Impact feedback**: every HP-damaging hit fires three `particles.js` bursts via `emitImpactBurst` — a red blood splash (circle), target-material chunk debris (`material.crackedColor`), and rat-fur chunk debris (`variant.chunkColor`), the latter two using the `shape: 'chunk'` (rotating rectangle) particle type. Burst size/count scale with `damageIntensity(rawDamage)` (0–1, saturating at `rawDamage = 600`; it reads the **raw** uncapped value, not the HP-capped one — see the per-hit damage cap above): chunk radii range from their base size up to 3× at full intensity, and ~8% of chunks spawn 2.5–4× oversized for variety. SHATTER reuses the same burst at `scale: 2`.
 - **Giblets**: on shatter, 8 fragment bodies (circular Matter.js bodies) spawn with a lobbed radial velocity (`spread × 10 × rand` px/step + small up-bias — kept well under ~50 px/step, the single-step tunneling threshold for the 50px walls/floor). Each carries a `plugin.piece` generated once at spawn: guaranteed 1 bone shard / 1 organ / 1 gut coil, the rest weighted flesh chunks (60/20/20). `drawFragments` branches per type — flesh (red blob, ragged fur-tuft edge in `variant.color`), bone (off-white shaft with knobbed ends), organ (dark maroon, baked gloss highlight), gut (two-pass pink tube) — all geometry precomputed, no per-frame randomness. Fragments collide with ground/walls (`0x0001` in the mask); first ground contact fires `fragment-landed` → `Renderer.paintSplat` (small decal splat), and airborne pieces shed blood-drip particles on a per-fragment cadence (`plugin.dripInterval`, advanced in the game loop). Removed from the world after 4000ms with an alpha fade.
 - **Moving targets**: a target with a `movement: { axis, range, period }` field oscillates sinusoidally around its spawn position along `axis` (`'x'` or `'y'`), `range` (fraction of canvas width/height) wide, over `period` seconds — driven by `Physics.updateMovingTargets(elapsed)`, called each frame during SWINGING. The body stays `isStatic`; only its position is repositioned via `Body.setPosition`, so collision/damage formulas are unaffected.
-- **Act structure**: 9 levels in 3 acts. Act 1 (The Sewer) — varied shapes, no new mechanics. Act 2 (The Warehouse) — introduces shields. Act 3 (The Lab) — introduces bumpers. An ACT CLEAR screen appears when the last level of an act is shattered.
+- **Act structure**: 9 levels in 3 acts — Act 1 (The Sewer), Act 2 (The Warehouse), Act 3 (The Lab). An ACT CLEAR screen appears when the last level of an act is shattered. **Each act poses a different spatial question; see [Level Design](#level-design) below, which is the authority on what belongs where.**
 - **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel`.
+
+---
+
+## Level Design
+
+### Why this section exists
+
+Measured 2026-09-14 across all nine levels: the pivot sits at x **0.20–0.24** in every one
+of them (a 4% band) and y 0.44–0.50, everything else sits at x **0.48–0.86**, and rope
+length spans only 120–150. Hand on the left at mid-height, targets on the right, nine times.
+
+**The nine levels are one level with different furniture.** That single fact explains four
+symptoms that had been investigated separately over weeks:
+
+| symptom | why |
+|---|---|
+| flat difficulty curve (act means 3.60 / 3.68 / 3.81 hits) | the spatial problem never changes, so only furniture varies — and furniture is a weak lever |
+| a shield-avoiding bot cleared 24/24 runs across L4–L9 | there is always open space to swing into |
+| shield *placement* dominated shield *tier* | placement is the only real variable and is barely used |
+| nothing lasts beyond 3–4 hits | no arrangement forces a longer engagement |
+
+Tuning content cannot fix sameness of structure. Three balance passes each found this
+independently before the cause was located.
+
+### Each act asks a question the previous one does not
+
+| act | intent | the question | vocabulary |
+|---|---|---|---|
+| **1 — The Sewer** | open | *can you build and aim speed?* | pivot variety, materials, shapes. No obstacles: this act teaches the swing, and anything that interrupts it belongs later. |
+| **2 — The Warehouse** | constrained | *can you do it in a confined space?* | **movement zones**, shields. Both restrict *where* you may act — a zone bounds the hand, a shield denies a surface until you earn it. |
+| **3 — The Lab** | hazardous | *can you do it without getting cut?* | **blades**, bumpers, moving targets. All three punish loss of control rather than restricting position, and this is the only act where you can **lose**. |
+
+The ordering is freedom → constraint → danger. An obstacle belongs to the act whose question
+it sharpens: if it restricts where you may be, it is Act 2; if it punishes what you do, it is
+Act 3. An obstacle that does neither is decoration.
+
+### Pivot position and rope length are design variables
+
+They are currently near-constant across the campaign, which is the mechanism behind the
+sameness above. Moving the pivot — centre, right, high, low — changes the entire spatial
+problem **using code that already exists**, and it is the cheapest level-design lever
+available. Treat `pivot` and `pushStringLength` as first-class per-level choices with a
+stated reason, not as values copied from the previous level.
+
+### Two rules that fall out of this
+
+- **A level's difficulty should come from its arrangement first and its furniture second.**
+  If a new level is hard only because of what is in it, it will measure the same as every
+  other level, because that is what happened to all nine.
+- **Every obstacle must be legible before it is encountered.** Shield tiers were invisible on
+  their first implementation — all three drew the same colour — which made the whole feature
+  pointless until they were tinted per tier. A constraint the player cannot see cannot guide
+  anyone, and this applies to movement zones with particular force.
 
 ---
 

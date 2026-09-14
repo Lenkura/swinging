@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-14",
   "last_session_summary_path": "history/session-007-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 128's design gate is CLOSED and implementation is queued as tasks 153-157, with 158-160 gated behind the pilot measurement. THE FINDING THAT DROVE IT: the nine levels are one level with different furniture - the pivot sits at x 0.20-0.24 in all nine, everything else at x 0.48-0.86, rope length 120-150. That explains the flat curve, the shield-avoiding bot clearing 24/24, and placement dominating shield tier, all at once. Acts now pose spatial questions instead of introducing mechanics: Act 1 open, Act 2 constrained (movement zones), Act 3 hazardous (blades, and the game's first fail state, decided once here rather than separately per feature). NEXT: task 153, the act-intent note, deliberately before the mechanics so zones and blades do not become two more pieces of furniture. Then 154 (zone mechanic, inert), 155 (re-lay Act 2), and 156 - which is a REAL GATE: if constrained space does not produce more deliberate play, 157-160 should not proceed as designed. Working on branch swinging/docs/expand-level-design-scope.",
+  "current_activity": "Task 153 is DONE on branch swinging/docs/act-intent-note: CLAUDE.md now carries a Level Design section stating each act's spatial question, the rule for placing an obstacle in an act, and pivot/rope length as design variables. This is the artifact the level work is measured against, and it deliberately precedes the mechanics so zones and blades do not become two more pieces of furniture. NEXT: task 154 - the movement zone mechanic (handZone, a pure clampToZone in input.js, the clamp in onPivotMove, and the zone DRAWN), built inert with no level declaring a zone yet so it is independently verifiable. Then 155 (re-lay Act 2) and 156, which is a REAL GATE on 157-160 proceeding.",
   "action_plan": [
     {
       "id": 45,
@@ -207,10 +207,11 @@
     {
       "id": 153,
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "task": "Write the act-intent design note into CLAUDE.md",
       "done_when": "The note names, for each act, a question the previous act does not ask; states which obstacles belong to which act and why; and records that pivot position and rope length are per-level design variables rather than near-constants.",
-      "context": "This is the artifact 128's done_when asks for and the thing the level work is measured against. Deliberately BEFORE the mechanics: writing the intent down first is what stops zones and blades becoming two more pieces of furniture in the same room, which is the failure mode the whole task exists to fix."
+      "context": "This is the artifact 128's done_when asks for and the thing the level work is measured against. Deliberately BEFORE the mechanics: writing the intent down first is what stops zones and blades becoming two more pieces of furniture in the same room, which is the failure mode the whole task exists to fix. DONE 2026-09-14: CLAUDE.md gains a Level Design section - the measured evidence that the nine levels are one arrangement, a table mapping each act to a question the previous one does not ask, the rule for deciding which act an obstacle belongs to (restricts where you may be = Act 2; punishes what you do = Act 3; neither = decoration), and pivot/pushStringLength named as first-class per-level choices. The stale Act structure bullet that described acts as introducing mechanics now points here. Also corrected an adjacent doc error found while editing: damageIntensity was documented as saturating at damage 240 when it is /600 and reads the raw uncapped value.",
+      "completed_date": "2026-09-14T13:00:00"
     },
     {
       "id": 154,
