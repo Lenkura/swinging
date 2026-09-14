@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-14",
   "last_session_summary_path": "history/session-007-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Tasks 153 and 154 are MERGED to main (merge 5d0a7ef), the first two steps of the task 128 level reorganisation. CLAUDE.md now carries a Level Design section - each act poses a spatial question the previous one does not ask (open / constrained / hazardous), with a rule for deciding which act an obstacle belongs to, and pivot and pushStringLength named as first-class per-level choices. The movement zone mechanic exists and is INERT: clampToZone confines the hand to a level's handZone, but no level declares one yet. 94/94 vitest, 92/92 gate. NOTHING IS IN FLIGHT and the tree is clean. NEXT: task 155 - re-lay Act 2 (L4-L6) against the constrained intent, giving each a handZone and real pivot and rope-length variation, PLUS the test that every level's tail-grab point falls inside its own zone, because a level opens with the grab target at pivot.x + pushStringLength and a zone that excludes it makes the level unstartable. Then 156, the human pilot measurement, which is a REAL GATE: if constrained space does not produce more deliberate play, tasks 157-160 should not proceed as designed. Other live work: 150 (separate the shield tiers, needs more runs), 135 (per-level parHits), 152 (getFragmentVerts may be useful geometry for 151), 151 (alternate-win mode, designed and deferred).",
+  "current_activity": "Task 155 is DONE on branch swinging/feat/act2-relay (not yet merged): Act 2 is re-laid as three distinct spatial problems - L4 Low Ceiling (wide floor, ceiling, sweep sideways), L5 Narrow Column (no lateral room, pump vertically, two stacked shielded targets), L6 Long Reach (smallest zone, longest rope, targets at the edge of reach). Pivot now spans 0.10-0.28 and rope 150-190 across the act. 100/100 vitest, 92/92 gate over three runs. A test now guards the two failure modes found while building it: a zone that excludes the tail-grab point makes a level unstartable, and a zone extending below the ground line lets the hand be driven into the floor. NEXT: task 156 - the human pilot measurement, and a REAL GATE. Play L4, L5 and L6 with ?dev=1 and export. The question is not just hit counts: does constrained space produce more deliberate play, or just frustration? If it does not, tasks 157-160 should not proceed as designed. Bot runs cannot answer it - the bot cleared L4 only marginally and that is exactly the ambiguity a human resolves.",
   "action_plan": [
     {
       "id": 45,
@@ -207,10 +207,11 @@
     {
       "id": 155,
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "task": "Re-lay Act 2 (L4-L6) against the 'constrained' intent, as the pilot",
       "done_when": "L4-L6 rebuilt with a handZone each and real pivot and rope-length variation; npm run gate green; AND a test that every level's tail-grab point falls inside its own handZone.",
-      "context": "That last test guards a hard dependency between two features built a day apart: a level opens with the grab point at pivot.x + pushStringLength, and if that falls outside the zone the level cannot be started at all, because the player cannot reach the tail."
+      "context": "That last test guards a hard dependency between two features built a day apart: a level opens with the grab point at pivot.x + pushStringLength, and if that falls outside the zone the level cannot be started at all, because the player cannot reach the tail. DONE 2026-09-14: L4 Low Ceiling, L5 Narrow Column, L6 Long Reach - three different spatial problems rather than three furniture arrangements. Pivot now spans x 0.10-0.28 and rope length 150-190 across the act, against 0.20-0.24 and 120-150 campaign-wide before. 100/100 vitest and 92/92 gate over three consecutive runs. TWO PROBLEMS THE GATE CAUGHT, both mine: (1) all three zones extended BELOW the ground line, letting the hand be driven into the floor and drag the rat along it - the L4 bot run timed out at 90s with 31,051 rope contacts and a peak speed of 150 against a typical 300+. Fixed, and a test now asserts no zone bottom passes the ground. (2) even fixed, L4 stayed marginal for the bot (52 of 100 damage in 90 simulated seconds), so the teaching level was widened - zone w 0.34 -> 0.42 with the targets moved out of the zone's edge. Gate time went from 122s timing out to 38s clean.",
+      "completed_date": "2026-09-14T16:00:00"
     },
     {
       "id": 156,

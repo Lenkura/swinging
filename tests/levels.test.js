@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getLevel, saveProgress, loadProgress, LEVELS } from '../js/levels.js'
 import { SHIELD_TIERS } from '../js/target.js'
+import { RAT_VARIANTS } from '../js/rat.js'
 
 const SAVE_KEY = 'yoyo_progress'
 
@@ -168,6 +169,94 @@ describe('level shield authoring', () => {
   it('no shield hardcodes a material — the tier supplies it', () => {
     for (const { level, t } of shields) {
       expect(t.material, `L${level} shield material comes from its tier`).toBeUndefined()
+    }
+  })
+})
+
+// -------------------------------------------------------------------
+// Movement zones. The load-bearing check is the grab point: a level opens
+// with the rat on the ground and its tail tip at pivot.x + pushStringLength,
+// so a zone that excludes that point makes the level IMPOSSIBLE TO START —
+// the player cannot reach the tail, and nothing else would report it.
+//
+// Canvas and ground values are duplicated here rather than imported: physics.js
+// destructures the Matter global at module scope, so importing it under jsdom
+// throws. If CANVAS_W/H in main.js or GROUND_TOP_INSET in physics.js change,
+// these must follow.
+// -------------------------------------------------------------------
+describe('level movement zones', () => {
+  const W = 1100
+  const H = 620
+  const GROUND_TOP = H - 40
+
+  const zoned = LEVELS.filter(l => l.handZone)
+
+  const bounds = z => ({
+    left: z.x * W, right: (z.x + z.w) * W,
+    top: z.y * H, bottom: (z.y + z.h) * H,
+  })
+
+  // Mirrors startLevel: rat at pivot.x resting on the ground, tail base 0.85r
+  // to its left, tip one rope-length beyond that.
+  const grabPoint = (level, radius) => ({
+    x: level.pivot.x * W - radius * 0.85 + (level.pushStringLength || level.stringLength),
+    y: GROUND_TOP - radius + radius * 0.22,
+  })
+
+  it('there are zoned levels to check', () => {
+    expect(zoned.length).toBeGreaterThan(0)
+  })
+
+  it('every zone is a sane rectangle inside the canvas', () => {
+    for (const l of zoned) {
+      const { x, y, w, h } = l.handZone
+      expect(w, `L${l.id} width`).toBeGreaterThan(0)
+      expect(h, `L${l.id} height`).toBeGreaterThan(0)
+      expect(x).toBeGreaterThanOrEqual(0)
+      expect(y).toBeGreaterThanOrEqual(0)
+      expect(x + w, `L${l.id} right edge`).toBeLessThanOrEqual(1)
+      expect(y + h, `L${l.id} bottom edge`).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('the tail-grab point is inside the zone for EVERY variant', () => {
+    for (const l of zoned) {
+      const b = bounds(l.handZone)
+      for (const [name, v] of Object.entries(RAT_VARIANTS)) {
+        const g = grabPoint(l, v.radius)
+        expect(g.x, `L${l.id} ${name} grab x`).toBeGreaterThanOrEqual(b.left)
+        expect(g.x, `L${l.id} ${name} grab x`).toBeLessThanOrEqual(b.right)
+        expect(g.y, `L${l.id} ${name} grab y`).toBeGreaterThanOrEqual(b.top)
+        expect(g.y, `L${l.id} ${name} grab y`).toBeLessThanOrEqual(b.bottom)
+      }
+    }
+  })
+
+  it('every target is reachable from somewhere inside the zone', () => {
+    // Furthest the rat can get is the zone's right edge plus a full rope length.
+    for (const l of zoned) {
+      const reach = bounds(l.handZone).right + (l.pushStringLength || l.stringLength)
+      for (const t of l.targets) {
+        expect(t.x * W, `L${l.id} target at x=${t.x} beyond reach`).toBeLessThanOrEqual(reach)
+      }
+    }
+  })
+
+  it('no zone extends below the ground line', () => {
+    // A zone reaching past the floor lets the hand be driven into the ground,
+    // which drags the rat along it: the first draft of Act 2 did this on all
+    // three levels and the L4 bot run timed out at 90s with 31,051 rope contacts
+    // and a peak speed of 150 against a typical 300+. The zone must still reach
+    // low enough to contain the grab point, so the usable band is narrow.
+    for (const l of zoned) {
+      const bottom = (l.handZone.y + l.handZone.h) * H
+      expect(bottom, `L${l.id} zone bottom is below the floor`).toBeLessThanOrEqual(GROUND_TOP)
+    }
+  })
+
+  it('a zone actually constrains — it is not the whole canvas', () => {
+    for (const l of zoned) {
+      expect(l.handZone.w < 0.95 || l.handZone.h < 0.95, `L${l.id} zone constrains nothing`).toBe(true)
     }
   })
 })

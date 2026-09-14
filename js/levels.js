@@ -62,58 +62,72 @@ export const LEVELS = [
   // New mechanic: destructible shields
   // ─────────────────────────────────────────────
   {
+    // ACT 2 INTENT: can you do it in a confined space? The zone is the act's
+    // subject; shields are its secondary vocabulary. See CLAUDE.md > Level Design.
+    // L4 teaches the constraint gently: a wide floor but a low ceiling, so the
+    // hand cannot be lifted and speed has to come from sweeping sideways.
     id: 4,
     act: 2,
-    name: 'Screen',
+    name: 'Low Ceiling',
     background: ['#4a3020', '#2a1a10'],
     groundColor: '#201410',
-    pivot: { x: 0.22, y: 0.50 },
+    pivot: { x: 0.10, y: 0.60 },
+    handZone: { x: 0.04, y: 0.30, w: 0.42, h: 0.63 },
     stringLength: 140,
-    pushStringLength: 140,
+    pushStringLength: 150,
     targets: [
-      { shape: 'rectangle', w: 70, h: 92, x: 0.72, y: 0.56, material: 'wood' },
-      { shape: 'rectangle', w: 14, h: 104, x: 0.58, y: 0.56, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 70, h: 92, x: 0.50, y: 0.58, material: 'wood' },
+      { shape: 'rectangle', w: 14, h: 104, x: 0.42, y: 0.56, isShield: true, shieldTier: 'light' },
     ],
     parScore: 2000,
     pushParScore: 3000,
-    hint: 'A glass shield blocks the target. Hit it fast to smash through!',
+    hint: 'Your hand is boxed in. Sweep sideways to build speed - you cannot lift out of it.',
   },
   {
+    // L5 inverts L4's shape: the floor is taken away instead of the ceiling.
+    // A narrow column means sideways sweeping is gone, so the only way to build
+    // speed is to pump up and down - the opposite motor skill to the one above.
     id: 5,
     act: 2,
-    name: 'Double Cover',
+    name: 'Narrow Column',
     background: ['#3a2a1a', '#201610'],
     groundColor: '#181010',
-    pivot: { x: 0.22, y: 0.48 },
+    pivot: { x: 0.28, y: 0.38 },
+    handZone: { x: 0.38, y: 0.26, w: 0.12, h: 0.67 },
     stringLength: 140,
-    pushStringLength: 130,
+    pushStringLength: 170,
     targets: [
-      { shape: 'rectangle', w: 56, h: 76, x: 0.68, y: 0.54, material: 'wood' },
-      { shape: 'rectangle', w: 12, h: 88, x: 0.57, y: 0.54, isShield: true, shieldTier: 'light' },
-      { shape: 'rectangle', w: 56, h: 76, x: 0.82, y: 0.54, material: 'steel' },
-      { shape: 'rectangle', w: 14, h: 88, x: 0.74, y: 0.54, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 56, h: 76, x: 0.60, y: 0.44, material: 'wood' },
+      { shape: 'rectangle', w: 12, h: 88, x: 0.54, y: 0.44, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 56, h: 76, x: 0.60, y: 0.72, material: 'steel' },
+      { shape: 'rectangle', w: 14, h: 88, x: 0.54, y: 0.72, isShield: true, shieldTier: 'medium' },
     ],
     parScore: 2400,
     pushParScore: 3000,
-    hint: 'Two shields, two targets. Break the wood shield with a big swing!',
+    hint: 'No room to sweep. Pump up and down, and pick which target the swing is aimed at.',
   },
   {
+    // L6 is the act's exam: the smallest zone and the longest rope, with the
+    // targets parked at the edge of what that reach allows. Neither of L4's or
+    // L5's motions is enough on its own - the constraint is now distance, so the
+    // rope has to do the work the hand no longer can.
     id: 6,
     act: 2,
-    name: 'The Vault',
+    name: 'Long Reach',
     background: ['#2a2018', '#181408'],
     groundColor: '#100e06',
-    pivot: { x: 0.20, y: 0.48 },
+    pivot: { x: 0.16, y: 0.30 },
+    handZone: { x: 0.26, y: 0.20, w: 0.11, h: 0.73 },
     stringLength: 140,
-    pushStringLength: 120,
+    pushStringLength: 190,
     targets: [
-      { shape: 'rectangle', w: 82, h: 102, x: 0.78, y: 0.53, material: 'steel', movement: { axis: 'y', range: 0.04, period: 2.5 } },
-      { shape: 'rectangle', w: 12, h: 114, x: 0.60, y: 0.53, isShield: true, shieldTier: 'medium' },
-      { shape: 'rectangle', w: 14, h: 114, x: 0.68, y: 0.53, isShield: true, shieldTier: 'heavy' },
+      { shape: 'rectangle', w: 82, h: 102, x: 0.50, y: 0.50, material: 'steel', movement: { axis: 'y', range: 0.04, period: 2.5 } },
+      { shape: 'rectangle', w: 12, h: 114, x: 0.42, y: 0.50, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 14, h: 114, x: 0.46, y: 0.50, isShield: true, shieldTier: 'heavy' },
     ],
     parScore: 2800,
     pushParScore: 3000,
-    hint: 'Two shields guard the steel vault. Combo up and punch through!',
+    hint: 'A small box and a long tail. The vault sits at the very end of your reach.',
   },
 
   // ─────────────────────────────────────────────
