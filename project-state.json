@@ -3,7 +3,7 @@
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
   "last_session_date": "2026-09-14",
-  "last_session_summary_path": "history/session-006-summary.md",
+  "last_session_summary_path": "history/session-007-summary.md",
   "last_solution_architect_review": null,
   "current_activity": "Task 128's design gate is CLOSED and implementation is queued as tasks 153-157, with 158-160 gated behind the pilot measurement. THE FINDING THAT DROVE IT: the nine levels are one level with different furniture - the pivot sits at x 0.20-0.24 in all nine, everything else at x 0.48-0.86, rope length 120-150. That explains the flat curve, the shield-avoiding bot clearing 24/24, and placement dominating shield tier, all at once. Acts now pose spatial questions instead of introducing mechanics: Act 1 open, Act 2 constrained (movement zones), Act 3 hazardous (blades, and the game's first fail state, decided once here rather than separately per feature). NEXT: task 153, the act-intent note, deliberately before the mechanics so zones and blades do not become two more pieces of furniture. Then 154 (zone mechanic, inert), 155 (re-lay Act 2), and 156 - which is a REAL GATE: if constrained space does not produce more deliberate play, 157-160 should not proceed as designed. Working on branch swinging/docs/expand-level-design-scope.",
   "action_plan": [
