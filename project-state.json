@@ -3,9 +3,9 @@
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
   "last_session_date": "2026-09-14",
-  "last_session_summary_path": "history/session-006-summary.md",
+  "last_session_summary_path": "history/session-007-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Material cleanup is MERGED to main (merge aebdfec). Task 147 is closed: campaign materials are cosmetic plus one dial - yoyoDamage, restitution, four colours and a label - after an audit found no reader for six fields, one of which (hardnessFactor) still held the pre-rebalance yoyoDamage values and read like a live dial. evaluateImpact went with them, deliberately rather than being kept as a seed, because its impulse formula folds in mass and gives the heavy rat 3.58x the standard rat's impulse. 87/87 vitest, 92/92 gate. Task 113 is superseded by 151. NOTHING IS IN FLIGHT and the tree is clean. Live work, roughly in order of readiness: 150 (separate the medium and heavy shield tiers - needs more runs, heavy has only 7), 135 (per-level parHits, now that Acts 2-3 are measured), 128 (level design and obstacle cohesion across all 9 levels), 152 (decide whether getFragmentVerts and its vertex tables should also go - they may be useful geometry for 151), and 151 itself (destructible targets as an alternate-win level type - designed and deferred, a multi-session feature). 99, 100 and 45 remain as older housekeeping items.",
+  "current_activity": "Task 128's design gate is CLOSED and implementation is queued as tasks 153-157, with 158-160 gated behind the pilot measurement. THE FINDING THAT DROVE IT: the nine levels are one level with different furniture - the pivot sits at x 0.20-0.24 in all nine, everything else at x 0.48-0.86, rope length 120-150. That explains the flat curve, the shield-avoiding bot clearing 24/24, and placement dominating shield tier, all at once. Acts now pose spatial questions instead of introducing mechanics: Act 1 open, Act 2 constrained (movement zones), Act 3 hazardous (blades, and the game's first fail state, decided once here rather than separately per feature). NEXT: task 153, the act-intent note, deliberately before the mechanics so zones and blades do not become two more pieces of furniture. Then 154 (zone mechanic, inert), 155 (re-lay Act 2), and 156 - which is a REAL GATE: if constrained space does not produce more deliberate play, 157-160 should not proceed as designed. Working on branch swinging/docs/expand-level-design-scope.",
   "action_plan": [
     {
       "id": 45,
@@ -105,11 +105,11 @@
     },
     {
       "id": 128,
-      "task": "/brainstorm level design and obstacle cohesion across all 9 levels so they present a connected, escalating challenge",
-      "priority": "medium",
-      "status": "pending",
-      "done_when": "Each act has a stated design intent, obstacles serve that intent rather than decorating it, and the measured difficulty curve rises across acts instead of inverting",
-      "context": "User side note 2026-09-12: the levels and obstacles need to present a cohesive challenge. Evidence already on hand: a shield-avoiding bot cleared 24/24 runs across L4-L9 (task 115 measurement), the Act 2 finale L6 fell in 4 hits to the bot where L1 took 9, and human L1 takes 10.5 hits on standard while human L6 heavy took 2 - so the curve is inverted for the player as well. The rope changes what obstacle geometry can do (a tail that catches is new level-design vocabulary) and breakable targets (task 113) would change it again, so this brainstorm should probably follow or absorb 113 and 115 rather than run before them."
+      "task": "/brainstorm level design, movement zones and obstacle cohesion across all 9 levels so they present a connected, escalating challenge",
+      "priority": "high",
+      "status": "in_progress",
+      "done_when": "Each act has a stated design intent; the obstacle vocabulary (zones, blades, shields, bumpers, moving targets) is decided and each obstacle serves that intent rather than decorating it; the levels are reorganised against it; and the measured difficulty curve rises across acts. Whether the game gains a fail state is settled here, once, rather than separately per feature.",
+      "context": "User side note 2026-09-12: the levels and obstacles need to present a cohesive challenge. Evidence already on hand: a shield-avoiding bot cleared 24/24 runs across L4-L9 (task 115 measurement), the Act 2 finale L6 fell in 4 hits to the bot where L1 took 9, and human L1 takes 10.5 hits on standard while human L6 heavy took 2 - so the curve is inverted for the player as well. The rope changes what obstacle geometry can do (a tail that catches is new level-design vocabulary) and breakable targets (task 113) would change it again, so this brainstorm should probably follow or absorb 113 and 115 rather than run before them. SCOPE EXPANDED 2026-09-14 by the user, who asked for three things to be folded in here rather than filed separately - they are level-design vocabulary, which is what this gate exists to decide. (1) MOVEMENT ZONES: a region the player's hand is allowed to occupy on some levels. The stated flaw is that the player can currently flail wildly to win, and constraining where you may swing should promote deliberate, accurate play. NOTE THE PRECEDENT: a hand constraint was tried before - the `hand` dev knob capping px per frame - and the 2026-09-11 decision records it as having capped the skill ceiling while not fixing the tunneling it was for. A positional zone is a different constraint (where, not how fast) and plausibly increases skill expression rather than capping it, but the design should engage with that history rather than rediscover it. Also connects to the task 149 finding that shield placement dominated shield tier: if where the player can be is the strongest lever, a zone controls it directly instead of regulating it downstream. (2) BLADE/RAZOR OBSTACLE: cuts the tail and fails the level. Feasible specifically because of the task 124 link-level CCD work, which took rope link crossings from 5-7.5% to under 1% - without accurate rope collision a blade would kill through phantom contacts the renderer never drew. Implementation likely leans on detachRope. (3) GENERAL REORGANISATION of the levels. CROSS-CUTTING DECISION THIS GATE SHOULD SETTLE ONCE: the game currently has no way to lose, only to score badly. The blade introduces failure, and so does task 151's alternate-win mode, so the question is arriving from two directions and should be decided deliberately rather than twice. DESIGN GATE CLOSED 2026-09-14 - see that day's decision entry. Implementation is tasks 153-157, with 158-160 gated behind the task 156 pilot measurement. 128 stays open until the levels are actually re-laid and the curve is measured to rise."
     },
     {
       "id": 135,
@@ -203,6 +203,70 @@
       "status": "pending",
       "done_when": "Either removed along with its tests, or a note records what it is kept for.",
       "context": "Found during the 147 audit but left alone because it was outside the scope agreed with the user. getFragmentVerts and the RECT_FRAGMENTS_10/6 tables have no production caller - only tests reference them - so they are dead in the same way the six material fields were. They may be worth keeping as ready-made geometry for task 151, which will want target fragments; decide then rather than now."
+    },
+    {
+      "id": 153,
+      "priority": "high",
+      "status": "pending",
+      "task": "Write the act-intent design note into CLAUDE.md",
+      "done_when": "The note names, for each act, a question the previous act does not ask; states which obstacles belong to which act and why; and records that pivot position and rope length are per-level design variables rather than near-constants.",
+      "context": "This is the artifact 128's done_when asks for and the thing the level work is measured against. Deliberately BEFORE the mechanics: writing the intent down first is what stops zones and blades becoming two more pieces of furniture in the same room, which is the failure mode the whole task exists to fix."
+    },
+    {
+      "id": 154,
+      "priority": "high",
+      "status": "pending",
+      "task": "Movement zone mechanic - handZone, clampToZone, rendering. No level changes yet",
+      "done_when": "levels.js accepts an optional handZone {x,y,w,h}; a pure clampToZone in input.js is unit-tested for inside, each edge, corner, and an absent zone passing through untouched; main.js clamps in the onPivotMove handler; the zone is DRAWN. Screenshot shows the hand stopping at the boundary.",
+      "context": "Inert on its own because no level declares a zone yet, which makes it independently verifiable before any level depends on it. The zone must be visible: an invisible constraint cannot guide anyone, which is exactly what the shield tiers taught on 2026-09-14 when identical-looking tiers made the feature pointless."
+    },
+    {
+      "id": 155,
+      "priority": "high",
+      "status": "pending",
+      "task": "Re-lay Act 2 (L4-L6) against the 'constrained' intent, as the pilot",
+      "done_when": "L4-L6 rebuilt with a handZone each and real pivot and rope-length variation; npm run gate green; AND a test that every level's tail-grab point falls inside its own handZone.",
+      "context": "That last test guards a hard dependency between two features built a day apart: a level opens with the grab point at pivot.x + pushStringLength, and if that falls outside the zone the level cannot be started at all, because the player cannot reach the tail."
+    },
+    {
+      "id": 156,
+      "priority": "high",
+      "status": "pending",
+      "task": "Measure the Act 2 pilot on human runs - THE GATE on everything after it",
+      "done_when": "Act 2 hit counts recorded with ?dev=1 and appended to the calibration CSV, plus a judgement on the real question: does constrained space produce more deliberate play, or just frustration?",
+      "context": "A real gate, not a checkpoint. The entire 128 design rests on an untested claim that constraining space produces deliberate play; if it does not, tasks 157-160 should not proceed as designed. Bot runs cannot answer this - it is a feel question, like the tail-grab was."
+    },
+    {
+      "id": 157,
+      "priority": "medium",
+      "status": "pending",
+      "task": "Blades and the fail state - rope-cut hazard, FAILED outcome, saveProgress guard",
+      "done_when": "A blade cuts the rope on tail contact while the rat passes through untouched (own collision category, masked to ROPE only); FAILED joins the outcomes with its own result screen; a failed run neither scores nor advances unlockedLevel, with a test for it; vitest and gate green.",
+      "context": "saveProgress currently advances unlockedLevel unconditionally, so without the guard a failed level still unlocks the next - a silent progression bug nothing currently watches for. Blades are viable only because task 124 brought rope link crossings under 1%; before that they would have killed through contacts the renderer never drew. Open question to settle by measurement: whether a blade should kill on ANY tail contact (proposed, simpler and reads clearly) or only above a speed - the rope is the least directly controlled part of the game, so this risks feeling unfair."
+    },
+    {
+      "id": 158,
+      "priority": "medium",
+      "status": "pending",
+      "task": "Re-lay Act 3 around blades and the hazardous intent",
+      "done_when": "L7-L9 rebuilt against the 'hazardous' intent with blades placed deliberately; gate green; human runs recorded.",
+      "context": "GATED on task 156. Do not start until the Act 2 pilot confirms constrained play works."
+    },
+    {
+      "id": 159,
+      "priority": "medium",
+      "status": "pending",
+      "task": "Re-lay Act 1 around pivot variety and the 'open' intent",
+      "done_when": "L1-L3 rebuilt so the spatial problem varies across them; gate green; human runs recorded.",
+      "context": "GATED on task 156. Note this will break dev/gate.mjs's non-dev path, which clicks a tail position hand-computed from L1's pivot and rope length - it fails loudly rather than silently, but expect it."
+    },
+    {
+      "id": 160,
+      "priority": "medium",
+      "status": "pending",
+      "task": "Full-campaign re-measure - confirm the difficulty curve finally rises",
+      "done_when": "Human runs across all 9 levels show act means rising rather than flat, against the 2026-09-14 baseline of 3.60 / 3.68 / 3.81 hits.",
+      "context": "GATED on 158 and 159. This is what closes task 128, and also revisits tasks 115 and 150, both of which were deferred pending a level layer that actually varies."
     }
   ],
   "recently_updated_files": [
@@ -479,6 +543,16 @@
       "date": "2026-09-14",
       "decision": "Merged branch swinging/refactor/material-field-cleanup into main",
       "rationale": "aebdfecdb633feeed879e06de5d38182d73ee909"
+    },
+    {
+      "date": "2026-09-14",
+      "decision": "Folded movement zones, a tail-cutting blade obstacle, and general level reorganisation into task 128 rather than filing them separately, and raised 128 to high priority.",
+      "rationale": "All three are level-design vocabulary, which is precisely what the 128 design gate exists to decide; filing them as separate implementation items would presume its answer. Three observations attached so the design starts from what is already known rather than rediscovering it. First, a hand constraint has been tried here before - the `hand` px-per-frame knob - and was rejected on 2026-09-11 for capping the skill ceiling without fixing the tunneling it targeted; a positional zone is a different constraint and plausibly has the opposite effect, but the history is relevant. Second, the blade is viable only because task 124's link-level CCD brought rope link crossings under 1%; before that a tail hazard would have killed through contacts the renderer never showed. Third, both the blade and task 151 introduce a fail state into a game that currently has none, so that decision should be made once, here, rather than separately per feature. Also noted: task 149 measured shield placement as dominating shield tier, which is the same lever a movement zone controls directly."
+    },
+    {
+      "date": "2026-09-14",
+      "decision": "Task 128 design gate: the nine levels are reorganised around a SPATIAL progression - Act 1 open, Act 2 constrained (movement zones), Act 3 hazardous (blades, and the game's first fail state) - rather than each act introducing a mechanic. Act 2 is built and measured first as a pilot.",
+      "rationale": "THE FINDING THAT DECIDED IT: the nine levels are one level with different furniture. Measured across levels.js, the pivot sits at x 0.20-0.24 in ALL nine (a 4% band) and y 0.44-0.50, everything else sits at x 0.48-0.86, and rope length spans only 120-150. Hand on the left at mid-height, stuff on the right, nine times. That single fact explains four things previously treated as unrelated: the flat difficulty curve (act means 3.60/3.68/3.81 hits) because the spatial problem never changes and only furniture varies; the shield-avoiding bot clearing 24/24 runs across L4-L9, because there is always open space to swing into; shield PLACEMENT dominating shield tier in the task 149 measurement, because placement is the only real variable and is barely used; and nothing lasting beyond 3-4 hits, because no arrangement forces a longer engagement. It also means the pivot is an untapped lever that costs no new code - moving it changes the entire spatial problem using what already exists. So each act now poses a different QUESTION rather than introducing a mechanic: can you build and aim speed (open), can you do it in a confined space (constrained), can you do it without getting cut (hazardous). REJECTED: adding zones and blades to the existing levels, which would put two more pieces of furniture in the room whose sameness is the actual problem - the last three balance passes each found that furniture is a weak lever; and rebuilding the level set from scratch, which discards nine levels of tuning and art to fix a problem that is about arrangement rather than content. THE FAIL STATE is settled here, once, rather than separately per feature: Act 3 is where the game becomes losable, via blades, and task 151's alternate-win mode inherits that decision rather than making its own. ACT 2 IS THE PILOT (L0029): it is where zones land and the weakest act today, and the design rests on an untested claim that constraining space produces deliberate play rather than irritation - three levels is a far cheaper place to discover otherwise than nine. Step 4, the human measurement of the pilot, is a real gate on Acts 3 and 1 proceeding at all."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
