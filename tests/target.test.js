@@ -241,3 +241,45 @@ describe('resolveShieldTier', () => {
     expect(out.material).toBe(SHIELD_TIERS.light.material)
   })
 })
+
+// -------------------------------------------------------------------
+// shieldSpeedScale — a level's factor for what it physically permits.
+// An absolute threshold does not survive a layout change: zones halved
+// arrival speed and the heavy tier went from breaking in 57% of runs to
+// 2% of contacts. The table keeps the ordering; the level supplies the scale.
+// -------------------------------------------------------------------
+describe('resolveShieldTier — shieldSpeedScale', () => {
+  const shield = tier => ({ isShield: true, shieldTier: tier })
+
+  it('an absent scale leaves every tier exactly as the table declares it', () => {
+    for (const [name, t] of Object.entries(SHIELD_TIERS)) {
+      expect(resolveShieldTier(shield(name)).breakSpeed, name).toBe(t.breakSpeed)
+    }
+  })
+
+  it('a scale of 1 is identical to omitting it', () => {
+    for (const name of Object.keys(SHIELD_TIERS)) {
+      expect(resolveShieldTier(shield(name), 1).breakSpeed)
+        .toBe(resolveShieldTier(shield(name)).breakSpeed)
+    }
+  })
+
+  it('scales every tier by the same factor', () => {
+    for (const [name, t] of Object.entries(SHIELD_TIERS)) {
+      expect(resolveShieldTier(shield(name), 0.75).breakSpeed, name).toBeCloseTo(t.breakSpeed * 0.75)
+    }
+  })
+
+  it('preserves the ordering under any sane scale — the table owns the ranking', () => {
+    for (const scale of [0.4, 0.75, 1, 1.5]) {
+      const at = n => resolveShieldTier(shield(n), scale).breakSpeed
+      expect(at('light'), `scale ${scale}`).toBeLessThan(at('medium'))
+      expect(at('medium'), `scale ${scale}`).toBeLessThan(at('heavy'))
+    }
+  })
+
+  it('does not scale a non-shield target', () => {
+    const td = { shape: 'circle', material: 'glass' }
+    expect(resolveShieldTier(td, 0.5)).toBe(td)
+  })
+})

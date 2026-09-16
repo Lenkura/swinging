@@ -12,6 +12,7 @@ const { Engine, Bodies, Body, Composite, Constraint, Events, World, Query } = Ma
 // through floors and why rope could not be made to hit world geometry without
 // also hitting the rat it hangs from. 0x0008 appeared in the fragment mask but
 // was never assigned to any body; it is gone.
+
 // The drawn ground surface sits this far above the canvas bottom - drawGround
 // paints its surface line there. The physics floor has to match it, or bodies
 // come to rest 40px inside the dirt: that was true until the tail-grab needed a
@@ -49,7 +50,7 @@ let bumperBodies = [];
 let ropeBodies = [];
 let ropeConstraints = [];
 let ropeContactCount = 0;
-let groundBody, leftWall, rightWall;
+let groundBody, leftWall, rightWall, ceiling;
 let canvasW, canvasH;
 
 const eventListeners = {};
@@ -74,15 +75,29 @@ export function init(width, height) {
   });
   world = engine.world;
 
+  // Half-thickness of every wall. Matter 0.19 has no continuous collision and
+  // the rat deliberately gets none (only the rope is swept - see the 2026-09-11
+  // decision), so the ONLY thing stopping the rat leaving is geometry thicker
+  // than it can cross in one step. At 50px total these walls were far thinner
+  // than that: ~50 px/step is the documented single-step tunneling threshold for
+  // 50px geometry, and measured rat peaks run 250-460 px/step, so the rat could
+  // pass straight through and then had to tunnel back to return - which is what
+  // "caught off screen" was. Static bodies cost nothing per step, so this is
+  // simply made far larger than any speed the game produces.
+  const WALL_HALF = 400;
+  const wallOpts = { isStatic: true, label: 'wall', collisionFilter: { category: CAT.WORLD, mask: MASK.WORLD } };
+
   // Half-height 25, so the centre sits 25 below the surface the player sees.
   groundBody = Bodies.rectangle(width / 2, height - GROUND_TOP_INSET + 25, width * 3, 50, {
     isStatic: true, label: 'ground', friction: 0.6, restitution: 0.2,
     collisionFilter: { category: CAT.WORLD, mask: MASK.WORLD },
   });
-  const wallOpts = { isStatic: true, label: 'wall', collisionFilter: { category: CAT.WORLD, mask: MASK.WORLD } };
-  leftWall = Bodies.rectangle(-25, height / 2, 50, height * 2, wallOpts);
-  rightWall = Bodies.rectangle(width + 25, height / 2, 50, height * 2, wallOpts);
-  Composite.add(world, [groundBody, leftWall, rightWall]);
+  leftWall = Bodies.rectangle(-WALL_HALF, height / 2, WALL_HALF * 2, height * 4, wallOpts);
+  rightWall = Bodies.rectangle(width + WALL_HALF, height / 2, WALL_HALF * 2, height * 4, wallOpts);
+  // There was no ceiling at all until 2026-09-16, so the rat could swing clean
+  // off the top of the canvas - reproduced at y = -21. It now rebounds instead.
+  ceiling = Bodies.rectangle(width / 2, -WALL_HALF, width * 3, WALL_HALF * 2, wallOpts);
+  Composite.add(world, [groundBody, leftWall, rightWall, ceiling]);
 
   Events.on(engine, 'collisionStart', onCollision);
 }
@@ -527,14 +542,14 @@ export function yankRope(strength = 90) {
   return true;
 }
 
-export function spawnTargets(levelTargets) {
+export function spawnTargets(levelTargets, shieldSpeedScale = 1) {
   targetBodies.forEach(b => Composite.remove(world, b));
   targetBodies = [];
 
   for (const rawTd of levelTargets) {
     // Shields name a tier; the tier supplies material and breakSpeed. Resolved
     // here so both the circle and rectangle branches below get it for free.
-    const td = resolveShieldTier(rawTd);
+    const td = resolveShieldTier(rawTd, shieldSpeedScale);
     const x = td.x * canvasW;
     const y = td.y * canvasH;
     const material = MATERIALS[td.material];
@@ -842,6 +857,30 @@ export function getPivot() {
   return pivotActual ? { ...pivotActual } : null;
 }
 
+/**
+ * The static geometry that keeps bodies in the arena, for rigs to assert on.
+ * Behavioural containment tests are luck-dependent - whipping the hand at the
+ * boundaries escaped the (absent) ceiling on one run of 90 iterations and not on
+ * one of 80 - so the reliable check is structural: the bodies exist, and each is
+ * thicker than anything can cross in a single step.
+ */
+export function getWorldBounds() {
+  const thickness = b => {
+    const { min, max } = b.bounds;
+    return { w: max.x - min.x, h: max.y - min.y };
+  };
+  return {
+    hasCeiling: Boolean(ceiling && world && world.bodies.includes(ceiling)),
+    hasGround: Boolean(groundBody && world && world.bodies.includes(groundBody)),
+    hasWalls: Boolean(leftWall && rightWall && world
+      && world.bodies.includes(leftWall) && world.bodies.includes(rightWall)),
+    ceiling: ceiling ? thickness(ceiling) : null,
+    leftWall: leftWall ? thickness(leftWall) : null,
+    rightWall: rightWall ? thickness(rightWall) : null,
+    ground: groundBody ? thickness(groundBody) : null,
+  };
+}
+
 /** Y of the ground surface bodies come to rest on - the line drawGround paints. */
 export function getGroundTop() { return canvasH - GROUND_TOP_INSET; }
 
@@ -853,7 +892,11 @@ export function getStringConstraint() { return stringConstraint; }
 
 export function reset() {
   World.clear(world, false);
-  Composite.add(world, [groundBody, leftWall, rightWall]);
+  // The ceiling must be re-added here too: World.clear drops everything, and
+  // reset() runs on every startLevel, so omitting it would remove the ceiling
+  // the moment a level began - leaving init's version to fool any test that
+  // only checked after init.
+  Composite.add(world, [groundBody, leftWall, rightWall, ceiling]);
   ratBody = null;
   stringConstraint = null;
   // World.clear already dropped the bodies; clear our bookkeeping too or the
