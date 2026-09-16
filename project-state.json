@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-14",
   "last_session_summary_path": "history/session-007-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 155 is DONE on branch swinging/feat/act2-relay (not yet merged): Act 2 is re-laid as three distinct spatial problems - L4 Low Ceiling (wide floor, ceiling, sweep sideways), L5 Narrow Column (no lateral room, pump vertically, two stacked shielded targets), L6 Long Reach (smallest zone, longest rope, targets at the edge of reach). Pivot now spans 0.10-0.28 and rope 150-190 across the act. 100/100 vitest, 92/92 gate over three runs. A test now guards the two failure modes found while building it: a zone that excludes the tail-grab point makes a level unstartable, and a zone extending below the ground line lets the hand be driven into the floor. NEXT: task 156 - the human pilot measurement, and a REAL GATE. Play L4, L5 and L6 with ?dev=1 and export. The question is not just hit counts: does constrained space produce more deliberate play, or just frustration? If it does not, tasks 157-160 should not proceed as designed. Bot runs cannot answer it - the bot cleared L4 only marginally and that is exactly the ambiguity a human resolves.",
+  "current_activity": "Task 156's pilot is DONE and the VERDICT IS PROCEED: constrained space produces measurably more deliberate play. Glancing fell 27.9% -> 17.3% against a 22.6% control on unchanged levels, time to clear doubled while hit counts held at 4, and swing speed halved - players landing better hits rather than faster ones. Zero failed runs, zero yanks. Act 2 stays as re-laid, on the unmerged branch swinging/feat/act2-relay. BUT THE PILOT ALSO FOUND A COUPLED REGRESSION, task 161: zones halved arrival speed at shields, and the tiers were derived from the old layout, so heavy now breaks on 2% of contacts and 1 of 5 runs, with a maximum contact speed of 96.0 against its threshold of 95. That is the unreachable-shield failure returning by another route. NEXT: task 161, and it blocks 158 - re-laying Act 3 would move speeds again and compound two unknowns. Weaker spots to revisit while there: Narrow Column shows 27% glancing, no better than the old build, and Long Reach takes a median 16.1s against Low Ceiling's 3.8s.",
   "action_plan": [
     {
       "id": 45,
@@ -216,10 +216,11 @@
     {
       "id": 156,
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "task": "Measure the Act 2 pilot on human runs - THE GATE on everything after it",
       "done_when": "Act 2 hit counts recorded with ?dev=1 and appended to the calibration CSV, plus a judgement on the real question: does constrained space produce more deliberate play, or just frustration?",
-      "context": "A real gate, not a checkpoint. The entire 128 design rests on an untested claim that constraining space produces deliberate play; if it does not, tasks 157-160 should not proceed as designed. Bot runs cannot answer this - it is a feel question, like the tail-grab was."
+      "context": "A real gate, not a checkpoint. The entire 128 design rests on an untested claim that constraining space produces deliberate play; if it does not, tasks 157-160 should not proceed as designed. Bot runs cannot answer this - it is a feel question, like the tail-grab was. DONE 2026-09-16 - VERDICT: PROCEED. 19 human runs on the re-laid Act 2 against 28 on the previous layout. THE PREMISE HOLDS: glancing rate fell 27.9% -> 17.3%, a 38% reduction in sloppy hits, against an unchanged Acts 1/3 control in the same export at 22.6% - so it is the zones, not general drift. Time to clear roughly doubled (3.1s -> 5.7s) while hits barely moved (3.5 -> 4.0) and swing speed halved (p50 130.3 -> 69.4): players are landing better hits rather than faster ones, which is what deliberate play looks like. Zero non-SHATTER outcomes across all 19 runs, and yanks stayed at 0, so there is no tangling or abandonment signal. TWO WEAKER LEVELS: Narrow Column has the worst glancing of the three at 27%, no better than the old build, so its constraint is not producing accuracy; and Long Reach takes a median 16.1s against Low Ceiling's 3.8s, which may be deliberate or may be fiddly - n=5. THE SERIOUS FINDING is separate and is logged as task 161: the zones broke the shield calibration.",
+      "completed_date": "2026-09-16T10:00:00"
     },
     {
       "id": 157,
@@ -235,7 +236,7 @@
       "status": "pending",
       "task": "Re-lay Act 3 around blades and the hazardous intent",
       "done_when": "L7-L9 rebuilt against the 'hazardous' intent with blades placed deliberately; gate green; human runs recorded.",
-      "context": "GATED on task 156. Do not start until the Act 2 pilot confirms constrained play works."
+      "context": "GATED on task 156. Do not start until the Act 2 pilot confirms constrained play works. BLOCKED 2026-09-16 on task 161: Act 3's re-lay will move swing speeds again, and re-laying it while shield thresholds are known to be miscalibrated would compound two unknowns."
     },
     {
       "id": 159,
@@ -252,6 +253,14 @@
       "task": "Full-campaign re-measure - confirm the difficulty curve finally rises",
       "done_when": "Human runs across all 9 levels show act means rising rather than flat, against the 2026-09-14 baseline of 3.60 / 3.68 / 3.81 hits.",
       "context": "GATED on 158 and 159. This is what closes task 128, and also revisits tasks 115 and 150, both of which were deferred pending a level layer that actually varies."
+    },
+    {
+      "id": 161,
+      "priority": "high",
+      "status": "pending",
+      "task": "Re-derive shield tiers for zoned levels - absolute speeds do not survive a layout change",
+      "done_when": "No tier sits near 0% on a zoned level; break rates per tier are deliberate and measured on human runs. Preferred shape: a tier expressed relative to the speed the level actually permits, rather than an absolute px/step.",
+      "context": "Found by the task 156 pilot. Zones halved swing speed, so arrival speed at shields halved, and the tiers (45/70/95) were derived from the old layout's arrival distribution. Heavy now breaks on 2% of contacts and in 1 of 5 runs, with a maximum recorded contact speed of 96.0 against its threshold of 95. This is the same failure as the unreachable 180 threshold, reached from a different direction, and it BLOCKS re-laying Act 3 (task 158) because that act will move speeds again."
     }
   ],
   "recently_updated_files": [
@@ -543,6 +552,11 @@
       "date": "2026-09-14",
       "decision": "Merged branch swinging/feat/movement-zones into main (carrying its stacked parent swinging/docs/act-intent-note)",
       "rationale": "5d0a7efc737ad7517ecda30e653b9755fb87afa1"
+    },
+    {
+      "date": "2026-09-16",
+      "decision": "Task 156 pilot verdict: PROCEED. Constrained space does produce more deliberate play. But the zones broke the shield tier calibration, which needs fixing before Act 3 is re-laid.",
+      "rationale": "19 human runs on the re-laid Act 2 against 28 on the previous layout. THE PREMISE HOLDS: glancing rate fell 27.9% -> 17.3%, a 38% reduction in sloppy hits, against an unchanged Acts 1/3 control in the same export at 22.6% - so it is the zones, not general drift. Time to clear roughly doubled (3.1s -> 5.7s) while hits barely moved (3.5 -> 4.0) and swing speed halved (p50 130.3 -> 69.4): players are landing better hits rather than faster ones, which is what deliberate play looks like. Zero non-SHATTER outcomes across all 19 runs, and yanks stayed at 0, so there is no tangling or abandonment signal. PER LEVEL: Low Ceiling 4 hits / 3.8s / 10% glancing is the cleanest; Narrow Column 4 hits / 6.8s / 27% glancing is the weakest, its constraint producing no accuracy gain; Long Reach 3 hits / 16.1s / 14% glancing is much the slowest, on only 5 runs. THE COUPLED FAILURE, and the reason task 161 exists: halving swing speed halved arrival speed at shields, and the tiers were derived from the OLD layout's arrival distribution. Measured, light fell 56% -> 31% of contacts, medium 30% -> 14%, and heavy 40% -> 2% with only 1 of 5 runs getting through against 57% before. Heavy's highest recorded contact speed is 96.0 against a threshold of 95, so it barely clears at absolute best, and contacts ballooned from 10 to 47 as players bounced off repeatedly. This is the unreachable-180-shield failure returning by another route, and it is L0455 exactly: a threshold measured where the check fires is still invalidated when the level layout moves the distribution underneath it. The structural fix is probably to express a tier RELATIVE to the speed a level actually allows rather than as an absolute px/step, the same move that made parHits per-variant."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
