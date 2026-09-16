@@ -216,6 +216,56 @@ const t0 = Date.now();
 
     check('no page errors', errors.length === before, errors.slice(before).join(' | '));
   }
+
+  // --- Arena containment ---------------------------------------------------
+  // The rat gets no continuous collision (only the rope is swept), so nothing
+  // keeps it inside except geometry thicker than it can cross in one step, and
+  // there was no ceiling at all until 2026-09-16 - the rat was observed leaving
+  // the top of the canvas at y = -21.
+  //
+  // This is asserted STRUCTURALLY, not behaviourally. A first version whipped
+  // the hand at the boundaries and watched the rat's position, and it passed
+  // with the ceiling deliberately removed: the escape had taken 90 iterations to
+  // reproduce and the check ran 80. A containment test that can pass while the
+  // containment is missing is worse than none, so what is asserted is that the
+  // bodies exist and are thicker than anything can cross in one step. The whip
+  // is kept below as an INFO line, on the same footing as the HP-drop report.
+  {
+    console.log('\n[arena containment]');
+    await page.evaluate(o => window.__ratsmash.beginRun(o),
+      { level: 9, variant: 'heavy', source: 'gate', seed: 1 });
+    await page.waitForTimeout(250);
+
+    const w = await page.evaluate(() => window.__ratsmash.state().world);
+    // Measured rat peaks run 250-460 px/step, so anything thinner than that can
+    // be crossed in a single step. The old 50px walls were far under it.
+    const MIN_THICKNESS = 500;
+    check('ceiling exists (the rat left through the top without one)', w.hasCeiling);
+    check('ground and side walls exist', w.hasGround && w.hasWalls);
+    check('every boundary is thicker than one step of travel',
+      w.ceiling.h >= MIN_THICKNESS && w.leftWall.w >= MIN_THICKNESS && w.rightWall.w >= MIN_THICKNESS,
+      `ceiling ${w.ceiling.h}  walls ${w.leftWall.w}/${w.rightWall.w}  (min ${MIN_THICKNESS})`);
+
+    const rect = await page.evaluate(() => {
+      const r = document.getElementById('game-canvas').getBoundingClientRect();
+      return { left: r.left, top: r.top, width: r.width, height: r.height };
+    });
+    const to = (cx, cy) => [rect.left + cx * (rect.width / 1100), rect.top + cy * (rect.height / 620)];
+    const corners = [[40, 60], [1060, 60], [40, 540], [1060, 540]];
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let i = 0; i < 100; i++) {
+      await page.mouse.move(...to(...corners[i % 4]));
+      const r = await page.evaluate(() => window.__ratsmash.state().rat);
+      if (r) {
+        minX = Math.min(minX, r.x); maxX = Math.max(maxX, r.x);
+        minY = Math.min(minY, r.y); maxY = Math.max(maxY, r.y);
+      }
+    }
+    const inside = minX >= 0 && maxX <= 1100 && minY >= 0 && maxY <= 620;
+    console.log(`  INFO  whip test: rat reached x ${minX.toFixed(0)}..${maxX.toFixed(0)} ` +
+                `y ${minY.toFixed(0)}..${maxY.toFixed(0)} - ${inside ? 'inside' : 'ESCAPED'}`);
+  }
+
   await page.close();
 }
 
