@@ -527,14 +527,14 @@ export function yankRope(strength = 90) {
   return true;
 }
 
-export function spawnTargets(levelTargets) {
+export function spawnTargets(levelTargets, shieldSpeedScale = 1) {
   targetBodies.forEach(b => Composite.remove(world, b));
   targetBodies = [];
 
   for (const rawTd of levelTargets) {
     // Shields name a tier; the tier supplies material and breakSpeed. Resolved
     // here so both the circle and rectangle branches below get it for free.
-    const td = resolveShieldTier(rawTd);
+    const td = resolveShieldTier(rawTd, shieldSpeedScale);
     const x = td.x * canvasW;
     const y = td.y * canvasH;
     const material = MATERIALS[td.material];

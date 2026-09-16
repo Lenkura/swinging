@@ -73,6 +73,7 @@ export const LEVELS = [
     groundColor: '#201410',
     pivot: { x: 0.10, y: 0.60 },
     handZone: { x: 0.04, y: 0.30, w: 0.42, h: 0.63 },
+    shieldSpeedScale: 0.75,   // zones halve arrival speed; see resolveShieldTier
     stringLength: 140,
     pushStringLength: 150,
     targets: [
@@ -94,6 +95,7 @@ export const LEVELS = [
     groundColor: '#181010',
     pivot: { x: 0.28, y: 0.38 },
     handZone: { x: 0.38, y: 0.26, w: 0.12, h: 0.67 },
+    shieldSpeedScale: 0.75,   // zones halve arrival speed; see resolveShieldTier
     stringLength: 140,
     pushStringLength: 170,
     targets: [
@@ -118,6 +120,7 @@ export const LEVELS = [
     groundColor: '#100e06',
     pivot: { x: 0.16, y: 0.30 },
     handZone: { x: 0.26, y: 0.20, w: 0.11, h: 0.73 },
+    shieldSpeedScale: 0.75,   // zones halve arrival speed; see resolveShieldTier
     stringLength: 140,
     pushStringLength: 190,
     targets: [

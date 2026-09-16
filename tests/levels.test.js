@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getLevel, saveProgress, loadProgress, LEVELS } from '../js/levels.js'
-import { SHIELD_TIERS } from '../js/target.js'
+import { SHIELD_TIERS, MAX_OBSERVED_CONTACT_SPEED } from '../js/target.js'
 import { RAT_VARIANTS } from '../js/rat.js'
 
 const SAVE_KEY = 'yoyo_progress'
@@ -169,6 +169,39 @@ describe('level shield authoring', () => {
   it('no shield hardcodes a material — the tier supplies it', () => {
     for (const { level, t } of shields) {
       expect(t.material, `L${level} shield material comes from its tier`).toBeUndefined()
+    }
+  })
+
+  // The old guard asserted every tier sat below the fastest contact ever
+  // recorded (150.8). That stopped meaning anything once a level's own ceiling
+  // became 96: an absolute bound cannot police a per-level scale. What replaces
+  // it is a band on the scale itself plus the absolute physical ceiling, so a
+  // level cannot scale itself out of reach in either direction.
+  it('every shieldSpeedScale sits in a sane band', () => {
+    for (const l of LEVELS) {
+      if (l.shieldSpeedScale === undefined) continue
+      expect(l.shieldSpeedScale, `L${l.id} scale`).toBeGreaterThanOrEqual(0.4)
+      expect(l.shieldSpeedScale, `L${l.id} scale`).toBeLessThanOrEqual(1.5)
+    }
+  })
+
+  it('no level scales its hardest shield beyond anything ever recorded', () => {
+    const hardest = Math.max(...Object.values(SHIELD_TIERS).map(t => t.breakSpeed))
+    for (const l of LEVELS) {
+      if (!(l.targets || []).some(t => t.isShield)) continue
+      const scaled = hardest * (l.shieldSpeedScale ?? 1)
+      expect(scaled, `L${l.id} hardest shield`).toBeLessThan(MAX_OBSERVED_CONTACT_SPEED)
+    }
+  })
+
+  it('a level with a movement zone declares a scale — zones change arrival speed', () => {
+    // Zones halved swing speed, which halved arrival speed at shields. A zoned
+    // level carrying shields at the unscaled table is the exact regression that
+    // took the heavy tier from 57% of runs to 2% of contacts.
+    for (const l of LEVELS) {
+      if (!l.handZone) continue
+      if (!(l.targets || []).some(t => t.isShield)) continue
+      expect(l.shieldSpeedScale, `L${l.id} is zoned and has shields`).toBeDefined()
     }
   })
 })

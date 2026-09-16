@@ -51,14 +51,33 @@ export const MAX_OBSERVED_CONTACT_SPEED = 150.8;
  * copy - level data stays immutable. Non-shield entries pass through untouched.
  * Throws on an unknown tier rather than defaulting, because a silent default
  * would mean breakSpeed 0 and a shield that shatters on contact.
+ *
+ * `shieldSpeedScale` is the level's own factor for what it physically permits.
+ * An ABSOLUTE speed threshold does not survive a change of level layout: adding
+ * movement zones to Act 2 halved swing speed, which halved arrival speed at the
+ * shields, and the heavy tier went from breaking in 57% of runs to 2% of
+ * contacts - the unreachable-180 failure returning by another route. Measured
+ * over both layouts, the tier ORDERING stayed right and only the scale was
+ * wrong: zoned levels needed 0.74-0.81x this table across all three tiers and
+ * unzoned needed 1.07-1.18x, each internally consistent. So the table keeps the
+ * relative ordering and the level supplies one number (L0409).
+ *
+ * Note what does NOT work: expressing tiers as a fraction of the level's swing
+ * speed. The fractions differ by group - zoned 0.56/0.86/1.08 against unzoned
+ * 0.41/0.58/0.79 - because in a confined space contacts land nearer peak speed,
+ * so the SHAPE of the arrival distribution changes rather than just its scale.
  */
-export function resolveShieldTier(td) {
+export function resolveShieldTier(td, shieldSpeedScale = 1) {
   if (!td || !td.isShield || !td.shieldTier) return td;
   const tier = SHIELD_TIERS[td.shieldTier];
   if (!tier) {
     throw new Error(`Unknown shieldTier "${td.shieldTier}" - expected one of ${Object.keys(SHIELD_TIERS).join(', ')}`);
   }
-  return { ...td, material: tier.material, breakSpeed: tier.breakSpeed };
+  return {
+    ...td,
+    material: tier.material,
+    breakSpeed: tier.breakSpeed * shieldSpeedScale,
+  };
 }
 
 /** Clamp a raw damage value to the per-hit ceiling. Pure; maxHp is passed in. */

@@ -348,7 +348,7 @@ function startLevel() {
   Renderer.clearDecals();
 
   // Spawn targets and bumpers
-  Physics.spawnTargets(level.targets);
+  Physics.spawnTargets(level.targets, level.shieldSpeedScale ?? 1);
   Physics.spawnBumpers(level.bumpers || []);
 
   // Spawn rat and setup push-mode input
