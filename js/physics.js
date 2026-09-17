@@ -122,7 +122,8 @@ function onCollision(event) {
       // A blade severs the tail. This discrete test catches slow contacts;
       // detectBladeCuts covers the fast ones the engine would miss entirely.
       if (other.label === 'blade') {
-        cutRope({ x: other.position.x, y: other.position.y });
+        const seg = bodyA.label === 'rope' ? bodyA : bodyB;
+        if (fastEnoughToCut(other, seg)) cutRope({ x: other.position.x, y: other.position.y });
         continue;
       }
       if (other.label === 'target' || other.label === 'bumper') ropeContactCount++;
@@ -220,17 +221,36 @@ function detectBladeCuts(prev) {
   for (let i = 0; i < ropeBodies.length; i++) {
     const from = prev[i];
     if (!from) continue;
-    const to = ropeBodies[i].position;
+    const seg = ropeBodies[i];
+    const to = seg.position;
     const hit = Query.ray(bladeBodies, from, to, r * 2)[0];
-    if (hit) return cutRope({ x: to.x, y: to.y });
+    if (hit && fastEnoughToCut(hit.body, seg)) return cutRope({ x: to.x, y: to.y });
   }
 
   for (let i = 0; i < ropeBodies.length - 1; i++) {
-    const a = ropeBodies[i].position;
-    const b = ropeBodies[i + 1].position;
-    const hit = Query.ray(bladeBodies, a, b, r)[0];
-    if (hit) return cutRope({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+    const a = ropeBodies[i];
+    const b = ropeBodies[i + 1];
+    const hit = Query.ray(bladeBodies, a.position, b.position, r)[0];
+    if (hit && (fastEnoughToCut(hit.body, a) || fastEnoughToCut(hit.body, b))) {
+      return cutRope({ x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 });
+    }
   }
+}
+
+/**
+ * A blade cuts only when the tail crosses it fast enough.
+ *
+ * It killed on ANY contact at first, and that was measured as wrong: across 24
+ * bot runs roughly half ended in a cut no matter where the blades were placed,
+ * because the tail hangs from a hand that teleports to the pointer - so "never
+ * touch this" makes a blade an instant-death region rather than an obstacle, and
+ * repositioning it cannot help. A speed gate turns it into "do not whip into
+ * it", which is a test of control and therefore what Act 3 is actually for.
+ * Mirrors how a shield gates on rat speed.
+ */
+function fastEnoughToCut(blade, segment) {
+  const threshold = blade.plugin.cutSpeed ?? DEFAULT_CUT_SPEED;
+  return Math.hypot(segment.velocity.x, segment.velocity.y) >= threshold;
 }
 
 /** Sever the tail: detach the rope and announce it once per run. */
@@ -683,6 +703,14 @@ export function updateMovingTargets(elapsed) {
  * rather than assumed - the rope is the least directly controlled thing in the
  * game.
  */
+/**
+ * Default tail speed a blade needs to cut. Rope segments whip far faster than
+ * the rat - measured up to 432 px/step against the rat's 250-460 - so this sits
+ * high enough that drifting into a blade is survivable and driving into one is
+ * not. Per-blade override via `cutSpeed`.
+ */
+export const DEFAULT_CUT_SPEED = 120;
+
 export function spawnBlades(levelBlades = []) {
   bladeBodies.forEach(b => Composite.remove(world, b));
   bladeBodies = [];
@@ -694,7 +722,7 @@ export function spawnBlades(levelBlades = []) {
       isSensor: true,   // it severs rather than deflects; nothing should bounce
       angle: (bd.angle || 0) * Math.PI / 180,
       collisionFilter: { category: CAT.BLADE, mask: MASK.BLADE },
-      plugin: { w: bd.w, h: bd.h },
+      plugin: { w: bd.w, h: bd.h, cutSpeed: bd.cutSpeed ?? DEFAULT_CUT_SPEED },
     });
     Composite.add(world, body);
     bladeBodies.push(body);

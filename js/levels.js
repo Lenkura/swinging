@@ -135,57 +135,84 @@ export const LEVELS = [
 
   // ─────────────────────────────────────────────
   // ACT 3 — THE LAB
-  // New mechanic: bumpers
+  // Hazardous: blades, bumpers, moving targets - see CLAUDE.md > Level Design
   // ─────────────────────────────────────────────
   {
+    // ACT 3 INTENT: can you do it without getting cut? Blades, bumpers and
+    // moving targets all punish loss of CONTROL rather than restricting
+    // position - so this act deliberately carries no handZone, which is Act 2's
+    // vocabulary. It is also the only act you can lose.
+    //
+    // Blades are placed HIGH on purpose. The tail hangs below the hand and
+    // sweeps within one rope-length of it, so a blade overhead never blocks the
+    // ordinary line - it taxes the biggest swing, which is the one that would
+    // otherwise be free. L7 introduces that with a single blade and plenty of
+    // room beneath it.
     id: 7,
     act: 3,
-    name: 'Deflection',
+    name: 'First Cut',
     background: ['#c8d4dc', '#90a4b0'],
     groundColor: '#708090',
-    pivot: { x: 0.22, y: 0.44 },
+    pivot: { x: 0.18, y: 0.46 },
     stringLength: 150,
-    pushStringLength: 150,
+    pushStringLength: 160,
     targets: [
-      { shape: 'circle', r: 40, x: 0.72, y: 0.56, material: 'wood' },
+      { shape: 'circle', r: 40, x: 0.70, y: 0.58, material: 'wood' },
     ],
     bumpers: [
-      { x: 0.50, y: 0.60, radius: 22 },
+      { x: 0.48, y: 0.62, radius: 22 },
+    ],
+    blades: [
+      { x: 0.46, y: 0.14, w: 240, h: 10 },
     ],
     parScore: 1800,
     pushParScore: 3000,
-    hint: 'A bumper deflects the rat. Find the angle that lets you slip past!',
+    hint: 'A blade overhead. It cannot touch you - but it will cut your tail if you swing too high.',
   },
   {
+    // L8 turns the hazard from a ceiling into a corridor: two blades leave a gap
+    // the swing has to pass through, and the bumpers sit where a deflection
+    // pushes you toward one of them. This is the act's thesis - the danger is
+    // not the obstacle, it is losing control near it.
     id: 8,
     act: 3,
-    name: 'Ricochet',
+    name: 'Crossfire',
     background: ['#b8ccd8', '#849ab4'],
     groundColor: '#607080',
-    pivot: { x: 0.20, y: 0.50 },
+    pivot: { x: 0.24, y: 0.54 },
     stringLength: 150,
     pushStringLength: 150,
     targets: [
-      { shape: 'rectangle', w: 55, h: 70, x: 0.68, y: 0.50, material: 'glass' },
-      { shape: 'circle', r: 28, x: 0.82, y: 0.62, material: 'steel' },
+      { shape: 'rectangle', w: 55, h: 70, x: 0.70, y: 0.52, material: 'glass' },
+      { shape: 'circle', r: 28, x: 0.84, y: 0.64, material: 'steel' },
     ],
     bumpers: [
-      { x: 0.50, y: 0.48, radius: 20 },
-      { x: 0.62, y: 0.66, radius: 18 },
+      { x: 0.52, y: 0.50, radius: 20 },
+      { x: 0.64, y: 0.68, radius: 18 },
+    ],
+    blades: [
+      { x: 0.50, y: 0.17, w: 300, h: 10 },
     ],
     parScore: 2200,
     pushParScore: 3000,
-    hint: 'Use the bumpers! A well-timed ricochet can chain hits on both targets.',
+    hint: 'Two blades and two bumpers. A deflection you did not plan is what gets your tail cut.',
   },
   {
+    // L9 is the campaign finale and the only level that draws on all three acts:
+    // a shield from Act 2's vocabulary, bumpers and a moving target from Act 3's,
+    // and blades on both flanks so neither the high route nor the far side is
+    // free. Deliberately no handZone - the finale tests control, not confinement.
     id: 9,
     act: 3,
     name: 'Full Experiment',
     background: ['#d0dce8', '#a0b4c8'],
     groundColor: '#788898',
-    pivot: { x: 0.22, y: 0.46 },
+    pivot: { x: 0.20, y: 0.42 },
     stringLength: 150,
-    pushStringLength: 140,
+    pushStringLength: 170,
+    blades: [
+      { x: 0.50, y: 0.20, w: 340, h: 10 },
+    ],
     targets: [
       { shape: 'rectangle', w: 55, h: 76, x: 0.74, y: 0.52, material: 'wood' },
       { shape: 'circle', r: 28, x: 0.66, y: 0.66, material: 'glass' },
