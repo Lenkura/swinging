@@ -245,6 +245,30 @@ problem **using code that already exists**, and it is the cheapest level-design 
 available. Treat `pivot` and `pushStringLength` as first-class per-level choices with a
 stated reason, not as values copied from the previous level.
 
+### How to measure whether the acts actually differ
+
+**Do not use hits-to-clear.** The per-hit damage cap makes 3 hits the physical
+minimum (100 HP ÷ 40), and 44% of measured runs sit exactly on that floor — so
+the metric cannot express "this act is harder" below about 4 hits. Task 128 was
+originally written against a *rising hits-to-clear curve*, and the cap, which
+fixed a real and severe bug, made that criterion unmeasurable rather than merely
+unmet. It was restated on 2026-09-17.
+
+What each act is measured on instead is the thing its intent actually predicts,
+and each act has a distinct signature (96 human runs, 2026-09-17):
+
+| act | intent | signature | measured |
+|---|---|---|---|
+| 1 — open | build and aim speed | **highest glancing**, fastest clears | 18.7% glancing, 3.05 s |
+| 2 — constrained | deliberate placement | **slowest clears**, glancing falls | 12.5% glancing, 4.97 s |
+| 3 — hazardous | risk under pressure | **the only act that can kill you** | 11.7% glancing, 21% of runs cut |
+
+All three pairs of acts are distinguishable on at least one metric, and each
+act's signature is the one its stated intent predicts — which is what "the acts
+differ" was always meant to mean. A future act, or a re-lay of one of these,
+should be held to the same bar: state the intent, then name the metric that
+would show it is working, *before* measuring.
+
 ### Two rules that fall out of this
 
 - **A level's difficulty should come from its arrangement first and its furniture second.**
