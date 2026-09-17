@@ -322,7 +322,12 @@ Physics.on('rope-cut', ({ x, y }) => {
   Particles.emit(x, y, { count: 14, color: '#ff5d5d', speed: 260, radius: 3 });
   shakeIntensity = 6;
   shakeTimer = SHAKE_DURATION;
-  impactTimer = 0.85;
+  // A loss gets a longer beat than a win: the rat is sent tumbling and physics
+  // keeps running through IMPACT, so it falls and bounces before the panel
+  // appears. 0.85s - the shatter timing - cut straight to the result and gave
+  // the only losing outcome in the game no weight at all.
+  Physics.tumbleRat();
+  impactTimer = 2.6;
 });
 
 // Input callbacks

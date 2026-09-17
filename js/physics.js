@@ -732,6 +732,24 @@ export function spawnBlades(levelBlades = []) {
 
 export function getBladeBodies() { return bladeBodies; }
 
+/**
+ * Send the rat tumbling after its tail is cut, so the loss has a beat to land
+ * in rather than cutting straight to a panel. Raises restitution for the fall -
+ * the rat normally has almost none (0.02-0.05) because a bouncy rat would ruin
+ * the swing, but once the rope is gone nothing depends on it any more.
+ */
+export function tumbleRat() {
+  if (!ratBody) return;
+  ratBody.restitution = 0.55;
+  ratBody.frictionAir = 0.004;
+  const dir = ratBody.velocity.x >= 0 ? 1 : -1;
+  Body.setVelocity(ratBody, {
+    x: ratBody.velocity.x * 0.7 + dir * 3,
+    y: Math.min(ratBody.velocity.y, 0) - 7,
+  });
+  Body.setAngularVelocity(ratBody, dir * (0.35 + Math.random() * 0.25));
+}
+
 export function spawnBumpers(levelBumpers = []) {
   bumperBodies.forEach(b => Composite.remove(world, b));
   bumperBodies = [];
