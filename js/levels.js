@@ -228,7 +228,15 @@ export function loadProgress() {
   }
 }
 
-export function saveProgress(levelId, score) {
+/**
+ * Records a run. `completed` is false when the player LOST - the only losing
+ * outcome is a tail cut by a blade - and a lost run must neither score nor
+ * unlock anything. This guard lives here rather than at the call site because
+ * unlockedLevel advanced unconditionally before: failing a level would still
+ * have opened the next one, which nothing would have reported.
+ */
+export function saveProgress(levelId, score, { completed = true } = {}) {
+  if (!completed) return;
   const data = loadProgress();
   if (!data.highScores) data.highScores = {};
   if (score > (data.highScores[levelId] || 0)) data.highScores[levelId] = score;

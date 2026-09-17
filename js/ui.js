@@ -124,16 +124,19 @@ export function showResult(outcome, score, parScore, actClear = false, gameClear
     outcomeText = 'ACT CLEAR!';
     outcomeClass = 'outcome-actclear';
   } else {
-    const texts = { SHATTER: 'SMASHED!', CRACK: 'CRACKED!', SURVIVE: 'BOUNCED OFF.' };
-    const classes = { SHATTER: 'outcome-shatter', CRACK: 'outcome-crack', SURVIVE: 'outcome-survive' };
+    const texts = { SHATTER: 'SMASHED!', CRACK: 'CRACKED!', SURVIVE: 'BOUNCED OFF.', FAILED: 'TAIL CUT!' };
+    const classes = { SHATTER: 'outcome-shatter', CRACK: 'outcome-crack', SURVIVE: 'outcome-survive', FAILED: 'outcome-failed' };
     outcomeText = texts[outcome] || 'Unknown';
     outcomeClass = classes[outcome] || '';
   }
   resultOutcome.textContent = outcomeText;
   resultOutcome.className = outcomeClass;
 
-  const stars = score >= parScore ? '★★★' : score >= parScore * 0.6 ? '★★☆' : '★☆☆';
-  resultStars.textContent = stars;
+  // A failed run scores nothing, so stars would be a lie - the game's only
+  // losing outcome should not hand out a one-star consolation.
+  resultStars.textContent = outcome === 'FAILED'
+    ? '—'
+    : (score >= parScore ? '★★★' : score >= parScore * 0.6 ? '★★☆' : '★☆☆');
 
   // Animate score count-up
   if (scoreInterval) clearInterval(scoreInterval);

@@ -310,6 +310,21 @@ Input.onYank(pos => {
   }
 });
 
+// A blade has severed the tail. This is the game's only losing outcome: the rat
+// survives, which is precisely the problem, since killing it is how you win.
+Physics.on('rope-cut', ({ x, y }) => {
+  if (gameState !== 'SWINGING') return;
+  gameState = 'IMPACT';
+  lastOutcome = 'FAILED';
+  lastScore = 0;
+  stopWhoosh();
+  hitLabel = { text: 'TAIL CUT!', x, y, timer: HIT_LABEL_DURATION, color: '#ff5d5d' };
+  Particles.emit(x, y, { count: 14, color: '#ff5d5d', speed: 260, radius: 3 });
+  shakeIntensity = 6;
+  shakeTimer = SHAKE_DURATION;
+  impactTimer = 0.85;
+});
+
 // Input callbacks
 Input.onPivotMove(({ x, y }) => {
   if (gameState !== 'SWINGING') return;
@@ -350,6 +365,7 @@ function startLevel() {
   // Spawn targets and bumpers
   Physics.spawnTargets(level.targets, level.shieldSpeedScale ?? 1);
   Physics.spawnBumpers(level.bumpers || []);
+  Physics.spawnBlades(level.blades || []);
 
   // Spawn rat and setup push-mode input
   const psl = level.pushStringLength || stringLength;
@@ -532,6 +548,7 @@ function gameLoop(timestamp) {
     yoyoBody: Physics.getRatBody(),
     targetBodies: Physics.getTargetBodies(),
     bumperBodies: Physics.getBumperBodies(),
+    bladeBodies: Physics.getBladeBodies(),
     fragmentBodies: Physics.getFragmentBodies(),
     stringConstraint: constraint,
     ropeBodies: Physics.getRopeBodies(),
@@ -557,7 +574,7 @@ function showResult() {
   Telemetry.endRun({ outcome: lastOutcome, score: lastScore, hitCount });
 
   const level = currentLevel();
-  saveProgress(currentLevelId, lastScore);
+  saveProgress(currentLevelId, lastScore, { completed: lastOutcome === 'SHATTER' });
 
   const nextLevel = LEVELS.find(l => l.id === currentLevelId + 1);
   const isLastLevel = currentLevelId === LEVELS.length;
@@ -566,7 +583,11 @@ function showResult() {
 
   const parScore = level.pushParScore || 1500;
   UI.showResult(lastOutcome, lastScore, parScore, actClear, gameClear);
-  UI.setNextVisible(currentLevelId < LEVELS.length);
+  // Not offered after a loss. saveProgress already refuses to unlock a failed
+  // level, but onNext loads currentLevelId + 1 directly without consulting
+  // unlockedLevel - so leaving the button visible would let the player walk
+  // straight past the guard, and it rendered as the primary action.
+  UI.setNextVisible(lastOutcome === 'SHATTER' && currentLevelId < LEVELS.length);
   UI.setHint('');
 }
 

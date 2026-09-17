@@ -131,6 +131,35 @@ describe('saveProgress', () => {
     expect(loadProgress().unlockedLevel).toBe(3)
   })
 
+  // A blade cut is the game's only losing outcome. Before this guard,
+  // unlockedLevel advanced unconditionally, so failing a level would still have
+  // opened the next one - a silent progression bug nothing was watching for.
+  it('a failed run records no score', () => {
+    saveProgress(1, 2500, { completed: false })
+    expect(loadProgress().highScores).toBeUndefined()
+  })
+
+  it('a failed run does NOT unlock the next level', () => {
+    saveProgress(1, 2500, { completed: false })
+    expect(loadProgress().unlockedLevel).toBeUndefined()
+  })
+
+  it('a failed run cannot erase or lower an existing score', () => {
+    saveProgress(1, 2000)
+    saveProgress(1, 9999, { completed: false })
+    const data = loadProgress()
+    expect(data.highScores[1]).toBe(2000)
+    expect(data.unlockedLevel).toBe(2)
+  })
+
+  it('omitting the options object still counts as completed', () => {
+    // Every existing call site passes two arguments; the guard must not
+    // silently turn those into failures.
+    saveProgress(3, 1200)
+    expect(loadProgress().highScores[3]).toBe(1200)
+    expect(loadProgress().unlockedLevel).toBe(4)
+  })
+
   it('handles multiple levels independently', () => {
     saveProgress(1, 1000)
     saveProgress(2, 2500)
