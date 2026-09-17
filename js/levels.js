@@ -3,63 +3,76 @@ export const ACT_NAMES = { 1: 'The Sewer', 2: 'The Warehouse', 3: 'The Lab' };
 export const LEVELS = [
   // ─────────────────────────────────────────────
   // ACT 1 — THE SEWER
-  // Introduction: varied shapes, no new mechanics
+  // Open: can you build and aim speed? No obstacles at all - anything that
+  // interrupts the swing belongs to a later act. The variation here is carried
+  // entirely by pivot, rope length and where the targets sit, which is exactly
+  // the lever the campaign had never used: every level once put the hand on the
+  // left at mid-height with the targets to the right.
   // ─────────────────────────────────────────────
   {
+    // Short rope, low hand, one close target. The smallest possible version of
+    // the whole game, so the first thing a player does is succeed at it.
     id: 1,
     act: 1,
     name: 'Pipe Dreams',
     background: ['#3d2b1f', '#1e1208'],
     groundColor: '#1a1008',
-    pivot: { x: 0.22, y: 0.50 },
+    pivot: { x: 0.18, y: 0.52 },
     stringLength: 140,
-    pushStringLength: 130,
+    pushStringLength: 120,
     targets: [
-      { shape: 'circle', r: 36, x: 0.66, y: 0.57, material: 'glass' },
+      { shape: 'circle', r: 36, x: 0.46, y: 0.60, material: 'glass' },
     ],
     parScore: 1200,
     pushParScore: 3000,
-    hint: 'Swing the rat into the target. Cleaner hits deal more damage!',
+    hint: 'Move the mouse to swing the rat. Cleaner hits deal more damage!',
   },
   {
+    // The opposite extreme: a high hand and the longest rope in the game, so the
+    // swing is slow and wide and has to be committed to early. Targets sit low
+    // and apart, which the short-rope reflexes from L1 cannot reach.
     id: 2,
     act: 1,
-    name: 'Drip Room',
+    name: 'Long Drop',
     background: ['#1e2e1e', '#0e1a0e'],
     groundColor: '#121a0a',
-    pivot: { x: 0.20, y: 0.46 },
+    pivot: { x: 0.22, y: 0.22 },
     stringLength: 140,
-    pushStringLength: 140,
+    pushStringLength: 200,
     targets: [
-      { shape: 'circle', r: 30, x: 0.64, y: 0.50, material: 'glass' },
-      { shape: 'rectangle', w: 55, h: 72, x: 0.76, y: 0.60, material: 'wood' },
+      { shape: 'circle', r: 30, x: 0.48, y: 0.72, material: 'glass' },
+      { shape: 'rectangle', w: 55, h: 72, x: 0.70, y: 0.68, material: 'wood' },
     ],
     parScore: 1400,
     pushParScore: 3000,
-    hint: 'Glass shatters fast. Wood takes more hits — keep the combo going!',
+    hint: 'A long tail swings slow and wide. Commit to the arc before you need it.',
   },
   {
+    // The act's real idea, and the first level in the campaign where the hand is
+    // not on the left: a central pivot with targets on BOTH sides, so the swing
+    // has to be reversed rather than merely repeated. Nothing new is introduced
+    // to do it - only the pivot moved.
     id: 3,
     act: 1,
-    name: 'The Stack',
+    name: 'Both Ways',
     background: ['#2e2214', '#1a1408'],
     groundColor: '#100c04',
-    pivot: { x: 0.24, y: 0.44 },
+    pivot: { x: 0.50, y: 0.36 },
     stringLength: 130,
-    pushStringLength: 140,
+    pushStringLength: 150,
     targets: [
-      { shape: 'circle', r: 26, x: 0.64, y: 0.42, material: 'glass' },
-      { shape: 'rectangle', w: 60, h: 42, x: 0.64, y: 0.54, material: 'wood' },
-      { shape: 'rectangle', w: 68, h: 42, x: 0.64, y: 0.66, material: 'steel' },
+      { shape: 'rectangle', w: 60, h: 80, x: 0.20, y: 0.62, material: 'wood' },
+      { shape: 'circle', r: 30, x: 0.80, y: 0.58, material: 'glass' },
+      { shape: 'rectangle', w: 68, h: 42, x: 0.50, y: 0.70, material: 'steel' },
     ],
     parScore: 2000,
     pushParScore: 3000,
-    hint: 'Steel hits hard back. Build speed before going for the bottom block.',
+    hint: 'Targets on both sides. Reverse the swing - do not just keep going one way.',
   },
 
   // ─────────────────────────────────────────────
   // ACT 2 — THE WAREHOUSE
-  // New mechanic: destructible shields
+  // Constrained: can you do it in a confined space? - see CLAUDE.md > Level Design
   // ─────────────────────────────────────────────
   {
     // ACT 2 INTENT: can you do it in a confined space? The zone is the act's

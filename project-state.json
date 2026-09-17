@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-17",
   "last_session_summary_path": "history/session-007-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 158 is DONE on branch swinging/feat/blades-fail-state (unmerged, stacked with 157). Act 3 is re-laid as L7 First Cut, L8 Crossfire and L9 Full Experiment, with no handZone because the act asks about control rather than confinement. The blade kill rule changed during the task: any-contact killed roughly half of all bot runs regardless of placement, so blades now cut only above cutSpeed (default 120), and the same levels measure 0/8, 1/8, 0/8. 112/112 vitest, 95/95 gate twice. NEXT: 159 (re-lay Act 1 around pivot variety - it WILL break dev/gate.mjs, whose non-dev path clicks a tail position hand-computed from L1 geometry), then 160 (full-campaign re-measure, which closes 128) paired with 165 (human judgement on whether blades still feel dangerous at 120, or now read as decoration - the threshold is deliberately biased safe and bot data cannot settle it).",
+  "current_activity": "Task 159 is DONE. All three acts are now re-laid: Act 1 open (no obstacles, variation from pivot and rope length, including the first central-pivot level), Act 2 constrained (movement zones), Act 3 hazardous (blades gated on speed, and the fail state). 113/113 vitest, 95/95 gate twice. THREE BRANCHES STACKED AND UNMERGED: swinging/feat/blades-fail-state carries 157, 158 and 159. NEXT: task 160, the full-campaign human re-measure, which CLOSES TASK 128 - the target is act means that rise rather than the flat 3.60 / 3.68 / 3.81 baseline of 2026-09-14. Pair it with 165 (does a blade still feel dangerous at cutSpeed 120, or does it now read as decoration - the threshold is deliberately biased safe and bot data cannot settle it). Then 163, 150, 135, 152, 151.",
   "action_plan": [
     {
       "id": 45,
@@ -198,10 +198,11 @@
     {
       "id": 159,
       "priority": "medium",
-      "status": "pending",
+      "status": "completed",
       "task": "Re-lay Act 1 around pivot variety and the 'open' intent",
       "done_when": "L1-L3 rebuilt so the spatial problem varies across them; gate green; human runs recorded.",
-      "context": "GATED on task 156. Note this will break dev/gate.mjs's non-dev path, which clicks a tail position hand-computed from L1's pivot and rope length - it fails loudly rather than silently, but expect it."
+      "context": "GATED on task 156. Note this will break dev/gate.mjs's non-dev path, which clicks a tail position hand-computed from L1's pivot and rope length - it fails loudly rather than silently, but expect it. DONE 2026-09-17: L1 Pipe Dreams (short rope, low hand, one close target), L2 Long Drop (highest hand, longest rope, slow wide arc) and L3 Both Ways - a CENTRAL pivot with targets on both sides, the first level in the campaign where the hand is not on the left. No obstacles in the act at all. Bot medians 3 / 4 / 4-5, so the act has an internal gradient from layout alone. The predicted gate break happened and was caught by the positive HP-drop assertion rather than going vacuous; fixed properly by importing LEVELS into dev/gate.mjs instead of re-hardcoding the constants. Two tests that pinned level NAMES as literals also broke and were rewritten to compare against level data (L0352). 113/113 vitest, 95/95 gate twice.",
+      "completed_date": "2026-09-17T17:00:00"
     },
     {
       "id": 160,
@@ -579,6 +580,11 @@
       "date": "2026-09-17",
       "decision": "Act 3 re-laid around the hazardous intent, and blades changed from killing on any tail contact to cutting only above a speed threshold.",
       "rationale": "The kill rule was the variable, not the placement. Across 24 bot runs with any-contact blades, roughly half of runs ended in a cut on every configuration tried - 5/8, 4/8 and 4/8 - and two rounds of repositioning moved nothing. An unchanged level reading 1/3 then 2/3 between samples is what revealed the earlier n=3 numbers as noise, and that I had been tuning against them. The cause is structural: the tail hangs from a hand that teleports to the pointer, so a rule of never touch this makes a blade an instant-death region with no boundary drawn, and geometry cannot rescue it. Gating on speed mirrors the shield mechanic the game already has and matches what Act 3 is for - punishing loss of control rather than occupying the wrong place. It also took the gate from a coin flip on L7 and L8 to green. The 120 default is provisional and biased safe: a bot that is almost never cut may mean blades now read as decoration, which only human play can judge, so that is logged rather than guessed at again. Act 3 carries no handZone on purpose, keeping the acts distinct - confinement is Act 2s question."
+    },
+    {
+      "date": "2026-09-17",
+      "decision": "Act 1 re-laid as three open-space problems, with L3 moving the pivot to the centre and putting targets on both sides.",
+      "rationale": "The act intent is open - can you build and aim speed - so it carries no obstacles at all, and every difference between its levels comes from pivot, rope length and target placement. That is deliberate: the 2026-09-14 measurement found the campaign was nine copies of one arrangement, hand on the left with targets to the right, and the pivot was the untouched lever. L3 uses it directly, forcing the swing to be reversed rather than repeated, and the bot medians of 3 / 4 / 4-5 show the act now has a gradient without any new mechanic. TWO COPIES OF ARTIFACT DATA BIT DURING THIS, both the same failure in different clothes. dev/gate.mjs hardcoded L1 pivot and rope length to compute the tail-grab click, so re-laying Act 1 invalidated it silently - it now imports LEVELS and derives them, and it was only caught at all because that check is a positive assertion rather than an absence-of-error one. And two tests pinned level names as string literals, so a legitimate rename failed a test about getLevel returning the right id; they now compare against the level data, with the real invariant - every level has a name - asserted separately (L0352)."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
