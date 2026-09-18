@@ -312,12 +312,17 @@ Input.onYank(pos => {
 
 // A blade has severed the tail. This is the game's only losing outcome: the rat
 // survives, which is precisely the problem, since killing it is how you win.
-Physics.on('rope-cut', ({ x, y }) => {
+Physics.on('rope-cut', ({ x, y, speed, cutSpeed }) => {
   if (gameState !== 'SWINGING') return;
   gameState = 'IMPACT';
   lastOutcome = 'FAILED';
   lastScore = 0;
   stopWhoosh();
+  // Recorded so cutSpeed can be calibrated from the speeds that actually cut,
+  // rather than from cut/no-cut counts alone.
+  Telemetry.recordHit({
+    kind: 'rope-cut', speed, cutSpeed, hitIndex: hitCount, hpAfter: ratHp,
+  });
   hitLabel = { text: 'TAIL CUT!', x, y, timer: HIT_LABEL_DURATION, color: '#ff5d5d' };
   Particles.emit(x, y, { count: 14, color: '#ff5d5d', speed: 260, radius: 3 });
   shakeIntensity = 6;
