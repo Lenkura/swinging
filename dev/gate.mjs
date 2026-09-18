@@ -12,6 +12,9 @@
 
 import { chromium } from 'playwright';
 import { startServer } from './serve.mjs';
+// Safe to import in Node: levels.js has no module-scope dependencies, and its
+// localStorage use is inside functions this never calls.
+import { LEVELS } from '../js/levels.js';
 
 const headed = process.argv.includes('--headed');
 const FIXED_DT = 1 / 60;
@@ -86,8 +89,13 @@ const t0 = Date.now();
   // position is computable rather than observed because the pre-grab pose is
   // frozen (physics.js freezeForGrab): rat at pivot.x, tail base 0.85r to its
   // left, tip one rope-length beyond that. This path has no harness to ask.
-  const L1_PIVOT_X = 0.22, L1_PSL = 130, RAT_R = 18, GROUND_INSET = 40;
-  const tipX = L1_PIVOT_X * 1100 - RAT_R * 0.85 + L1_PSL;
+  // Derived from the level data rather than copied from it. These were once
+  // hardcoded as 0.22 / 130, and re-laying Act 1 silently invalidated them -
+  // caught only because the HP-drop assertion below is a positive check. A copy
+  // of a value the artifact already holds is a copy that will drift.
+  const L1 = LEVELS.find(l => l.id === 1);
+  const RAT_R = 18, GROUND_INSET = 40;   // standard variant; drawGround's inset
+  const tipX = L1.pivot.x * 1100 - RAT_R * 0.85 + (L1.pushStringLength || L1.stringLength);
   const tipY = 620 - GROUND_INSET - RAT_R + RAT_R * 0.22;
   await page.mouse.click(
     rect.left + tipX * (rect.width / 1100),

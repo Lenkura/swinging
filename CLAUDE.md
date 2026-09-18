@@ -191,6 +191,7 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 - **Shields** (`isShield: true` on a target): blocked unless rat speed ≥ `breakSpeed`. On break, the shield body is removed; no HP damage is dealt. On a too-slow hit, a "TOO SLOW!" label is shown. Shields are **not** progress gates — you win by destroying your own rat, so a shield denies a *hitting surface*, not the level.
 - **Shield tiers**: levels write `shieldTier: 'light' | 'medium' | 'heavy'`, never a raw `breakSpeed` — one dial, and the suite fails a hand-written `breakSpeed` or `material` on a shield. `SHIELD_TIERS` in `target.js` maps each tier to a speed (**45 / 70 / 95**) *and* to the material it renders in (glass / wood / steel), so the cost is legible before you swing; `resolveShieldTier` fills both in `spawnTargets`. **Speeds are derived from measured contact speed, never from peak speed** — over 106 human contacts the speed a player actually *arrives* with was p25 38, p50 50, p75 61, max 151, far below free-swing peaks of ~720, because shield placement constrains the approach. The old 100 and 180 thresholds were set from the wrong distribution: 100 broke in 33% of runs and 180 in **0 of 13**, so a whole tier showed "TOO SLOW!" and could never open. Rendering tints a shield by its tier — if they all drew the same colour the tier could not guide anyone, which is what the first implementation did.
 - **`shieldSpeedScale`**: **an absolute speed threshold does not survive a change of level layout.** Adding movement zones to Act 2 halved swing speed, which halved arrival speed at the shields, and the heavy tier fell from breaking in 57% of runs to **2% of contacts** — the unreachable-180 failure returning by another route. Measured across both layouts the tier *ordering* stayed right and only the scale was wrong: zoned levels needed **0.74–0.81×** this table across all three tiers, unzoned **1.07–1.18×**, each internally consistent. So a level declares one number, `shieldSpeedScale` (default 1.0; Act 2's zoned levels use 0.75), and the table keeps the relative ordering ([L0409]). What does **not** work, and was tested: expressing tiers as a fraction of the level's swing speed. Those fractions differ by group — zoned 0.56/0.86/1.08 against unzoned 0.41/0.58/0.79 — because in a confined space contacts land nearer peak speed, so the *shape* of the arrival distribution changes and not merely its scale. Three suite guards: tiers rise monotonically under any scale, a scale stays within 0.4–1.5, and **a zoned level carrying shields must declare a scale** — that last one is the regression this entry exists for.
+- **Blades and the fail state**: a blade (`blades: [{ x, y, w, h, angle }]`) **cuts the tail and loses the level** — the game's only losing outcome, added 2026-09-16. It is masked to `CAT.ROPE` **only**, so the rat passes straight through one: the hazard is about tail control, not a second wall. **It cuts only when the tail crosses it above `cutSpeed` (default 120 px/step)** — a test of control, not a no-go region. It killed on *any* contact at first and that was measured as wrong: across 24 bot runs roughly **half** ended in a cut no matter where the blades sat, because the tail hangs from a hand that teleports to the pointer, so "never touch this" makes a blade an instant-death zone with no boundary drawn and repositioning cannot fix it. With the speed gate the same levels measure 0/8, 1/8 and 0/8. The threshold is provisional and biased safe — it may need lowering once a human judges whether blades still feel dangerous. Detection is in two passes for the same reason the rope has them: the discrete collision catches slow contacts, and `detectBladeCuts` sweeps segment paths *and* the lines between adjacent segments, because the existing rope sweep queries only targets and bumpers — without it a fast segment would pass straight through and the cut would silently fail, and a hazard that kills only sometimes reads as arbitrary. **A lost run must neither score nor unlock:** `saveProgress(levelId, score, { completed })` refuses both, *and* the Next Level button is hidden, because `onNext` loads `currentLevelId + 1` directly without consulting `unlockedLevel` — the storage guard alone left a one-click bypass sitting there as the primary button.
 - **Bumpers**: static circular bodies with high restitution (0.9). Deflect the rat without dealing HP damage. Spawned from the level's `bumpers[]` array.
 - **Materials**: defined in `target.js` — glass, wood, steel. **A campaign material is cosmetic plus exactly one dial.** `yoyoDamage` scales how much hitting that material hurts your own rat, which is how you win; `restitution` is read by physics; `color`/`crackedColor`/`outlineColor`/`glowColor` and `label` are drawn. That is the complete list, because targets in the nine campaign levels are indestructible (`removeTarget` is called only for shields). Six dead fields and `evaluateImpact` were removed 2026-09-14 after an audit found no reader — see **Adding Content** before reaching for a new one. The spread is deliberately narrow (**0.85 / 1.0 / 1.15**, was 0.6 / 1.0 / 1.6): because damage is purely good, a wide spread made steel strictly better than glass and *inverted* the difficulty curve — the tougher material damaged your own rat more, so the hard levels were the easy ones to score on. Measured 2026-09-13: steel one-shot the rat on 60% of hits against glass's 23%.
 - **Per-hit damage cap**: `applyDamageCap` in `target.js` clamps HP loss to `MAX_HIT_DAMAGE_FRACTION` (0.40) of `RAT_MAX_HP`. Damage goes as speed² and swing speed varies ~4× within a run, so the distribution has a very long tail — measured over 61 human hits, p50 41 but p75 113 and max 426, meaning **34% of hits ended a level outright**. The medians were already right; only the tail was broken, so the fix is a bound rather than a rescale, and it is the explicit bound a one-sided knob needs. **The cap applies to the HP subtraction only** — screen shake, hit-stop, the particle burst and the hit sound all read the raw uncapped value, so a monster hit still feels enormous while removing 40 HP. That is also what keeps the three feedback constants correctly aimed at raw damage rather than needing a re-derivation.
@@ -244,6 +245,30 @@ problem **using code that already exists**, and it is the cheapest level-design 
 available. Treat `pivot` and `pushStringLength` as first-class per-level choices with a
 stated reason, not as values copied from the previous level.
 
+### How to measure whether the acts actually differ
+
+**Do not use hits-to-clear.** The per-hit damage cap makes 3 hits the physical
+minimum (100 HP ÷ 40), and 44% of measured runs sit exactly on that floor — so
+the metric cannot express "this act is harder" below about 4 hits. Task 128 was
+originally written against a *rising hits-to-clear curve*, and the cap, which
+fixed a real and severe bug, made that criterion unmeasurable rather than merely
+unmet. It was restated on 2026-09-17.
+
+What each act is measured on instead is the thing its intent actually predicts,
+and each act has a distinct signature (96 human runs, 2026-09-17):
+
+| act | intent | signature | measured |
+|---|---|---|---|
+| 1 — open | build and aim speed | **highest glancing**, fastest clears | 18.7% glancing, 3.05 s |
+| 2 — constrained | deliberate placement | **slowest clears**, glancing falls | 12.5% glancing, 4.97 s |
+| 3 — hazardous | risk under pressure | **the only act that can kill you** | 11.7% glancing, 21% of runs cut |
+
+All three pairs of acts are distinguishable on at least one metric, and each
+act's signature is the one its stated intent predicts — which is what "the acts
+differ" was always meant to mean. A future act, or a re-lay of one of these,
+should be held to the same bar: state the intent, then name the metric that
+would show it is working, *before* measuring.
+
 ### Two rules that fall out of this
 
 - **A level's difficulty should come from its arrangement first and its furniture second.**
@@ -263,6 +288,8 @@ stated reason, not as values copied from the previous level.
 Required fields: `id`, `act`, `name`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`.
 
 Optional fields: `hint`, `pushStringLength` (overrides `stringLength`), `pushParScore` (default 1500), `bumpers[]`, `handZone`.
+
+**`blades`** — `[{ x, y, w, h, angle, cutSpeed }]`, position as canvas fractions and size in px, `angle` in degrees (default 0), `cutSpeed` in px/step (default 120). Cuts the tail when it crosses **above that speed** and **fails the level**. Act 3 vocabulary; see **Blades and the fail state** in Key Concepts before placing one. **Placement is a weak lever here** — measured across 24 runs, moving blades around barely changed how often they killed; `cutSpeed` is the dial that matters.
 
 **`shieldSpeedScale`** — one number (default 1.0) multiplying every shield tier's break speed for this level, expressing what speed the level physically permits. **A level with both a `handZone` and shields must declare one**, and the suite enforces it: zones roughly halve arrival speed, and leaving shields at the unscaled table is what made the heavy tier unbreakable. Measure it; do not guess.
 

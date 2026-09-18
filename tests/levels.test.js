@@ -13,16 +13,28 @@ beforeEach(() => {
 // getLevel
 // -------------------------------------------------------------------
 describe('getLevel', () => {
+  // Asserted against the level data rather than against name literals. These
+  // pinned 'Pipe Dreams' and 'Drip Room', so re-laying Act 1 failed a test that
+  // had nothing to do with the change - a level's name is content, and
+  // getLevel's contract is only that it returns the level with that id (L0352).
   it('returns level 1 for id = 1', () => {  // spec row 1
     const level = getLevel(1)
     expect(level.id).toBe(1)
-    expect(level.name).toBe('Pipe Dreams')
+    expect(level).toEqual(LEVELS.find(l => l.id === 1))
   })
 
   it('returns level 2 for id = 2', () => {  // spec row 2
     const level = getLevel(2)
     expect(level.id).toBe(2)
-    expect(level.name).toBe('Drip Room')
+    expect(level).toEqual(LEVELS.find(l => l.id === 2))
+  })
+
+  it('every level has a non-empty name', () => {
+    // What the name literals were really guarding: that levels are named at all.
+    for (const l of LEVELS) {
+      expect(typeof l.name, `L${l.id} name`).toBe('string')
+      expect(l.name.length).toBeGreaterThan(0)
+    }
   })
 
   it('returns LEVELS[0] as fallback for unknown id = 99', () => {  // spec row 3
@@ -129,6 +141,35 @@ describe('saveProgress', () => {
     saveProgress(2, 100)  // sets unlockedLevel = 3
     saveProgress(1, 100)  // should not reduce to 2
     expect(loadProgress().unlockedLevel).toBe(3)
+  })
+
+  // A blade cut is the game's only losing outcome. Before this guard,
+  // unlockedLevel advanced unconditionally, so failing a level would still have
+  // opened the next one - a silent progression bug nothing was watching for.
+  it('a failed run records no score', () => {
+    saveProgress(1, 2500, { completed: false })
+    expect(loadProgress().highScores).toBeUndefined()
+  })
+
+  it('a failed run does NOT unlock the next level', () => {
+    saveProgress(1, 2500, { completed: false })
+    expect(loadProgress().unlockedLevel).toBeUndefined()
+  })
+
+  it('a failed run cannot erase or lower an existing score', () => {
+    saveProgress(1, 2000)
+    saveProgress(1, 9999, { completed: false })
+    const data = loadProgress()
+    expect(data.highScores[1]).toBe(2000)
+    expect(data.unlockedLevel).toBe(2)
+  })
+
+  it('omitting the options object still counts as completed', () => {
+    // Every existing call site passes two arguments; the guard must not
+    // silently turn those into failures.
+    saveProgress(3, 1200)
+    expect(loadProgress().highScores[3]).toBe(1200)
+    expect(loadProgress().unlockedLevel).toBe(4)
   })
 
   it('handles multiple levels independently', () => {

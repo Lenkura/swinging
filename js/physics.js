@@ -27,18 +27,21 @@ export const CAT = {
   FRAGMENT: 0x0004,
   ROPE: 0x0010,
   WORLD: 0x0020,    // ground and walls
+  BLADE: 0x0040,    // cuts the tail; deliberately invisible to the rat
 };
 
 // Intended pairs:
 //   rat      x target, world
 //   fragment x world, fragment
-//   rope     x world, target        (never rope-rope, never rope-rat)
+//   rope     x world, target, blade (never rope-rope, never rope-rat)
+//   blade    x rope ONLY            - the rat passes straight through one
 const MASK = {
   RAT: CAT.TARGET | CAT.WORLD,
   TARGET: CAT.RAT | CAT.ROPE,
   FRAGMENT: CAT.WORLD | CAT.FRAGMENT,
-  ROPE: CAT.WORLD | CAT.TARGET,
+  ROPE: CAT.WORLD | CAT.TARGET | CAT.BLADE,
   WORLD: CAT.RAT | CAT.FRAGMENT | CAT.ROPE,
+  BLADE: CAT.ROPE,
 };
 
 let engine, world;
@@ -47,6 +50,8 @@ let stringConstraint = null;
 let targetBodies = [];
 let fragmentBodies = [];
 let bumperBodies = [];
+let bladeBodies = [];
+let ropeCut = false;
 let ropeBodies = [];
 let ropeConstraints = [];
 let ropeContactCount = 0;
@@ -114,6 +119,13 @@ function onCollision(event) {
     // itself is pure physics, this only tells us how often it happens.
     if (bodyA.label === 'rope' || bodyB.label === 'rope') {
       const other = bodyA.label === 'rope' ? bodyB : bodyA;
+      // A blade severs the tail. This discrete test catches slow contacts;
+      // detectBladeCuts covers the fast ones the engine would miss entirely.
+      if (other.label === 'blade') {
+        const seg = bodyA.label === 'rope' ? bodyA : bodyB;
+        if (fastEnoughToCut(other, seg)) cutRope({ x: other.position.x, y: other.position.y });
+        continue;
+      }
       if (other.label === 'target' || other.label === 'bumper') ropeContactCount++;
       continue;
     }
@@ -190,6 +202,65 @@ function clampRopeSpeed() {
  * Segments that moved less than their own radius are skipped - the discrete
  * test already handles those, and that skip is what keeps this cheap.
  */
+/**
+ * Swept detection for blades. Detect-only: unlike sweepRopeSegments it never
+ * repositions anything, because a blade severs the tail rather than blocking it.
+ *
+ * This pass is not optional. The existing rope sweep queries only targets and
+ * bumpers, so without this a segment travelling faster than the blade is wide
+ * would pass straight through between steps and the cut would silently fail -
+ * a hazard that kills only sometimes reads as arbitrary, which is worse for a
+ * fail state than one that never fires. Both the segment paths and the LINES
+ * between adjacent segments are tested, for the same reason resolveRopeLinks
+ * exists: the rope is a chain of circles with gaps a thin blade can sit inside.
+ */
+function detectBladeCuts(prev) {
+  if (!bladeBodies.length || !ropeBodies.length || ropeCut) return;
+  const r = ropeConfig.radius;
+
+  for (let i = 0; i < ropeBodies.length; i++) {
+    const from = prev[i];
+    if (!from) continue;
+    const seg = ropeBodies[i];
+    const to = seg.position;
+    const hit = Query.ray(bladeBodies, from, to, r * 2)[0];
+    if (hit && fastEnoughToCut(hit.body, seg)) return cutRope({ x: to.x, y: to.y });
+  }
+
+  for (let i = 0; i < ropeBodies.length - 1; i++) {
+    const a = ropeBodies[i];
+    const b = ropeBodies[i + 1];
+    const hit = Query.ray(bladeBodies, a.position, b.position, r)[0];
+    if (hit && (fastEnoughToCut(hit.body, a) || fastEnoughToCut(hit.body, b))) {
+      return cutRope({ x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 });
+    }
+  }
+}
+
+/**
+ * A blade cuts only when the tail crosses it fast enough.
+ *
+ * It killed on ANY contact at first, and that was measured as wrong: across 24
+ * bot runs roughly half ended in a cut no matter where the blades were placed,
+ * because the tail hangs from a hand that teleports to the pointer - so "never
+ * touch this" makes a blade an instant-death region rather than an obstacle, and
+ * repositioning it cannot help. A speed gate turns it into "do not whip into
+ * it", which is a test of control and therefore what Act 3 is actually for.
+ * Mirrors how a shield gates on rat speed.
+ */
+function fastEnoughToCut(blade, segment) {
+  const threshold = blade.plugin.cutSpeed ?? DEFAULT_CUT_SPEED;
+  return Math.hypot(segment.velocity.x, segment.velocity.y) >= threshold;
+}
+
+/** Sever the tail: detach the rope and announce it once per run. */
+function cutRope(at) {
+  if (ropeCut) return;
+  ropeCut = true;
+  detachRope();
+  emit('rope-cut', { x: at.x, y: at.y });
+}
+
 function sweepRopeSegments(prev) {
   if (!ropeBodies.length) return;
   const obstacles = targetBodies.concat(bumperBodies);
@@ -272,7 +343,7 @@ export function step(delta) {
       ? ropeBodies.map(s => ({ x: s.position.x, y: s.position.y }))
       : null;
     Engine.update(engine, dt);
-    if (prev) { sweepRopeSegments(prev); resolveRopeLinks(prev); }
+    if (prev) { sweepRopeSegments(prev); resolveRopeLinks(prev); detectBladeCuts(prev); }
   }
 }
 
@@ -621,6 +692,64 @@ export function updateMovingTargets(elapsed) {
   }
 }
 
+/**
+ * Blades cut the tail. Masked to ROPE only, so the rat passes straight through
+ * one - the hazard is about tail control, not a second wall. Viable only because
+ * the rope carries swept collision (task 124 took link crossings under 1%);
+ * without it a blade would kill through contacts the renderer never drew.
+ *
+ * Kills on ANY tail contact rather than above a speed. That is the simpler rule
+ * and reads clearly, but it is the aggressive choice and is meant to be measured
+ * rather than assumed - the rope is the least directly controlled thing in the
+ * game.
+ */
+/**
+ * Default tail speed a blade needs to cut. Rope segments whip far faster than
+ * the rat - measured up to 432 px/step against the rat's 250-460 - so this sits
+ * high enough that drifting into a blade is survivable and driving into one is
+ * not. Per-blade override via `cutSpeed`.
+ */
+export const DEFAULT_CUT_SPEED = 120;
+
+export function spawnBlades(levelBlades = []) {
+  bladeBodies.forEach(b => Composite.remove(world, b));
+  bladeBodies = [];
+
+  for (const bd of levelBlades) {
+    const body = Bodies.rectangle(bd.x * canvasW, bd.y * canvasH, bd.w, bd.h, {
+      isStatic: true,
+      label: 'blade',
+      isSensor: true,   // it severs rather than deflects; nothing should bounce
+      angle: (bd.angle || 0) * Math.PI / 180,
+      collisionFilter: { category: CAT.BLADE, mask: MASK.BLADE },
+      plugin: { w: bd.w, h: bd.h, cutSpeed: bd.cutSpeed ?? DEFAULT_CUT_SPEED },
+    });
+    Composite.add(world, body);
+    bladeBodies.push(body);
+  }
+  return bladeBodies;
+}
+
+export function getBladeBodies() { return bladeBodies; }
+
+/**
+ * Send the rat tumbling after its tail is cut, so the loss has a beat to land
+ * in rather than cutting straight to a panel. Raises restitution for the fall -
+ * the rat normally has almost none (0.02-0.05) because a bouncy rat would ruin
+ * the swing, but once the rope is gone nothing depends on it any more.
+ */
+export function tumbleRat() {
+  if (!ratBody) return;
+  ratBody.restitution = 0.55;
+  ratBody.frictionAir = 0.004;
+  const dir = ratBody.velocity.x >= 0 ? 1 : -1;
+  Body.setVelocity(ratBody, {
+    x: ratBody.velocity.x * 0.7 + dir * 3,
+    y: Math.min(ratBody.velocity.y, 0) - 7,
+  });
+  Body.setAngularVelocity(ratBody, dir * (0.35 + Math.random() * 0.25));
+}
+
 export function spawnBumpers(levelBumpers = []) {
   bumperBodies.forEach(b => Composite.remove(world, b));
   bumperBodies = [];
@@ -907,6 +1036,10 @@ export function reset() {
   targetBodies = [];
   fragmentBodies = [];
   bumperBodies = [];
+  bladeBodies = [];
+  // Per-run, not per-level-load: leaving this set would make every subsequent
+  // run start already severed and fail instantly.
+  ropeCut = false;
 }
 
 export function removeRat() {

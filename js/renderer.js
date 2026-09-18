@@ -71,6 +71,7 @@ export function draw({
   yoyoBody,
   targetBodies,
   bumperBodies = [],
+  bladeBodies = [],
   fragmentBodies,
   stringConstraint,
   ropeBodies = null,
@@ -117,6 +118,7 @@ export function draw({
     drawTail(pivot, yoyoBody, angularSpeed, stringConstraint, ratVariant, null);
   }
 
+  drawBlades(bladeBodies);
   drawTrail(yoyoBody, level);
   drawFragments(fragmentBodies);
   drawBumpers(bumperBodies);
@@ -318,6 +320,44 @@ function drawTrail(yoyo, level) {
     ctx.arc(trail[i].x, trail[i].y, Math.max(1, r), 0, Math.PI * 2);
     ctx.fillStyle = v.trailColor + alpha + ')';
     ctx.fill();
+  }
+}
+
+/**
+ * Blades. Drawn as a bright, hard-edged blade with a serrated edge, because this
+ * is the only thing in the game that can make you lose and it must be read as
+ * dangerous at a glance rather than mistaken for a thin shield.
+ */
+function drawBlades(blades) {
+  for (const b of blades) {
+    const { w, h } = b.plugin;
+    ctx.save();
+    ctx.translate(b.position.x, b.position.y);
+    ctx.rotate(b.angle);
+
+    ctx.fillStyle = '#c9d6e2';
+    ctx.strokeStyle = '#ff5d5d';
+    ctx.lineWidth = 2;
+    ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+    // Teeth down the long axis, so it reads as a saw rather than a bar.
+    const along = h >= w;
+    const span = along ? h : w;
+    const teeth = Math.max(3, Math.floor(span / 12));
+    ctx.beginPath();
+    for (let i = 0; i < teeth; i++) {
+      const t = -span / 2 + (i + 0.5) * (span / teeth);
+      if (along) {
+        ctx.moveTo(-w / 2, t); ctx.lineTo(w / 2, t + span / teeth / 2);
+      } else {
+        ctx.moveTo(t, -h / 2); ctx.lineTo(t + span / teeth / 2, h / 2);
+      }
+    }
+    ctx.strokeStyle = 'rgba(40,50,60,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
