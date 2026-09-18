@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 165 is DONE on branch swinging/fix/blade-per-level-cutspeed (unmerged). Blade cutSpeed is now per level at 175 / 105 / 90, inverting a curve the 96-run measurement showed running backwards - L7, the level that teaches the hazard, cut 45% of human runs while L8 and L9 cut none. Cut events are now recorded in telemetry with the tail speed and the threshold they beat, which is what makes the next pass able to calibrate from data: until now there was no such distribution, so every blade threshold ever set was a guess. 113/113 vitest, 95/95 gate. Session summary written to history/session-008-summary.md. NEXT: merge, then 166 - human confirmation of the new thresholds, which must NOT use bot runs (the bot gave 0/8, 1/8, 0/8 at the same threshold a human hit 45% on). Then 163, 150, 135, 152, 151, and the older housekeeping 45, 99, 100.",
+  "current_activity": "Everything is merged and the tree is clean (merge f99f0c8). Blade cutSpeed is now per level at 175 / 105 / 90, inverting a curve that had the level teaching the hazard cutting 45% of human runs while the finale cut none, and cut events now record the tail speed and the threshold they beat - the first time that distribution has existed. 113/113 vitest, 95/95 gate. The nine-level reorganisation (task 128) closed on the previous merge, and history/session-008-summary.md covers this whole stretch. NOTHING IS IN FLIGHT. 22 live items. NEXT, in the order that unblocks most: 166 - confirm the new blade thresholds on HUMAN play, which must not use bot runs, since at cutSpeed 120 the bot gave 0/8, 1/8, 0/8 against a human 45% on L7. Then 163 (shield tiers sit easier than the 99/74/44 intent, actual 100/92/75), 150 (separate the medium and heavy tiers, heavy still has thin data), 135 (per-level parHits, now that all three acts are measured), 152 (getFragmentVerts is dead but may be useful geometry for 151), and 151 (destructible targets as an alternate-win level type - designed and deferred, the only genuine multi-session feature left). Older housekeeping: 45, 99, 100.",
   "action_plan": [
     {
       "id": 45,
@@ -159,15 +159,6 @@
       "status": "pending",
       "done_when": "Either removed along with its tests, or a note records what it is kept for.",
       "context": "Found during the 147 audit but left alone because it was outside the scope agreed with the user. getFragmentVerts and the RECT_FRAGMENTS_10/6 tables have no production caller - only tests reference them - so they are dead in the same way the six material fields were. They may be worth keeping as ready-made geometry for task 151, which will want target fragments; decide then rather than now."
-    },
-    {
-      "id": 157,
-      "priority": "medium",
-      "status": "completed",
-      "task": "Blades and the fail state - rope-cut hazard, FAILED outcome, saveProgress guard",
-      "done_when": "A blade cuts the rope on tail contact while the rat passes through untouched (own collision category, masked to ROPE only); FAILED joins the outcomes with its own result screen; a failed run neither scores nor advances unlockedLevel, with a test for it; vitest and gate green.",
-      "context": "saveProgress currently advances unlockedLevel unconditionally, so without the guard a failed level still unlocks the next - a silent progression bug nothing currently watches for. Blades are viable only because task 124 brought rope link crossings under 1%; before that they would have killed through contacts the renderer never drew. Open question to settle by measurement: whether a blade should kill on ANY tail contact (proposed, simpler and reads clearly) or only above a speed - the rope is the least directly controlled part of the game, so this risks feeling unfair. DONE 2026-09-17 on branch swinging/feat/blades-fail-state. Blade masked to CAT.ROPE only - rig-verified that the rat crosses the blade band undeflected while the tail is severed. TWO THINGS THE DESIGN HAD NOT ANTICIPATED. (1) The existing rope sweep queries only targets and bumpers, so a fast segment would tunnel past a blade and the cut would silently fail; detectBladeCuts adds a detect-only sweep over segment paths and the lines between adjacent segments, since a hazard that kills only sometimes reads as arbitrary. (2) The saveProgress guard was satisfied in letter while the UI left a one-click bypass: the result screen still offered Next Level as its PRIMARY button and onNext loads currentLevelId + 1 without consulting unlockedLevel. Button now hidden after a loss and the rig asserts it. Inert - no level declares blades yet - and verified with a temporary blade on L1: cut fired, rat unaffected, FAILED result, saved progress null, no Next Level. 112/112 vitest, 95/95 gate across two runs.",
-      "completed_date": "2026-09-17T11:00:00"
     },
     {
       "id": 158,
@@ -566,6 +557,11 @@
       "date": "2026-09-18",
       "decision": "Blade cutSpeed becomes per level (175 / 105 / 90), and cut events are now recorded in telemetry so the threshold can be calibrated from measured speeds rather than from cut counts.",
       "rationale": "The 96-run campaign measurement answered task 165 and reversed what the bot data had suggested. At a shared cutSpeed of 120, L7 cut 45% of human runs while L8 and L9 cut none - so the hazard curve ran backwards, with the introduction level brutal and the finale harmless, which is the opposite of the escalation Act 3 was laid out for. The new thresholds invert it. TWO THINGS MATTER MORE THAN THOSE NUMBERS. First, bot runs cannot calibrate this mechanic: at the identical threshold on the identical levels the bot measured 0/8, 1/8 and 0/8 against a human 45% on L7. A bot does not steer toward a blade, hesitate near one, or over-commit to a swing, so its cut rate is not a weak signal about human lethality - it is no signal at all. That is recorded in CLAUDE.md so the next person does not try. Second, cut events were never recorded in telemetry, so there was no distribution of tail speed at the moment of a cut to calibrate against - only whether a run ended in one. Every threshold set before now, including the 120 default, was therefore a guess dressed as a measurement. Cuts now carry the tail speed and the threshold they beat, which makes the next pass the first one able to choose these values from data. The 175 / 105 / 90 figures are still coarse and need human confirmation."
+    },
+    {
+      "date": "2026-09-18",
+      "decision": "Merged branch swinging/fix/blade-per-level-cutspeed into main",
+      "rationale": "f99f0c8d2579ad208a895be0aa7eb631b80f3323"
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
