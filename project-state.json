@@ -3,7 +3,7 @@
   "created_date": "2026-05-20",
   "framework_scaffold_method": "new-project",
   "last_session_date": "2026-09-18",
-  "last_session_summary_path": "history/session-007-summary.md",
+  "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
   "current_activity": "The nine-level reorganisation is MERGED and task 128 is CLOSED (merge 791c746). Each act now poses a question the previous one does not, and each measures with the signature its intent predicts across 96 human runs: Act 1 open is fastest and sloppiest (18.7% glancing, 3.05s), Act 2 constrained is much the slowest (12.5%, 4.97s), Act 3 hazardous is the only act that can kill you (21% of runs cut). Zero one-hit clears in 91 cleared runs. The game also has a fail state for the first time, with a 2.6s tumble before the result panel. 113/113 vitest, 95/95 gate. NOTHING IS IN FLIGHT and the tree is clean. 22 live items. The nearest piece of work is 165: blades cut in 5 of 24 Act 3 runs but ALL FIVE on L7, so L8 and L9's blades are currently decoration - they need either a lower cutSpeed or a placement in the line of play, and that is a per-level judgement rather than a global one. After that: 163 (shield tiers sit easier than the 99/74/44 intent), 150 (separate the medium and heavy shield tiers, needs more runs), 135 (per-level parHits), 152 (getFragmentVerts may be useful geometry for 151), 151 (destructible targets as an alternate-win level type - designed and deferred, a multi-session feature), and the older housekeeping items 45, 99 and 100.",
   "action_plan": [
