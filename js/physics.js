@@ -123,7 +123,9 @@ function onCollision(event) {
       // detectBladeCuts covers the fast ones the engine would miss entirely.
       if (other.label === 'blade') {
         const seg = bodyA.label === 'rope' ? bodyA : bodyB;
-        if (fastEnoughToCut(other, seg)) cutRope({ x: other.position.x, y: other.position.y });
+        if (fastEnoughToCut(other, seg)) {
+          cutRope({ x: other.position.x, y: other.position.y }, segSpeed(seg), other);
+        }
         continue;
       }
       if (other.label === 'target' || other.label === 'bumper') ropeContactCount++;
@@ -224,7 +226,9 @@ function detectBladeCuts(prev) {
     const seg = ropeBodies[i];
     const to = seg.position;
     const hit = Query.ray(bladeBodies, from, to, r * 2)[0];
-    if (hit && fastEnoughToCut(hit.body, seg)) return cutRope({ x: to.x, y: to.y });
+    if (hit && fastEnoughToCut(hit.body, seg)) {
+      return cutRope({ x: to.x, y: to.y }, segSpeed(seg), hit.body);
+    }
   }
 
   for (let i = 0; i < ropeBodies.length - 1; i++) {
@@ -232,10 +236,14 @@ function detectBladeCuts(prev) {
     const b = ropeBodies[i + 1];
     const hit = Query.ray(bladeBodies, a.position, b.position, r)[0];
     if (hit && (fastEnoughToCut(hit.body, a) || fastEnoughToCut(hit.body, b))) {
-      return cutRope({ x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 });
+      return cutRope(
+        { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 },
+        Math.max(segSpeed(a), segSpeed(b)), hit.body);
     }
   }
 }
+
+const segSpeed = s => Math.hypot(s.velocity.x, s.velocity.y);
 
 /**
  * A blade cuts only when the tail crosses it fast enough.
@@ -253,12 +261,23 @@ function fastEnoughToCut(blade, segment) {
   return Math.hypot(segment.velocity.x, segment.velocity.y) >= threshold;
 }
 
-/** Sever the tail: detach the rope and announce it once per run. */
-function cutRope(at) {
+/**
+ * Sever the tail: detach the rope and announce it once per run. The tail speed
+ * and the threshold it beat are carried through so telemetry can record them -
+ * without that, cutSpeed cannot be calibrated from anything except cut/no-cut
+ * counts, which is how it came to be 45% lethal on one level and 0% on two
+ * others.
+ */
+function cutRope(at, speed = 0, blade = null) {
   if (ropeCut) return;
   ropeCut = true;
   detachRope();
-  emit('rope-cut', { x: at.x, y: at.y });
+  emit('rope-cut', {
+    x: at.x,
+    y: at.y,
+    speed,
+    cutSpeed: blade ? blade.plugin.cutSpeed : null,
+  });
 }
 
 function sweepRopeSegments(prev) {

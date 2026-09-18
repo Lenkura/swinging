@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "The nine-level reorganisation is MERGED and task 128 is CLOSED (merge 791c746). Each act now poses a question the previous one does not, and each measures with the signature its intent predicts across 96 human runs: Act 1 open is fastest and sloppiest (18.7% glancing, 3.05s), Act 2 constrained is much the slowest (12.5%, 4.97s), Act 3 hazardous is the only act that can kill you (21% of runs cut). Zero one-hit clears in 91 cleared runs. The game also has a fail state for the first time, with a 2.6s tumble before the result panel. 113/113 vitest, 95/95 gate. NOTHING IS IN FLIGHT and the tree is clean. 22 live items. The nearest piece of work is 165: blades cut in 5 of 24 Act 3 runs but ALL FIVE on L7, so L8 and L9's blades are currently decoration - they need either a lower cutSpeed or a placement in the line of play, and that is a per-level judgement rather than a global one. After that: 163 (shield tiers sit easier than the 99/74/44 intent), 150 (separate the medium and heavy shield tiers, needs more runs), 135 (per-level parHits), 152 (getFragmentVerts may be useful geometry for 151), 151 (destructible targets as an alternate-win level type - designed and deferred, a multi-session feature), and the older housekeeping items 45, 99 and 100.",
+  "current_activity": "Task 165 is DONE on branch swinging/fix/blade-per-level-cutspeed (unmerged). Blade cutSpeed is now per level at 175 / 105 / 90, inverting a curve the 96-run measurement showed running backwards - L7, the level that teaches the hazard, cut 45% of human runs while L8 and L9 cut none. Cut events are now recorded in telemetry with the tail speed and the threshold they beat, which is what makes the next pass able to calibrate from data: until now there was no such distribution, so every blade threshold ever set was a guess. 113/113 vitest, 95/95 gate. Session summary written to history/session-008-summary.md. NEXT: merge, then 166 - human confirmation of the new thresholds, which must NOT use bot runs (the bot gave 0/8, 1/8, 0/8 at the same threshold a human hit 45% on). Then 163, 150, 135, 152, 151, and the older housekeeping 45, 99, 100.",
   "action_plan": [
     {
       "id": 45,
@@ -207,10 +207,19 @@
     {
       "id": 165,
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "task": "Human judgement on blade cutSpeed - are blades still dangerous, or now decoration?",
       "done_when": "A verdict from human play on whether blades threaten meaningfully at cutSpeed 120, with the threshold adjusted if not, and cut rates recorded.",
-      "context": "The 120 default was chosen to stop blades killing half of all runs and is deliberately biased safe - bot runs now show 0/8, 1/8, 0/8, which may mean the hazard no longer registers. Bot data cannot settle this: the bot does not deliberately approach a blade, and the whole point of the act is how the threat feels to someone steering. Pair it with task 160. SHARPENED 2026-09-17 by the task 160 measurement, which partly answers it. Blades are NOT decoration in general - they cut in 5 of 24 Act 3 runs - but all five cuts were on L7, and L8 and L9's blades never fired. So cutSpeed 120 is about right for L7's placement and too lenient for the other two. The question is now per-level rather than global: either lower cutSpeed on L8 and L9, or move those blades into the line of play."
+      "context": "The 120 default was chosen to stop blades killing half of all runs and is deliberately biased safe - bot runs now show 0/8, 1/8, 0/8, which may mean the hazard no longer registers. Bot data cannot settle this: the bot does not deliberately approach a blade, and the whole point of the act is how the threat feels to someone steering. Pair it with task 160. SHARPENED 2026-09-17 by the task 160 measurement, which partly answers it. Blades are NOT decoration in general - they cut in 5 of 24 Act 3 runs - but all five cuts were on L7, and L8 and L9's blades never fired. So cutSpeed 120 is about right for L7's placement and too lenient for the other two. The question is now per-level rather than global: either lower cutSpeed on L8 and L9, or move those blades into the line of play. ANSWERED 2026-09-18 from the 96-run task 160 data, and the answer inverted the expectation. Blades are not decoration in general, but per level they are exactly backwards: at the shared default of 120, L7 First Cut - the level that TEACHES the hazard - cut 5 of 11 human runs (45%), while L8 cut 0 of 6 and L9 0 of 7. Thresholds are now per level at 175 / 105 / 90. TWO FINDINGS WORTH MORE THAN THE NUMBERS. (1) Bot runs cannot calibrate blades at all: at the same threshold on the same levels the bot gave 0/8, 1/8, 0/8 against a human 45% on L7, because it does not approach a blade the way a person does. (2) Cut events were not recorded in telemetry - only damage, shield-block and shield-break - so cutSpeed could not be calibrated from anything but cut/no-cut counts, which is why the first values were guesses. Cuts now record the tail speed and the threshold they beat. 113/113 vitest, 95/95 gate.",
+      "completed_date": "2026-09-18T12:00:00"
+    },
+    {
+      "id": 166,
+      "priority": "medium",
+      "status": "pending",
+      "task": "Confirm the per-level blade thresholds on human play, now that cuts are recorded",
+      "done_when": "Human runs across L7-L9 give a cut rate that rises across the act rather than falling, with the tail-speed-at-cut distribution recorded and the thresholds chosen from it.",
+      "context": "175 / 105 / 90 were set from cut/no-cut counts alone, because tail speed at the cut was not recorded until now - they are coarse. This is the first pass that can pick the values from a measured distribution. Do NOT use bot runs: at cutSpeed 120 the bot gave 0/8, 1/8, 0/8 against a human 45% on L7, so it carries no signal about blade lethality."
     }
   ],
   "recently_updated_files": [
@@ -552,6 +561,11 @@
       "date": "2026-09-18",
       "decision": "Merged branch swinging/feat/blades-fail-state into main, closing task 128 and the nine-level reorganisation",
       "rationale": "791c746f217b58e7ba958aca245b7531de319366"
+    },
+    {
+      "date": "2026-09-18",
+      "decision": "Blade cutSpeed becomes per level (175 / 105 / 90), and cut events are now recorded in telemetry so the threshold can be calibrated from measured speeds rather than from cut counts.",
+      "rationale": "The 96-run campaign measurement answered task 165 and reversed what the bot data had suggested. At a shared cutSpeed of 120, L7 cut 45% of human runs while L8 and L9 cut none - so the hazard curve ran backwards, with the introduction level brutal and the finale harmless, which is the opposite of the escalation Act 3 was laid out for. The new thresholds invert it. TWO THINGS MATTER MORE THAN THOSE NUMBERS. First, bot runs cannot calibrate this mechanic: at the identical threshold on the identical levels the bot measured 0/8, 1/8 and 0/8 against a human 45% on L7. A bot does not steer toward a blade, hesitate near one, or over-commit to a swing, so its cut rate is not a weak signal about human lethality - it is no signal at all. That is recorded in CLAUDE.md so the next person does not try. Second, cut events were never recorded in telemetry, so there was no distribution of tail speed at the moment of a cut to calibrate against - only whether a run ended in one. Every threshold set before now, including the 120 default, was therefore a guess dressed as a measurement. Cuts now carry the tail speed and the threshold they beat, which makes the next pass the first one able to choose these values from data. The 175 / 105 / 90 figures are still coarse and need human confirmation."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

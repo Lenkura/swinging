@@ -176,7 +176,9 @@ export const LEVELS = [
       { x: 0.48, y: 0.62, radius: 22 },
     ],
     blades: [
-      { x: 0.46, y: 0.14, w: 240, h: 10 },
+      // 45% of human runs were cut here at the shared default of 120 - the
+      // level that TEACHES the hazard was the deadliest in the act. Raised.
+      { x: 0.46, y: 0.14, w: 240, h: 10, cutSpeed: 175 },
     ],
     parScore: 1800,
     pushParScore: 3000,
@@ -204,7 +206,7 @@ export const LEVELS = [
       { x: 0.64, y: 0.68, radius: 18 },
     ],
     blades: [
-      { x: 0.50, y: 0.17, w: 300, h: 10 },
+      { x: 0.50, y: 0.17, w: 300, h: 10, cutSpeed: 105 },   // 0% at 120; decoration
     ],
     parScore: 2200,
     pushParScore: 3000,
@@ -224,7 +226,7 @@ export const LEVELS = [
     stringLength: 150,
     pushStringLength: 170,
     blades: [
-      { x: 0.50, y: 0.20, w: 340, h: 10 },
+      { x: 0.50, y: 0.20, w: 340, h: 10, cutSpeed: 90 },    // 0% at 120; the finale should bite
     ],
     targets: [
       { shape: 'rectangle', w: 55, h: 76, x: 0.74, y: 0.52, material: 'wood' },
