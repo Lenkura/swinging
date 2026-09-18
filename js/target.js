@@ -34,17 +34,46 @@ export const MAX_HIT_DAMAGE_FRACTION = 0.40;
  * the observed 8% per-contact against 33% per-run: light ~99%, medium ~74%,
  * heavy ~44%. Every tier stays reachable on purpose - see the suite, which
  * asserts it rather than trusting it.
+ *
+ * RE-MEASURED 2026-09-17 on the re-laid levels, 132 contacts across 32 runs.
+ * Light and medium had already landed on their intent once the zones and
+ * shieldSpeedScale were in - light 94% of runs against 99% intended, medium 77%
+ * against 74%. Only heavy was adrift: 75% against 44%, i.e. barely separated
+ * from medium, which is what task 150 had been seeing from the other end.
+ * Heavy's arrival distribution over 45 contacts was p50 54.9, p90 78.6, max
+ * 98.5, so 71.25 (95 x the 0.75 zone scale) sat at the median and broke in one
+ * contact in five. Raised to 105, putting the scaled threshold at 78.75 - on
+ * heavy's own p90, with 19.8 px/step of headroom under the fastest heavy
+ * contact ever seen.
+ *
+ * That is a DELIBERATE UNDERSHOOT, ~55% per run against the 44% intent. The
+ * per-contact-to-per-run model is only good to a factor here (it predicts
+ * 99.8% for light where 94% was observed), and the two failure directions are
+ * not symmetric: too easy is a tier that reads soft, too hard is the
+ * unreachable-180 bug that cost two tuning passes. Re-measure on human runs
+ * before pushing it further.
+ *
+ * Only Long Reach (L6) uses heavy, and no unzoned level does, so this moves one
+ * level. Light and medium are left alone on purpose - they are on target, and
+ * medium's 20% per-run on unzoned L9 rests on 5 runs, too thin to tune against.
  */
 export const SHIELD_TIERS = {
   light:  { breakSpeed: 45, material: 'glass' },
   medium: { breakSpeed: 70, material: 'wood'  },
-  heavy:  { breakSpeed: 95, material: 'steel' },
+  heavy:  { breakSpeed: 105, material: 'steel' },
 };
 
 /** The fastest shield contact ever recorded (2026-09-13, 106 contacts). A tier
  *  above this is unreachable rather than hard, which is the bug that produced
  *  the 180 tier; the suite guards every tier against it. */
 export const MAX_OBSERVED_CONTACT_SPEED = 150.8;
+
+/** The same figure for contacts inside a movement zone (2026-09-17, 132
+ *  contacts): light 104.6, medium 85.9, heavy 98.5. Zones roughly halve arrival
+ *  speed, so the unzoned 150.8 is a near-vacuous ceiling for a zoned level -
+ *  it would wave through a heavy tier of 200 at scale 0.75. Zoned levels are
+ *  guarded against this number instead. */
+export const MAX_OBSERVED_ZONED_CONTACT_SPEED = 104.6;
 
 /**
  * Fill in a shield's material and breakSpeed from its tier. Returns a shallow
