@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Three fix branches await the consolidated human playtest, none merged: swinging/fix/heavy-shield-tier (163), swinging/fix/remove-poly-decomp-tag (100, complete), swinging/fix/damage-intensity-range (136). All three edit project-state.json, so later merges will need that file resolved by hand. Next candidate fixes: housekeeping - 115 superseded by 128, 99 docs.",
+  "current_activity": "All three fix branches are merged (136 feedback curve, 163 heavy shield tier, 100 dead CDN tag); main passes 113 unit tests and 96/96 gate checks. Next is the consolidated human playtest the user asked for, which closes 163, 136, 150 and 166. Playtest checklist: heavy shield on Long Reach should break in roughly half of runs; ordinary hits should feel punchier with shake still an event; blade cuts on L7/L8/L9 (cut speeds are now recorded). Remaining non-playtest fixes: housekeeping (115 superseded by 128, 99 docs).",
   "action_plan": [
     {
       "id": 45,
@@ -160,15 +160,6 @@
       "status": "pending",
       "done_when": "Either removed along with its tests, or a note records what it is kept for.",
       "context": "Found during the 147 audit but left alone because it was outside the scope agreed with the user. getFragmentVerts and the RECT_FRAGMENTS_10/6 tables have no production caller - only tests reference them - so they are dead in the same way the six material fields were. They may be worth keeping as ready-made geometry for task 151, which will want target fragments; decide then rather than now."
-    },
-    {
-      "id": 158,
-      "priority": "medium",
-      "status": "completed",
-      "task": "Re-lay Act 3 around blades and the hazardous intent",
-      "done_when": "L7-L9 rebuilt against the 'hazardous' intent with blades placed deliberately; gate green; human runs recorded.",
-      "context": "GATED on task 156. Do not start until the Act 2 pilot confirms constrained play works. BLOCKED 2026-09-16 on task 161: Act 3's re-lay will move swing speeds again, and re-laying it while shield thresholds are known to be miscalibrated would compound two unknowns. UNBLOCKED 2026-09-16 by task 162. DONE 2026-09-17: L7 First Cut, L8 Crossfire, L9 Full Experiment, with no handZone - Act 3 asks about control, not confinement. THE BLADE KILL RULE CHANGED AS A RESULT OF THIS TASK. With any-contact, 24 bot runs showed roughly HALF ending in a cut regardless of blade placement (5/8, 4/8, 4/8 across three configurations), and an unchanged level moved 1/3 to 2/3 between samples, which exposed the n=3 measurements as noise. The cause is structural: the tail hangs from a hand that teleports to the pointer, so any-contact makes a blade an instant-death region no placement can fix. Blades now gate on cutSpeed (default 120), and the same levels measure 0/8, 1/8, 0/8. 112/112 vitest, 95/95 gate twice.",
-      "completed_date": "2026-09-17T15:00:00"
     },
     {
       "id": 159,
@@ -563,6 +554,21 @@
       "date": "2026-09-18",
       "decision": "Merged branch swinging/fix/blade-per-level-cutspeed into main",
       "rationale": "f99f0c8d2579ad208a895be0aa7eb631b80f3323"
+    },
+    {
+      "date": "2026-09-19",
+      "decision": "Merged branch swinging/fix/damage-intensity-range into main",
+      "rationale": "aac96cb5ae45abb282d84344459f2a5623f29576"
+    },
+    {
+      "date": "2026-09-19",
+      "decision": "Merged branch swinging/fix/heavy-shield-tier into main",
+      "rationale": "30debe6895709e322e455a4aed315ac9660fe567"
+    },
+    {
+      "date": "2026-09-19",
+      "decision": "Merged branch swinging/fix/remove-poly-decomp-tag into main",
+      "rationale": "021b059601d54472dc432802bbdb540850500210"
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

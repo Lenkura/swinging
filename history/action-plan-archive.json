@@ -630,5 +630,15 @@
     "context": "saveProgress currently advances unlockedLevel unconditionally, so without the guard a failed level still unlocks the next - a silent progression bug nothing currently watches for. Blades are viable only because task 124 brought rope link crossings under 1%; before that they would have killed through contacts the renderer never drew. Open question to settle by measurement: whether a blade should kill on ANY tail contact (proposed, simpler and reads clearly) or only above a speed - the rope is the least directly controlled part of the game, so this risks feeling unfair. DONE 2026-09-17 on branch swinging/feat/blades-fail-state. Blade masked to CAT.ROPE only - rig-verified that the rat crosses the blade band undeflected while the tail is severed. TWO THINGS THE DESIGN HAD NOT ANTICIPATED. (1) The existing rope sweep queries only targets and bumpers, so a fast segment would tunnel past a blade and the cut would silently fail; detectBladeCuts adds a detect-only sweep over segment paths and the lines between adjacent segments, since a hazard that kills only sometimes reads as arbitrary. (2) The saveProgress guard was satisfied in letter while the UI left a one-click bypass: the result screen still offered Next Level as its PRIMARY button and onNext loads currentLevelId + 1 without consulting unlockedLevel. Button now hidden after a loss and the rig asserts it. Inert - no level declares blades yet - and verified with a temporary blade on L1: cut fired, rat unaffected, FAILED result, saved progress null, no Next Level. 112/112 vitest, 95/95 gate across two runs.",
     "completed_date": "2026-09-17T11:00:00",
     "archived_date": "2026-09-18"
+  },
+  {
+    "id": 158,
+    "priority": "medium",
+    "status": "completed",
+    "task": "Re-lay Act 3 around blades and the hazardous intent",
+    "done_when": "L7-L9 rebuilt against the 'hazardous' intent with blades placed deliberately; gate green; human runs recorded.",
+    "context": "GATED on task 156. Do not start until the Act 2 pilot confirms constrained play works. BLOCKED 2026-09-16 on task 161: Act 3's re-lay will move swing speeds again, and re-laying it while shield thresholds are known to be miscalibrated would compound two unknowns. UNBLOCKED 2026-09-16 by task 162. DONE 2026-09-17: L7 First Cut, L8 Crossfire, L9 Full Experiment, with no handZone - Act 3 asks about control, not confinement. THE BLADE KILL RULE CHANGED AS A RESULT OF THIS TASK. With any-contact, 24 bot runs showed roughly HALF ending in a cut regardless of blade placement (5/8, 4/8, 4/8 across three configurations), and an unchanged level moved 1/3 to 2/3 between samples, which exposed the n=3 measurements as noise. The cause is structural: the tail hangs from a hand that teleports to the pointer, so any-contact makes a blade an instant-death region no placement can fix. Blades now gate on cutSpeed (default 120), and the same levels measure 0/8, 1/8, 0/8. 112/112 vitest, 95/95 gate twice.",
+    "completed_date": "2026-09-17T15:00:00",
+    "archived_date": "2026-09-19"
   }
 ]
