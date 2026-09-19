@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "All three fix branches are merged (136 feedback curve, 163 heavy shield tier, 100 dead CDN tag); main passes 113 unit tests and 96/96 gate checks. Next is the consolidated human playtest the user asked for, which closes 163, 136, 150 and 166. Playtest checklist: heavy shield on Long Reach should break in roughly half of runs; ordinary hits should feel punchier with shake still an event; blade cuts on L7/L8/L9 (cut speeds are now recorded). Remaining non-playtest fixes: housekeeping (115 superseded by 128, 99 docs).",
+  "current_activity": "Housekeeping done on swinging/docs/housekeeping-115-99: 99 documented (Game feel entry in CLAUDE.md), 115 superseded by 128. Next is the consolidated human playtest, which closes 163, 136, 150 and 166. Checklist: heavy shield on Long Reach should break in roughly half of runs; ordinary hits punchier with shake still an event; blade cuts on L7-L9 now record tail speed.",
   "action_plan": [
     {
       "id": 45,
@@ -83,9 +83,10 @@
       "id": 99,
       "task": "CLAUDE.md — document the game-feel bundle in Key Concepts: hit-stop (sim-freeze timer, damage>120 threshold), impact flash + velocity-aligned squash-stretch in drawRat, ground-only blood decals (offscreen canvas, paintSplat/clearDecals), audio master GainNode->DynamicsCompressor bus + persisted mute (yoyo_muted), and the speed-tracking swing whoosh",
       "priority": "medium",
-      "status": "pending",
+      "status": "completed",
       "done_when": "Key Concepts describes all five committed game-feel effects with their tuning constants, matching the pattern of the tail-attachment (#54), impact-feedback (#62), and moving-target (#74) doc passes",
-      "context": "Documentation gap found 2026-07-06: tasks 93-97 shipped in commit d771795 but no CLAUDE.md doc subtask was ever queued (the 2026-07-03 docs commit only touched project-state.json). Sequenced after task 98 so any playtest tuning (flash/squash durations, whoosh curve, splat sizes) is captured with final values rather than documenting constants that may still move."
+      "context": "Documentation gap found 2026-07-06: tasks 93-97 shipped in commit d771795 but no CLAUDE.md doc subtask was ever queued (the 2026-07-03 docs commit only touched project-state.json). Sequenced after task 98 so any playtest tuning (flash/squash durations, whoosh curve, splat sizes) is captured with final values rather than documenting constants that may still move. DONE 2026-09-19 as a Game feel entry in Key Concepts, written from the current code. Two specifics in this task had gone stale and were NOT copied: hit-stop now keys off SHAKE_GATE 180 (not damage>120) and scales 40-80ms with intensity.",
+      "completed_date": "2026-09-19T15:40:26"
     },
     {
       "id": 100,
@@ -100,9 +101,9 @@
       "id": 115,
       "task": "Re-examine Act 2/3 obstacle difficulty once rope and breakable targets land: shield placement, breakSpeed thresholds, and level geometry",
       "priority": "medium",
-      "status": "pending",
+      "status": "superseded",
       "done_when": "Bot batch across L1-L9 shows a difficulty curve that rises across acts rather than inverting, and a shield-avoiding bot can no longer clear Act 2 levels",
-      "context": "Measured 2026-09-06: a bot whose picker filters shields out cleared 24/24 runs across L4-L9; the Act 2 finale (L6) fell in 4 hits / 2.4s against Level 1s 9 hits. Deferred until 113/114 land since both change the puzzle layer this would be tuning."
+      "context": "Measured 2026-09-06: a bot whose picker filters shields out cleared 24/24 runs across L4-L9; the Act 2 finale (L6) fell in 4 hits / 2.4s against Level 1s 9 hits. Deferred until 113/114 land since both change the puzzle layer this would be tuning. SUPERSEDED 2026-09-19 by task 128: the level reorganisation re-laid all nine levels, replaced raw breakSpeed with measured shield tiers and shieldSpeedScale, and closed with each act measured on its own signature. The 24/24 shield-avoiding bot finding was the evidence for 128 itself."
     },
     {
       "id": 128,
@@ -569,6 +570,11 @@
       "date": "2026-09-19",
       "decision": "Merged branch swinging/fix/remove-poly-decomp-tag into main",
       "rationale": "021b059601d54472dc432802bbdb540850500210"
+    },
+    {
+      "date": "2026-09-19",
+      "decision": "Task 115 marked superseded by task 128 rather than completed or left pending.",
+      "rationale": "115 asked to re-examine Act 2/3 obstacle difficulty once rope and breakable targets landed. The rope landed; breakable targets became task 151 and were deferred. Task 128 re-laid every level and re-derived shield thresholds from measurement, which is the work 115 described, so nothing of 115 remains that 128, 150, 163 and 166 do not track."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
