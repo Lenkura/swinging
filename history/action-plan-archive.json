@@ -640,5 +640,24 @@
     "context": "GATED on task 156. Do not start until the Act 2 pilot confirms constrained play works. BLOCKED 2026-09-16 on task 161: Act 3's re-lay will move swing speeds again, and re-laying it while shield thresholds are known to be miscalibrated would compound two unknowns. UNBLOCKED 2026-09-16 by task 162. DONE 2026-09-17: L7 First Cut, L8 Crossfire, L9 Full Experiment, with no handZone - Act 3 asks about control, not confinement. THE BLADE KILL RULE CHANGED AS A RESULT OF THIS TASK. With any-contact, 24 bot runs showed roughly HALF ending in a cut regardless of blade placement (5/8, 4/8, 4/8 across three configurations), and an unchanged level moved 1/3 to 2/3 between samples, which exposed the n=3 measurements as noise. The cause is structural: the tail hangs from a hand that teleports to the pointer, so any-contact makes a blade an instant-death region no placement can fix. Blades now gate on cutSpeed (default 120), and the same levels measure 0/8, 1/8, 0/8. 112/112 vitest, 95/95 gate twice.",
     "completed_date": "2026-09-17T15:00:00",
     "archived_date": "2026-09-19"
+  },
+  {
+    "id": 115,
+    "task": "Re-examine Act 2/3 obstacle difficulty once rope and breakable targets land: shield placement, breakSpeed thresholds, and level geometry",
+    "priority": "medium",
+    "status": "superseded",
+    "done_when": "Bot batch across L1-L9 shows a difficulty curve that rises across acts rather than inverting, and a shield-avoiding bot can no longer clear Act 2 levels",
+    "context": "Measured 2026-09-06: a bot whose picker filters shields out cleared 24/24 runs across L4-L9; the Act 2 finale (L6) fell in 4 hits / 2.4s against Level 1s 9 hits. Deferred until 113/114 land since both change the puzzle layer this would be tuning. SUPERSEDED 2026-09-19 by task 128: the level reorganisation re-laid all nine levels, replaced raw breakSpeed with measured shield tiers and shieldSpeedScale, and closed with each act measured on its own signature. The 24/24 shield-avoiding bot finding was the evidence for 128 itself.",
+    "archived_date": "2026-09-19"
+  },
+  {
+    "id": 159,
+    "priority": "medium",
+    "status": "completed",
+    "task": "Re-lay Act 1 around pivot variety and the 'open' intent",
+    "done_when": "L1-L3 rebuilt so the spatial problem varies across them; gate green; human runs recorded.",
+    "context": "GATED on task 156. Note this will break dev/gate.mjs's non-dev path, which clicks a tail position hand-computed from L1's pivot and rope length - it fails loudly rather than silently, but expect it. DONE 2026-09-17: L1 Pipe Dreams (short rope, low hand, one close target), L2 Long Drop (highest hand, longest rope, slow wide arc) and L3 Both Ways - a CENTRAL pivot with targets on both sides, the first level in the campaign where the hand is not on the left. No obstacles in the act at all. Bot medians 3 / 4 / 4-5, so the act has an internal gradient from layout alone. The predicted gate break happened and was caught by the positive HP-drop assertion rather than going vacuous; fixed properly by importing LEVELS into dev/gate.mjs instead of re-hardcoding the constants. Two tests that pinned level NAMES as literals also broke and were rewritten to compare against level data (L0352). 113/113 vitest, 95/95 gate twice.",
+    "completed_date": "2026-09-17T17:00:00",
+    "archived_date": "2026-09-19"
   }
 ]

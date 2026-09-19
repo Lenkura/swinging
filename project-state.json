@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Housekeeping done on swinging/docs/housekeeping-115-99: 99 documented (Game feel entry in CLAUDE.md), 115 superseded by 128. Next is the consolidated human playtest, which closes 163, 136, 150 and 166. Checklist: heavy shield on Long Reach should break in roughly half of runs; ordinary hits punchier with shake still an event; blade cuts on L7-L9 now record tail speed.",
+  "current_activity": "Housekeeping merged: 99 documented (Game feel entry in CLAUDE.md), 115 superseded by 128. Next is the consolidated human playtest, which closes 163, 136, 150 and 166. Checklist: heavy shield on Long Reach should break in roughly half of runs; ordinary hits punchier with shake still an event; blade cuts on L7-L9 now record tail speed.",
   "action_plan": [
     {
       "id": 45,
@@ -98,14 +98,6 @@
       "completed_date": "2026-09-19T14:21:15"
     },
     {
-      "id": 115,
-      "task": "Re-examine Act 2/3 obstacle difficulty once rope and breakable targets land: shield placement, breakSpeed thresholds, and level geometry",
-      "priority": "medium",
-      "status": "superseded",
-      "done_when": "Bot batch across L1-L9 shows a difficulty curve that rises across acts rather than inverting, and a shield-avoiding bot can no longer clear Act 2 levels",
-      "context": "Measured 2026-09-06: a bot whose picker filters shields out cleared 24/24 runs across L4-L9; the Act 2 finale (L6) fell in 4 hits / 2.4s against Level 1s 9 hits. Deferred until 113/114 land since both change the puzzle layer this would be tuning. SUPERSEDED 2026-09-19 by task 128: the level reorganisation re-laid all nine levels, replaced raw breakSpeed with measured shield tiers and shieldSpeedScale, and closed with each act measured on its own signature. The 24/24 shield-avoiding bot finding was the evidence for 128 itself."
-    },
-    {
       "id": 128,
       "task": "/brainstorm level design, movement zones and obstacle cohesion across all 9 levels so they present a connected, escalating challenge",
       "priority": "high",
@@ -161,15 +153,6 @@
       "status": "pending",
       "done_when": "Either removed along with its tests, or a note records what it is kept for.",
       "context": "Found during the 147 audit but left alone because it was outside the scope agreed with the user. getFragmentVerts and the RECT_FRAGMENTS_10/6 tables have no production caller - only tests reference them - so they are dead in the same way the six material fields were. They may be worth keeping as ready-made geometry for task 151, which will want target fragments; decide then rather than now."
-    },
-    {
-      "id": 159,
-      "priority": "medium",
-      "status": "completed",
-      "task": "Re-lay Act 1 around pivot variety and the 'open' intent",
-      "done_when": "L1-L3 rebuilt so the spatial problem varies across them; gate green; human runs recorded.",
-      "context": "GATED on task 156. Note this will break dev/gate.mjs's non-dev path, which clicks a tail position hand-computed from L1's pivot and rope length - it fails loudly rather than silently, but expect it. DONE 2026-09-17: L1 Pipe Dreams (short rope, low hand, one close target), L2 Long Drop (highest hand, longest rope, slow wide arc) and L3 Both Ways - a CENTRAL pivot with targets on both sides, the first level in the campaign where the hand is not on the left. No obstacles in the act at all. Bot medians 3 / 4 / 4-5, so the act has an internal gradient from layout alone. The predicted gate break happened and was caught by the positive HP-drop assertion rather than going vacuous; fixed properly by importing LEVELS into dev/gate.mjs instead of re-hardcoding the constants. Two tests that pinned level NAMES as literals also broke and were rewritten to compare against level data (L0352). 113/113 vitest, 95/95 gate twice.",
-      "completed_date": "2026-09-17T17:00:00"
     },
     {
       "id": 160,
@@ -575,6 +558,11 @@
       "date": "2026-09-19",
       "decision": "Task 115 marked superseded by task 128 rather than completed or left pending.",
       "rationale": "115 asked to re-examine Act 2/3 obstacle difficulty once rope and breakable targets landed. The rope landed; breakable targets became task 151 and were deferred. Task 128 re-laid every level and re-derived shield thresholds from measurement, which is the work 115 described, so nothing of 115 remains that 128, 150, 163 and 166 do not track."
+    },
+    {
+      "date": "2026-09-19",
+      "decision": "Merged branch swinging/docs/housekeeping-115-99 into main",
+      "rationale": "0eb76341f304e6d60c4109a2605ccad6b94edecc"
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
