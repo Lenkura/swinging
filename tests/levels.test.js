@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { getLevel, saveProgress, loadProgress, LEVELS, MECHANICS, levelMechanics } from '../js/levels.js'
+import { getLevel, saveProgress, loadProgress, LEVELS, MECHANICS, levelMechanics, LAYOUT_VERSION } from '../js/levels.js'
 import { SHIELD_TIERS, MAX_OBSERVED_CONTACT_SPEED, MAX_OBSERVED_ZONED_CONTACT_SPEED } from '../js/target.js'
 import { RAT_VARIANTS } from '../js/rat.js'
 
@@ -170,6 +170,43 @@ describe('saveProgress', () => {
     saveProgress(3, 1200)
     expect(loadProgress().highScores[3]).toBe(1200)
     expect(loadProgress().unlockedLevel).toBe(4)
+  })
+
+  // Level ids are reused across re-lays, so a save from another layout holds
+  // scores for different levels. See LAYOUT_VERSION.
+  it('stamps the current layout version on every save', () => {
+    saveProgress(1, 1000)
+    expect(JSON.parse(localStorage.getItem(SAVE_KEY)).layoutVersion).toBe(LAYOUT_VERSION)
+  })
+
+  it('drops high scores from a save that predates layout versions', () => {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ highScores: { 4: 2500 }, unlockedLevel: 7 }))
+    const data = loadProgress()
+    expect(data.highScores).toBeUndefined()
+    expect(data.unlockedLevel).toBe(7)   // unlock progress survives
+  })
+
+  it('drops high scores from a save of a different layout version', () => {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ highScores: { 1: 3000 }, unlockedLevel: 3, layoutVersion: LAYOUT_VERSION - 1 }))
+    expect(loadProgress().highScores).toBeUndefined()
+  })
+
+  it('caps migrated unlock progress at the new level count', () => {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ unlockedLevel: 99 }))
+    expect(loadProgress().unlockedLevel).toBe(LEVELS.length)
+  })
+
+  it('keeps high scores from a save of the current layout', () => {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ highScores: { 4: 2500 }, unlockedLevel: 7, layoutVersion: LAYOUT_VERSION }))
+    expect(loadProgress().highScores[4]).toBe(2500)
+  })
+
+  it('a save after migration keeps the unlock and records only new scores', () => {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ highScores: { 4: 2500, 5: 3000 }, unlockedLevel: 7 }))
+    saveProgress(2, 1800)
+    const data = loadProgress()
+    expect(data.highScores).toEqual({ 2: 1800 })
+    expect(data.unlockedLevel).toBe(7)
   })
 
   it('handles multiple levels independently', () => {

@@ -215,7 +215,7 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 - **Giblets**: on shatter, 8 fragment bodies (circular Matter.js bodies) spawn with a lobbed radial velocity (`spread × 10 × rand` px/step + small up-bias — kept well under ~50 px/step, the single-step tunneling threshold for the 50px walls/floor). Each carries a `plugin.piece` generated once at spawn: guaranteed 1 bone shard / 1 organ / 1 gut coil, the rest weighted flesh chunks (60/20/20). `drawFragments` branches per type — flesh (red blob, ragged fur-tuft edge in `variant.color`), bone (off-white shaft with knobbed ends), organ (dark maroon, baked gloss highlight), gut (two-pass pink tube) — all geometry precomputed, no per-frame randomness. Fragments collide with ground/walls (`0x0001` in the mask); first ground contact fires `fragment-landed` → `Renderer.paintSplat` (small decal splat), and airborne pieces shed blood-drip particles on a per-fragment cadence (`plugin.dripInterval`, advanced in the game loop). Removed from the world after 4000ms with an alpha fade.
 - **Moving targets**: a target with a `movement: { axis, range, period }` field oscillates sinusoidally around its spawn position along `axis` (`'x'` or `'y'`), `range` (fraction of canvas width/height) wide, over `period` seconds — driven by `Physics.updateMovingTargets(elapsed)`, called each frame during SWINGING. The body stays `isStatic`; only its position is repositioned via `Body.setPosition`, so collision/damage formulas are unaffected.
 - **Act structure**: 9 levels in 3 acts — Act 1 (The Sewer), Act 2 (The Warehouse), Act 3 (The Lab). An ACT CLEAR screen appears when the last level of an act is shattered. **Each act poses a different spatial question; see [Level Design](#level-design) below, which is the authority on what belongs where.**
-- **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel`.
+- **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel` + `layoutVersion`. A save from another layout (or one predating the field) loses its high scores, which belong to different levels, and keeps its unlock progress capped at the current level count. **Bump `LAYOUT_VERSION` whenever a level id stops meaning the same level** — telemetry and saved scores both key on the id.
 
 ---
 
@@ -484,6 +484,13 @@ the console and stores the full document in `localStorage` (`yoyo_dev_runs`,
 last 100 runs, separate from `yoyo_progress`). `__ratsmashTelemetry.exportRuns()`
 downloads them all as JSON. A run is only recorded end-to-end if you reach the
 result screen — abandoning to the level select discards it.
+
+**Filter by `layoutVersion` before grouping by level.** Every run document
+carries it (`LAYOUT_VERSION` in `levels.js`); a run without the field is layout
+1, the nine-level campaign. Level ids are reused across re-lays, so "L4" in
+layout 1 (Low Ceiling) and "L4" in layout 2 (Drifter) are different levels, and
+an export that spans the change holds both. Grouping by `level` alone pools them
+silently and measures neither.
 
 ### Layout
 

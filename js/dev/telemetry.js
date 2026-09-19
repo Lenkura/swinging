@@ -7,6 +7,8 @@
 //
 // Reads state, never writes it: nothing here may influence gameplay.
 
+import { LAYOUT_VERSION } from '../levels.js';
+
 export const SCHEMA_VERSION = 1;
 
 const RUN_STORE_KEY = 'yoyo_dev_runs';   // separate from yoyo_progress
@@ -87,6 +89,9 @@ export function startRun({ level, levelName, variant, source = 'human', seed = n
     seed,
     level,
     levelName,
+    // Which layout `level` refers to - level ids are reused across re-lays, so
+    // runs from different layouts must never be pooled. Absent = layout 1.
+    layoutVersion: LAYOUT_VERSION,
     variant,
     meta: { ...meta, userAgent: navigator.userAgent },
     hits: [],

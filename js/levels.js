@@ -1,5 +1,21 @@
 export const ACT_NAMES = { 1: 'The Sewer', 2: 'The Warehouse', 3: 'The Lab' };
 
+/**
+ * Which campaign layout the level ids refer to. BUMP IT whenever a level id
+ * stops meaning the same level - a re-lay, an insertion, a reorder - because
+ * two things key on the id and would silently cross the boundary:
+ *
+ *  - telemetry: runs are analysed by level id, and "L4" in the nine-level
+ *    layout (Low Ceiling, zone + shield) and "L4" in this one (Drifter, a
+ *    moving target) are different levels. Pooling them measures neither.
+ *  - saved progress: a high score for the old L4 is not a score for the new one.
+ *
+ * 1 = the nine-level layout (2026-09-14 to 2026-09-19). Anything recorded
+ *     before this field existed is layout 1.
+ * 2 = the 12-level teaching/mixed layout (2026-09-19).
+ */
+export const LAYOUT_VERSION = 2;
+
 export const LEVELS = [
   // ─────────────────────────────────────────────
   // ACT 1 — THE SEWER
@@ -391,6 +407,16 @@ export function loadProgress() {
     if (typeof raw.unlockedLevel === 'number' && Number.isFinite(raw.unlockedLevel)) {
       result.unlockedLevel = Math.max(1, Math.floor(raw.unlockedLevel));
     }
+    // A save from another layout: its high scores belong to different levels,
+    // so they go. Unlock progress is kept - a returning player should not be
+    // sent back to level 1 - but capped, since the old layout's count need not
+    // fit this one. A save with no version predates the field: layout 1.
+    if ((raw.layoutVersion ?? 1) !== LAYOUT_VERSION) {
+      delete result.highScores;
+      if (result.unlockedLevel !== undefined) {
+        result.unlockedLevel = Math.min(result.unlockedLevel, LEVELS.length);
+      }
+    }
     return result;
   } catch {
     return {};
@@ -410,6 +436,7 @@ export function saveProgress(levelId, score, { completed = true } = {}) {
   if (!data.highScores) data.highScores = {};
   if (score > (data.highScores[levelId] || 0)) data.highScores[levelId] = score;
   data.unlockedLevel = Math.max(data.unlockedLevel || 1, levelId + 1);
+  data.layoutVersion = LAYOUT_VERSION;
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch {}
 }
 
