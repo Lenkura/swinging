@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 167 (on swinging/feat/teaching-level-restructure): write the level-design rules into CLAUDE.md. Design approved 2026-09-19 - teaching + mixed restructure, 12 levels in Phase 1, tasks 167-174. Playtest closed 150, 45 and 163; 166 superseded; 136 still waits on the user feel verdict for the new hit feedback.",
+  "current_activity": "Task 168 next (swinging/feat/teaching-level-restructure): add kind/teaches fields and the rule tests, written first against the CURRENT nine levels so they are seen to fail for the right reasons. 167 done - Level Design Rules are in CLAUDE.md. 136 still waits on the user feel verdict.",
   "action_plan": [
     {
       "id": 45,
@@ -194,14 +194,15 @@
     {
       "id": 167,
       "task": "Write the level-design rules into CLAUDE.md as a Level Design Rules section, replacing the current guidance",
-      "status": "pending",
-      "context": "Eleven rules agreed 2026-09-19 (structure, fairness, carried-over legibility and arrangement rules). Each rule is marked either enforced-by-test or checked-by-playtest."
+      "status": "completed",
+      "context": "Eleven rules agreed 2026-09-19 (structure, fairness, carried-over legibility and arrangement rules). Each rule is marked either enforced-by-test or checked-by-playtest.",
+      "completed_date": "2026-09-19T21:20:21"
     },
     {
       "id": 168,
       "task": "Add level kind/teaches fields and the rule tests, written first against the CURRENT nine levels",
       "status": "pending",
-      "context": "Tests: teaching level mechanics minus everything taught earlier equals exactly its teaches field; teaching levels have one target; no heavy shield in a single-target level. They must FAIL on the current layout for the right reasons (L2/L3 multi-target, L9 shield) before any level is rewritten, proving they can fail."
+      "context": "Tests: teaching level mechanics minus everything taught earlier equals exactly its teaches field; teaching levels have one target; no heavy shield in a single-target level. They must FAIL on the current layout for the right reasons (L2/L3 multi-target, L9 shield) before any level is rewritten, proving they can fail. The rules in CLAUDE.md name FOUR tests by exact title - use those titles verbatim: \"a teaching level introduces exactly its teaches mechanic\", \"a teaching level has exactly one target\", \"a mixed level uses only mechanics already taught\", \"each act opens with a teaching level and closes with a mixed one\", plus \"no heavy shield in a single-target level\". The act-shape test is a fourth structural test the design did not list; it enforces rule 4."
     },
     {
       "id": 169,

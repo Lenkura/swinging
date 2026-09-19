@@ -240,25 +240,98 @@ symptoms that had been investigated separately over weeks:
 Tuning content cannot fix sameness of structure. Three balance passes each found this
 independently before the cause was located.
 
-### Each act asks a question the previous one does not
+### Campaign structure: teaching levels, then mixed levels
 
-| act | intent | the question | vocabulary |
+Agreed 2026-09-19 after a playtest in which the early levels felt cluttered and the zone and
+shields arrived tangled together. **Each act opens with teaching levels that introduce one
+mechanic apiece, and closes with a mixed level that combines them.** After Act 3 comes a
+fourth section of miscellaneous mixed levels that recombine everything already taught.
+
+| act | intent | the question | teaches, in order |
 |---|---|---|---|
-| **1 — The Sewer** | open | *can you build and aim speed?* | pivot variety, materials, shapes. No obstacles: this act teaches the swing, and anything that interrupts it belongs later. |
-| **2 — The Warehouse** | constrained | *can you do it in a confined space?* | **movement zones**, shields. Both restrict *where* you may act — a zone bounds the hand, a shield denies a surface until you earn it. |
-| **3 — The Lab** | hazardous | *can you do it without getting cut?* | **blades**, bumpers, moving targets. All three punish loss of control rather than restricting position, and this is the only act where you can **lose**. |
+| **1 — The Sewer** | open | *can you build and aim speed?* | the grab and the swing; swinging from above; swinging upward; a moving target — then a mixed level with two targets |
+| **2 — The Warehouse** | constrained | *can you do it in a confined space?* | the movement zone; the shield gate (light); a stronger shield (medium) — then a mixed level combining zone and shield |
+| **3 — The Lab** | hazardous | *can you do it without getting cut?* | bumpers, and yanking a snagged rope free; blades and the fail state — then a mixed finale |
+| **4 — mixed** | recombination | *can you read an unfamiliar arrangement?* | nothing new — ~9 levels built from the mechanics above in different ways (Phase 2, task 173) |
 
 The ordering is freedom → constraint → danger. An obstacle belongs to the act whose question
 it sharpens: if it restricts where you may be, it is Act 2; if it punishes what you do, it is
-Act 3. An obstacle that does neither is decoration.
+Act 3. An obstacle that does neither is decoration. Moving targets sit in Act 1 because they
+change *when* you swing, not where you may be or what punishes you.
 
-### Pivot position and rope length are design variables
+**Materials are not a mechanic.** Their damage spread is deliberately narrow (0.85 / 1.0 /
+1.15 — see Materials in Key Concepts), so a glass level and a wood level play the same. The
+Act 1 material levels teach the *swing*, through pivot position and target placement, and
+the material is flavour. Making materials behave differently would reopen the 2026-09-13
+balance decision and is a separate design pass, not something a level can do on its own.
 
-They are currently near-constant across the campaign, which is the mechanism behind the
-sameness above. Moving the pivot — centre, right, high, low — changes the entire spatial
-problem **using code that already exists**, and it is the cheapest level-design lever
-available. Treat `pivot` and `pushStringLength` as first-class per-level choices with a
-stated reason, not as values copied from the previous level.
+### Level design rules
+
+Each rule is tagged with what enforces it. **[test]** rules are checked by the named test in
+`tests/levels.test.js`, derived from the level data rather than from a hand-kept list, so a
+new level is checked without anyone remembering to add it. **[playtest]** rules can only be
+judged from human runs, and each names the number that judges it.
+
+The mechanics a level uses are read from its data: `movement` on any target → *moving*;
+`handZone` → *zone*; a shield → *shield*, plus *shield-medium* or *shield-heavy* by tier;
+`bumpers` → *bumper*; `blades` → *blade*; more than one target → *multi-target*. Materials
+and pivot position are not mechanics.
+
+**Structure**
+
+1. **A teaching level introduces exactly one new mechanic.** Everything else in it has
+   already been taught by an earlier level. A level with `teaches: 'swing'` introduces none —
+   it varies pivot and placement only. *[test: "a teaching level introduces exactly its
+   teaches mechanic"]*
+2. **One target, unless several targets are the point.** A teaching level has exactly one
+   target to hit the rat against; multiple targets are built up to in mixed levels. Shields,
+   bumpers and blades are obstacles, not targets. *[test: "a teaching level has exactly one
+   target"]*
+3. **A mechanic is taught before it is mixed.** A mixed level uses only mechanics some
+   earlier level has taught. *[test: "a mixed level uses only mechanics already taught"]*
+4. **Acts keep their order and their shape** — freedom → constraint → danger, each act opening
+   with teaching levels and closing with a mixed one. *[test: "each act opens with a teaching
+   level and closes with a mixed one"]*
+
+**Fairness**
+
+5. **A teaching level is won the obvious way.** The new mechanic is the only thing in the
+   player's way. *[playtest: at least 90% of runs clear each teaching level; the blade level
+   fails at most ~20% of runs]*
+6. **A shield guarding the only target must be reliably breakable.** With one target, every
+   shield in the level is a gate — the level cannot be won without breaking it — so a
+   shield there turns from "denies a surface" into a hard progression gate, and an
+   unbreakable one soft-locks the level. Light is always allowed; medium only where it has
+   been measured breakable; **heavy never guards the only target.** This is not hypothetical:
+   the unzoned medium shield on the old L9 broke in 0 of 4 runs on 2026-09-19, its fastest
+   arrival 69 against a threshold of 70. *[test: "no heavy shield in a single-target level";
+   playtest: each gate shield breaks in at least 80% of runs]*
+7. **Hazards arrive gently.** A teaching blade uses a forgiving `cutSpeed`, and lethality
+   ramps up across the mixed levels rather than peaking at the introduction. The old L7 did
+   the opposite — 45% of runs cut on the level that taught the hazard. *[playtest: blade
+   teaching level fails at most ~20% of runs]*
+8. **New shield and blade values start deliberately easy and are tuned from human play,
+   never from bot runs.** The two error directions are not symmetric: too easy is a soft
+   level, too hard is an unreachable one, which has now happened three times (the 180 tier,
+   heavy after the zones, the L9 medium). The bot also does not approach a blade the way a
+   person does — see Blades and the fail state. *[playtest]*
+
+**Craft** — carried over from the 2026-09-14 findings above
+
+9. **Every obstacle is legible before it is encountered.** A constraint the player cannot see
+   cannot guide anyone: shield tiers were pointless until they were tinted per tier, and this
+   applies to movement zones with particular force. A teaching level's `hint` names its
+   mechanic — there is no tutorial layer, so the hint is how a level teaches. *[playtest:
+   screenshot every level; a hint that the player has to be told about has failed]*
+10. **Difficulty comes from arrangement first, furniture second.** If a level is hard only
+    because of what is in it, it will measure like every other level — that is what happened
+    to all nine originals. Pivot position and rope length are the cheapest lever available
+    and use code that already exists, so every level states *why* its `pivot` and
+    `pushStringLength` are what they are, rather than copying the previous level's.
+    *[playtest]*
+11. **Every level states what it teaches or tests, and the number that would show it
+    working** — in a comment above the level, written *before* it is measured. A level
+    measured first and justified afterwards will always look justified. *[review]*
 
 ### How to measure whether the acts actually differ
 
@@ -284,15 +357,11 @@ differ" was always meant to mean. A future act, or a re-lay of one of these,
 should be held to the same bar: state the intent, then name the metric that
 would show it is working, *before* measuring.
 
-### Two rules that fall out of this
-
-- **A level's difficulty should come from its arrangement first and its furniture second.**
-  If a new level is hard only because of what is in it, it will measure the same as every
-  other level, because that is what happened to all nine.
-- **Every obstacle must be legible before it is encountered.** Shield tiers were invisible on
-  their first implementation — all three drew the same colour — which made the whole feature
-  pointless until they were tinted per tier. A constraint the player cannot see cannot guide
-  anyone, and this applies to movement zones with particular force.
+**These figures describe the nine-level layout.** The 2026-09-19 restructure
+replaces it, so they are the bar the new acts must still clear, not a
+measurement of them. Runs recorded before and after carry different
+`layoutVersion`s and must never be pooled — level 4 before and level 4 after
+are different levels with the same id.
 
 ---
 
