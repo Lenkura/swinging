@@ -330,10 +330,15 @@ level and every mixed level using it would fail rule 3.
    screenshot every level; a hint that the player has to be told about has failed]*
 10. **Difficulty comes from arrangement first, furniture second.** If a level is hard only
     because of what is in it, it will measure like every other level — that is what happened
-    to all nine originals. Pivot position and rope length are the cheapest lever available
-    and use code that already exists, so every level states *why* its `pivot` and
-    `pushStringLength` are what they are, rather than copying the previous level's.
-    *[playtest]*
+    to all nine originals. Rope length and target placement are the cheapest levers available
+    and use code that already exists, so every level states *why* its `pushStringLength` and
+    target positions are what they are, rather than copying the previous level's.
+    **`pivot` is only a lever inside a zone.** Once the tail is grabbed, the pointer *is* the
+    hand, and without a `handZone` nothing constrains it (`clampToZone` is a no-op) — so in
+    an open level `pivot` sets where the rat starts and nothing more. The 2026-09-14 analysis
+    that called the near-constant pivot "the mechanism behind the sameness" was half right:
+    the sameness was real, but in the open levels it lived in target placement, not in the
+    pivot. *[playtest]*
 11. **Every level states what it teaches or tests, and the number that would show it
     working** — in a comment above the level, written *before* it is measured. A level
     measured first and justified afterwards will always look justified. *[review]*

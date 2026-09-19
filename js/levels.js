@@ -3,15 +3,18 @@ export const ACT_NAMES = { 1: 'The Sewer', 2: 'The Warehouse', 3: 'The Lab' };
 export const LEVELS = [
   // ─────────────────────────────────────────────
   // ACT 1 — THE SEWER
-  // Open: can you build and aim speed? No obstacles at all - anything that
-  // interrupts the swing belongs to a later act. The variation here is carried
-  // entirely by pivot, rope length and where the targets sit, which is exactly
-  // the lever the campaign had never used: every level once put the hand on the
-  // left at mid-height with the targets to the right.
+  // Open: can you build and aim speed? Four teaching levels, one target each,
+  // then a mixed closer. There is no zone in this act, so once the tail is
+  // grabbed the hand goes anywhere - `pivot` only sets where the rat starts.
+  // The real levers here are rope length and where the target sits.
+  // Materials are flavour (CLAUDE.md > Level Design): each level teaches a
+  // swing, not a material.
   // ─────────────────────────────────────────────
   {
-    // Short rope, low hand, one close target. The smallest possible version of
-    // the whole game, so the first thing a player does is succeed at it.
+    // TEACHES the grab and the swing. Short rope, one close glass target: the
+    // smallest possible version of the whole game, so the first thing a player
+    // does is succeed at it. Working if: >= 90% of runs clear, median clear
+    // under ~4 s (the old Pipe Dreams measured 3.0 s).
     id: 1,
     kind: 'teaching', teaches: 'swing',
     act: 1,
@@ -26,12 +29,15 @@ export const LEVELS = [
     ],
     parScore: 1200,
     pushParScore: 3000,
-    hint: 'Move the mouse to swing the rat. Cleaner hits deal more damage!',
+    hint: 'Grab the tail, then move the mouse to swing the rat into the glass. Cleaner hits hurt more!',
   },
   {
-    // The opposite extreme: a high hand and the longest rope in the game, so the
-    // swing is slow and wide and has to be committed to early. Targets sit low
-    // and apart, which the short-rope reflexes from L1 cannot reach.
+    // TEACHES swinging a long rope. The longest rope in the act and a single
+    // wood target held just OFF the floor - on the floor, the 200px tail dragged
+    // along the ground (31-33k rope contacts per bot run, 1-3 hits in 60 s),
+    // so the target stays where the old L2 kept its targets. The arc is slow and
+    // wide and has to be committed to early - L1's short-rope reflexes overshoot it. Working if: >= 90% clear, and
+    // glancing rate above L1's (the long arc is harder to aim).
     id: 2,
     kind: 'teaching', teaches: 'swing',
     act: 1,
@@ -42,31 +48,71 @@ export const LEVELS = [
     stringLength: 140,
     pushStringLength: 200,
     targets: [
-      { shape: 'circle', r: 30, x: 0.48, y: 0.72, material: 'glass' },
-      { shape: 'rectangle', w: 55, h: 72, x: 0.70, y: 0.68, material: 'wood' },
+      { shape: 'rectangle', w: 60, h: 76, x: 0.68, y: 0.68, material: 'wood' },
     ],
     parScore: 1400,
     pushParScore: 3000,
     hint: 'A long tail swings slow and wide. Commit to the arc before you need it.',
   },
   {
-    // The act's real idea, and the first level in the campaign where the hand is
-    // not on the left: a central pivot with targets on BOTH sides, so the swing
-    // has to be reversed rather than merely repeated. Nothing new is introduced
-    // to do it - only the pivot moved.
+    // TEACHES swinging upward. A short rope and a steel target mounted high on
+    // the right: hanging the rat under the hand is not enough to reach it with
+    // speed, so the swing has to rise into the target rather than fall onto it.
+    // Working if: >= 90% clear; clear time above L1's, since the target cannot
+    // be hit on the way down.
     id: 3,
+    kind: 'teaching', teaches: 'swing',
+    act: 1,
+    name: 'High Shelf',
+    background: ['#2e2214', '#1a1408'],
+    groundColor: '#100c04',
+    pivot: { x: 0.24, y: 0.62 },
+    stringLength: 120,
+    pushStringLength: 120,
+    targets: [
+      { shape: 'rectangle', w: 70, h: 48, x: 0.72, y: 0.26, material: 'steel' },
+    ],
+    parScore: 1600,
+    pushParScore: 3000,
+    hint: 'The target is up high. Swing UP into it - you will not reach it on the way down.',
+  },
+  {
+    // TEACHES timing: one target that moves. The first mechanic in the game,
+    // and the gentlest - a slow vertical drift, so the lesson is "watch where it
+    // will be", not "chase it". Working if: >= 90% clear; glancing above L1's.
+    id: 4,
+    kind: 'teaching', teaches: 'moving',
+    act: 1,
+    name: 'Drifter',
+    background: ['#26301e', '#141a0e'],
+    groundColor: '#0e1408',
+    pivot: { x: 0.20, y: 0.40 },
+    stringLength: 140,
+    pushStringLength: 150,
+    targets: [
+      { shape: 'circle', r: 38, x: 0.60, y: 0.52, material: 'glass', movement: { axis: 'y', range: 0.08, period: 2.4 } },
+    ],
+    parScore: 1600,
+    pushParScore: 3000,
+    hint: 'This one moves. Swing for where it is going to be, not where it is.',
+  },
+  {
+    // MIXED closer for Act 1: the first level with two targets, one on each side
+    // of a central start, and the right one drifting. The swing has to be
+    // reversed rather than repeated - built only from what L1-L4 taught.
+    // Working if: clears stay >= 90% but take longer than any teaching level.
+    id: 5,
     kind: 'mixed',
     act: 1,
     name: 'Both Ways',
-    background: ['#2e2214', '#1a1408'],
-    groundColor: '#100c04',
+    background: ['#2e2a14', '#1a1608'],
+    groundColor: '#100e04',
     pivot: { x: 0.50, y: 0.36 },
     stringLength: 130,
     pushStringLength: 150,
     targets: [
       { shape: 'rectangle', w: 60, h: 80, x: 0.20, y: 0.62, material: 'wood' },
-      { shape: 'circle', r: 30, x: 0.80, y: 0.58, material: 'glass' },
-      { shape: 'rectangle', w: 68, h: 42, x: 0.50, y: 0.70, material: 'steel' },
+      { shape: 'circle', r: 30, x: 0.80, y: 0.58, material: 'glass', movement: { axis: 'y', range: 0.05, period: 2.8 } },
     ],
     parScore: 2000,
     pushParScore: 3000,
@@ -75,14 +121,17 @@ export const LEVELS = [
 
   // ─────────────────────────────────────────────
   // ACT 2 — THE WAREHOUSE
-  // Constrained: can you do it in a confined space? - see CLAUDE.md > Level Design
+  // Constrained: can you do it in a confined space? The zone and the shield
+  // are taught SEPARATELY (the old act introduced both in its first level),
+  // then combined in the closer. Inside a zone `pivot` finally matters - it is
+  // where the zone lets the hand be.
   // ─────────────────────────────────────────────
   {
-    // ACT 2 INTENT: can you do it in a confined space? The zone is the act's
-    // subject; shields are its secondary vocabulary. See CLAUDE.md > Level Design.
-    // L4 teaches the constraint gently: a wide floor but a low ceiling, so the
-    // hand cannot be lifted and speed has to come from sweeping sideways.
-    id: 4,
+    // TEACHES the movement zone, and nothing else. A wide floor under a low
+    // ceiling, so the hand cannot be lifted and speed has to come from sweeping
+    // sideways. Working if: >= 90% clear; glancing below Act 1's (the old
+    // zoned levels measured 12.5% against 18.7% open).
+    id: 6,
     kind: 'teaching', teaches: 'zone',
     act: 2,
     name: 'Low Ceiling',
@@ -90,27 +139,91 @@ export const LEVELS = [
     groundColor: '#201410',
     pivot: { x: 0.10, y: 0.60 },
     handZone: { x: 0.04, y: 0.30, w: 0.42, h: 0.63 },
-    shieldSpeedScale: 0.75,   // zones halve arrival speed; see resolveShieldTier
     stringLength: 140,
     pushStringLength: 150,
     targets: [
-      { shape: 'rectangle', w: 70, h: 92, x: 0.50, y: 0.58, material: 'wood' },
-      { shape: 'rectangle', w: 14, h: 104, x: 0.42, y: 0.56, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 70, h: 92, x: 0.56, y: 0.58, material: 'wood' },
     ],
     parScore: 2000,
     pushParScore: 3000,
-    hint: 'Your hand is boxed in. Sweep sideways to build speed - you cannot lift out of it.',
+    hint: 'Your hand is boxed in - the outline shows where it can go. Sweep sideways to build speed.',
   },
   {
-    // L5 inverts L4's shape: the floor is taken away instead of the ceiling.
-    // A narrow column means sideways sweeping is gone, so the only way to build
-    // speed is to pump up and down - the opposite motor skill to the one above.
-    id: 5,
+    // TEACHES the shield, as a gate. The only target sits on the floor inside
+    // a cage of four light (glass) panels, so the level cannot be won without
+    // breaking one - the user's "surround the target" design. Any panel will do.
+    // No zone, so nothing else is in the way. Light is the tier rule 6 always
+    // allows. Working if: >= 90% clear, and the cage breaks in >= 80% of runs.
+    //
+    // Cage geometry (px, canvas 1100x620): a 60x70 target floating at (792, 310),
+    // four panels 10px clear of it, lid and floor overlapping the side panels'
+    // ends so there is no corner gap. It floats rather than sitting on the ground
+    // because a floor-level cage cannot fit between the hint text (ending
+    // ~x 805 at y ~510) and the HP bar (from x ~900): both covered it.
+    id: 7,
+    kind: 'teaching', teaches: 'shield',
+    act: 2,
+    name: 'Glass Cage',
+    background: ['#3c2c1c', '#22180e'],
+    groundColor: '#1a120a',
+    pivot: { x: 0.18, y: 0.46 },
+    stringLength: 150,
+    pushStringLength: 160,
+    targets: [
+      { shape: 'rectangle', w: 60, h: 70, x: 0.72, y: 0.50, material: 'wood' },
+      { shape: 'rectangle', w: 14, h: 110, x: 0.6773, y: 0.50, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 14, h: 110, x: 0.7627, y: 0.50, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 108, h: 14, x: 0.72, y: 0.4161, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 108, h: 14, x: 0.72, y: 0.5839, isShield: true, shieldTier: 'light' },
+    ],
+    parScore: 2000,
+    pushParScore: 3000,
+    hint: 'The target is caged. Hit the glass hard enough to smash through - slow hits just bounce off.',
+  },
+  {
+    // TEACHES the stronger shield: the same cage in medium (wood). Same shape as
+    // L7 on purpose, so the only thing that changed is how hard you must hit.
+    //
+    // shieldSpeedScale 0.75 on an UNZONED level, deliberately. Rule 6 allows
+    // medium as a gate only where it has been measured breakable, and the only
+    // medium measured breakable is 52.5 (70 x 0.75, the Act 2 zoned value: 67%
+    // of contacts on the old Long Reach). The unscaled 70 is the value that
+    // broke in 0 of 4 runs on the old L9, fastest arrival 69. Rule 8: start easy
+    // and tune from human play. Working if: the cage breaks in >= 80% of runs
+    // and takes more contacts than L7's.
+    id: 8,
     kind: 'teaching', teaches: 'shield-strong',
     act: 2,
-    name: 'Narrow Column',
+    name: 'Crate',
     background: ['#3a2a1a', '#201610'],
     groundColor: '#181010',
+    pivot: { x: 0.18, y: 0.46 },
+    shieldSpeedScale: 0.75,
+    stringLength: 150,
+    pushStringLength: 160,
+    targets: [
+      { shape: 'rectangle', w: 60, h: 70, x: 0.72, y: 0.50, material: 'glass' },
+      { shape: 'rectangle', w: 14, h: 110, x: 0.6773, y: 0.50, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 14, h: 110, x: 0.7627, y: 0.50, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 108, h: 14, x: 0.72, y: 0.4161, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 108, h: 14, x: 0.72, y: 0.5839, isShield: true, shieldTier: 'medium' },
+    ],
+    parScore: 2200,
+    pushParScore: 3000,
+    hint: 'A wooden crate is tougher than glass. You need a faster swing to break in.',
+  },
+  {
+    // MIXED closer for Act 2: zone AND shields together, and two targets. A
+    // narrow column takes away L6's sideways sweep, so speed has to come from
+    // pumping up and down, and the two targets sit behind different tiers -
+    // the player picks which to earn. Working if: slowest clears in Act 2
+    // (the old Narrow Column measured 4.1 s median).
+    id: 9,
+    kind: 'mixed',
+    act: 2,
+    name: 'Narrow Column',
+    background: ['#2a2018', '#181408'],
+    groundColor: '#100e06',
     pivot: { x: 0.28, y: 0.38 },
     handZone: { x: 0.38, y: 0.26, w: 0.12, h: 0.67 },
     shieldSpeedScale: 0.75,   // zones halve arrival speed; see resolveShieldTier
@@ -124,108 +237,81 @@ export const LEVELS = [
     ],
     parScore: 2400,
     pushParScore: 3000,
-    hint: 'No room to sweep. Pump up and down, and pick which target the swing is aimed at.',
-  },
-  {
-    // L6 is the act's exam: the smallest zone and the longest rope, with the
-    // targets parked at the edge of what that reach allows. Neither of L4's or
-    // L5's motions is enough on its own - the constraint is now distance, so the
-    // rope has to do the work the hand no longer can.
-    id: 6,
-    kind: 'mixed',
-    act: 2,
-    name: 'Long Reach',
-    background: ['#2a2018', '#181408'],
-    groundColor: '#100e06',
-    pivot: { x: 0.16, y: 0.30 },
-    handZone: { x: 0.26, y: 0.20, w: 0.11, h: 0.73 },
-    shieldSpeedScale: 0.75,   // zones halve arrival speed; see resolveShieldTier
-    stringLength: 140,
-    pushStringLength: 190,
-    targets: [
-      { shape: 'rectangle', w: 82, h: 102, x: 0.50, y: 0.50, material: 'steel', movement: { axis: 'y', range: 0.04, period: 2.5 } },
-      { shape: 'rectangle', w: 12, h: 114, x: 0.42, y: 0.50, isShield: true, shieldTier: 'medium' },
-      { shape: 'rectangle', w: 14, h: 114, x: 0.46, y: 0.50, isShield: true, shieldTier: 'heavy' },
-    ],
-    parScore: 2800,
-    pushParScore: 3000,
-    hint: 'A small box and a long tail. The vault sits at the very end of your reach.',
+    hint: 'No room to sweep. Pump up and down, and pick which shield is worth breaking.',
   },
 
   // ─────────────────────────────────────────────
   // ACT 3 — THE LAB
-  // Hazardous: blades, bumpers, moving targets - see CLAUDE.md > Level Design
+  // Hazardous: can you do it without getting cut? Bumpers and blades punish
+  // loss of CONTROL rather than restricting position, so the act carries no
+  // zone. The only act you can lose - and the blade is introduced forgivingly
+  // (rule 7), with lethality rising into the finale.
   // ─────────────────────────────────────────────
   {
-    // ACT 3 INTENT: can you do it without getting cut? Blades, bumpers and
-    // moving targets all punish loss of CONTROL rather than restricting
-    // position - so this act deliberately carries no handZone, which is Act 2's
-    // vocabulary. It is also the only act you can lose.
-    //
-    // Blades are placed HIGH on purpose. The tail hangs below the hand and
-    // sweeps within one rope-length of it, so a blade overhead never blocks the
-    // ordinary line - it taxes the biggest swing, which is the one that would
-    // otherwise be free. L7 introduces that with a single blade and plenty of
-    // room beneath it.
-    id: 7,
-    kind: 'teaching', teaches: 'blade',
+    // TEACHES bumpers, and the yank that frees a snagged tail. One bumper sits
+    // on the line between the start and the only target, so the rope wraps it
+    // and the swing gets deflected - which is exactly when a yank (click) is
+    // needed. With the rope, a bumper level was unwinnable without yanking
+    // (the old Crossfire, 6/6 bot failures). Working if: >= 90% clear, and a
+    // yank is used in most runs that snag.
+    id: 10,
+    kind: 'teaching', teaches: 'bumper',
     act: 3,
-    name: 'First Cut',
+    name: 'Deflector',
     background: ['#c8d4dc', '#90a4b0'],
     groundColor: '#708090',
     pivot: { x: 0.18, y: 0.46 },
     stringLength: 150,
     pushStringLength: 160,
     targets: [
-      { shape: 'circle', r: 40, x: 0.70, y: 0.58, material: 'wood' },
+      { shape: 'circle', r: 40, x: 0.72, y: 0.58, material: 'wood' },
     ],
     bumpers: [
-      { x: 0.48, y: 0.62, radius: 22 },
-    ],
-    blades: [
-      // 45% of human runs were cut here at the shared default of 120 - the
-      // level that TEACHES the hazard was the deadliest in the act. Raised.
-      { x: 0.46, y: 0.14, w: 240, h: 10, cutSpeed: 175 },
+      { x: 0.48, y: 0.60, radius: 24 },
     ],
     parScore: 1800,
     pushParScore: 3000,
-    hint: 'A blade overhead. It cannot touch you - but it will cut your tail if you swing too high.',
+    hint: 'Bumpers knock you off course. If your tail snags on one, CLICK to yank it free.',
   },
   {
-    // L8 turns the hazard from a ceiling into a corridor: two blades leave a gap
-    // the swing has to pass through, and the bumpers sit where a deflection
-    // pushes you toward one of them. This is the act's thesis - the danger is
-    // not the obstacle, it is losing control near it.
-    id: 8,
-    kind: 'mixed',
+    // TEACHES blades and the fail state. One blade high overhead with plenty of
+    // room beneath: it never blocks the ordinary line, it only taxes the
+    // biggest, least controlled swing. No bumper - the old First Cut paired the
+    // two, which is why it both taught blades and cut 45% of runs.
+    //
+    // cutSpeed 230, deliberately forgiving (rule 7). At 175 the 2026-09-19
+    // playtest cut 2 of 6 runs, at tail speeds of 203 and 244; 230 would have
+    // spared one of those two. Two data points - tune from the Phase 1
+    // playtest. Working if: at most ~20% of runs are cut.
+    id: 11,
+    kind: 'teaching', teaches: 'blade',
     act: 3,
-    name: 'Crossfire',
+    name: 'First Cut',
     background: ['#b8ccd8', '#849ab4'],
     groundColor: '#607080',
-    pivot: { x: 0.24, y: 0.54 },
+    pivot: { x: 0.18, y: 0.46 },
     stringLength: 150,
-    pushStringLength: 150,
+    pushStringLength: 160,
     targets: [
-      { shape: 'rectangle', w: 55, h: 70, x: 0.70, y: 0.52, material: 'glass' },
-      { shape: 'circle', r: 28, x: 0.84, y: 0.64, material: 'steel' },
-    ],
-    bumpers: [
-      { x: 0.52, y: 0.50, radius: 20 },
-      { x: 0.64, y: 0.68, radius: 18 },
+      { shape: 'circle', r: 40, x: 0.70, y: 0.58, material: 'glass' },
     ],
     blades: [
-      { x: 0.50, y: 0.17, w: 300, h: 10, cutSpeed: 105 },   // 0% at 120; decoration
+      { x: 0.46, y: 0.14, w: 240, h: 10, cutSpeed: 230 },
     ],
-    parScore: 2200,
+    parScore: 1800,
     pushParScore: 3000,
-    hint: 'Two blades and two bumpers. A deflection you did not plan is what gets your tail cut.',
+    hint: 'A blade overhead. It will not touch the rat - but swing too wild and it cuts your tail, and you lose.',
   },
   {
-    // L9 is the campaign finale and the only level that draws on all three acts:
-    // a shield from Act 2's vocabulary, bumpers and a moving target from Act 3's,
-    // and blades on both flanks so neither the high route nor the far side is
-    // free. Deliberately no handZone - the finale tests control, not confinement.
-    id: 9,
+    // MIXED finale: everything taught outside the zone - a shield, bumpers, a
+    // moving target, a blade - and three targets. The blade is the act's
+    // harshest (cutSpeed 90, which cut 1 of 6 runs at 94 on 2026-09-19) because
+    // lethality ramps INTO the finale, not out of the introduction.
+    //
+    // The shield is LIGHT. On the old finale it was an unzoned medium at 70 and
+    // broke in 0 of 4 runs, fastest arrival 69 - a shield nobody could open.
+    // Working if: the act's highest cut rate, with clears still >= 70%.
+    id: 12,
     kind: 'mixed',
     act: 3,
     name: 'Full Experiment',
@@ -235,13 +321,13 @@ export const LEVELS = [
     stringLength: 150,
     pushStringLength: 170,
     blades: [
-      { x: 0.50, y: 0.20, w: 340, h: 10, cutSpeed: 90 },    // 0% at 120; the finale should bite
+      { x: 0.50, y: 0.20, w: 340, h: 10, cutSpeed: 90 },
     ],
     targets: [
       { shape: 'rectangle', w: 55, h: 76, x: 0.74, y: 0.52, material: 'wood' },
       { shape: 'circle', r: 28, x: 0.66, y: 0.66, material: 'glass' },
       { shape: 'rectangle', w: 60, h: 86, x: 0.86, y: 0.56, material: 'steel', movement: { axis: 'x', range: 0.03, period: 2.0 } },
-      { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.52, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.52, isShield: true, shieldTier: 'light' },
     ],
     bumpers: [
       { x: 0.48, y: 0.54, radius: 22 },
@@ -249,7 +335,7 @@ export const LEVELS = [
     ],
     parScore: 2800,
     pushParScore: 3000,
-    hint: 'Everything at once. Break the shield, route past the bumpers, chain the targets.',
+    hint: 'Everything at once. Break the shield, route past the bumpers, and keep your tail off the blade.',
   },
 ];
 

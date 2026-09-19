@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 169 next (swinging/feat/teaching-level-restructure): re-lay the campaign as 12 levels. The suite is deliberately RED - the four level-design rule tests fail on the old nine levels, and the re-lay is done when it is green. 167-168 done. 136 still waits on the user feel verdict.",
+  "current_activity": "Task 170 next (swinging/feat/teaching-level-restructure): stamp layoutVersion into telemetry and saved progress. 169 done - 12 levels, suite green, every level screenshotted and bot-checked. 136 still waits on the user feel verdict.",
   "action_plan": [
     {
       "id": 45,
@@ -208,8 +208,9 @@
     {
       "id": 169,
       "task": "Re-lay the campaign as 12 levels per the approved plan: Act 1 glass/wood/steel/moving/mixed, Act 2 zone/shield-cage/medium-shield/mixed, Act 3 bumper+yank/blade/mixed finale",
-      "status": "pending",
-      "context": "Verify with the rule tests, the existing structural zone checks, and a screenshot of every level - screenshots caught what green tests missed twice last session. New shield and blade values start deliberately forgiving. Entry state: 4 rule tests FAIL by design on the old layout (committed that way, 168) - R1 L4/L5/L7, R2 L2/L5, R3 L6/L8/L9, R6 L6. The re-lay is done when the whole suite is green again."
+      "status": "completed",
+      "context": "Verify with the rule tests, the existing structural zone checks, and a screenshot of every level - screenshots caught what green tests missed twice last session. New shield and blade values start deliberately forgiving. Entry state: 4 rule tests FAIL by design on the old layout (committed that way, 168) - R1 L4/L5/L7, R2 L2/L5, R3 L6/L8/L9, R6 L6. The re-lay is done when the whole suite is green again.",
+      "completed_date": "2026-09-19T22:05:24"
     },
     {
       "id": 170,
@@ -227,7 +228,7 @@
       "id": 172,
       "task": "Phase 1 playtest of the 12-level campaign: teaching levels clear >= 90% of runs (blade level fail <= ~20%), gate shields break >= 80% of runs, the three act signatures still separate",
       "status": "pending",
-      "context": "Criteria fixed before measuring. This playtest also sets per-level par (135) and the new blade thresholds (replacing 166)."
+      "context": "Criteria fixed before measuring. This playtest also sets per-level par (135) and the new blade thresholds (replacing 166). WATCH L8 Crate first: in 2 of 4 bot runs the medium cage OPENED (1 and 3 of 4 panels broken) but the bot then landed 0 damaging hits in 16-31 contacts, bouncing off the remaining panel. Looks like bot aiming, not the level (L7, same cage in light, cleared 4/4) - but it is the one new level the bot could not reliably finish. Also check the gate cages read as cages."
     },
     {
       "id": 173,
