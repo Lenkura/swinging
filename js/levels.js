@@ -52,8 +52,9 @@ export const LEVELS = [
     // wood target held just OFF the floor - on the floor, the 200px tail dragged
     // along the ground (31-33k rope contacts per bot run, 1-3 hits in 60 s),
     // so the target stays where the old L2 kept its targets. The arc is slow and
-    // wide and has to be committed to early - L1's short-rope reflexes overshoot it. Working if: >= 90% clear, and
-    // glancing rate above L1's (the long arc is harder to aim).
+    // wide and has to be committed to early - L1's short-rope reflexes overshoot
+    // it. Working if: >= 90% clear, and glancing rate above L1's (the long arc is
+    // harder to aim).
     id: 2,
     kind: 'teaching', teaches: 'swing',
     act: 1,
@@ -165,17 +166,23 @@ export const LEVELS = [
     hint: 'Your hand is boxed in - the outline shows where it can go. Sweep sideways to build speed.',
   },
   {
-    // TEACHES the shield, as a gate. The only target sits on the floor inside
-    // a cage of four light (glass) panels, so the level cannot be won without
+    // TEACHES the shield, as a gate. The only target floats inside a cage
+    // of four light (glass) panels, so the level cannot be won without
     // breaking one - the user's "surround the target" design. Any panel will do.
     // No zone, so nothing else is in the way. Light is the tier rule 6 always
     // allows. Working if: >= 90% clear, and the cage breaks in >= 80% of runs.
     //
-    // Cage geometry (px, canvas 1100x620): a 60x70 target floating at (792, 310),
-    // four panels 10px clear of it, lid and floor overlapping the side panels'
-    // ends so there is no corner gap. It floats rather than sitting on the ground
-    // because a floor-level cage cannot fit between the hint text (ending
-    // ~x 805 at y ~510) and the HP bar (from x ~900): both covered it.
+    // Cage geometry (px, canvas 1100x620): a 60x70 target floating at (792, 310)
+    // with four panels FLUSH against it - sides the target's height, lid and
+    // floor spanning the full 88px so they cover the corners. Together they are
+    // one solid 88x98 block. It floats because a floor-level cage cannot fit
+    // between the hint text (ending ~x 805 at y ~510) and the HP bar (from x ~900).
+    //
+    // FLUSH, not spaced. A first version left 10px of clearance, and once some
+    // panels broke, each survivor was a thin free-standing post beside a 10px
+    // slot: the tail looped right round the post and wedged the rat in the slot,
+    // at rest for 90 s through 60 yanks - a soft-lock in a teaching level. Flush,
+    // whatever survives is part of one solid block, like any floating target.
     id: 7,
     kind: 'teaching', teaches: 'shield',
     act: 2,
@@ -187,10 +194,10 @@ export const LEVELS = [
     pushStringLength: 160,
     targets: [
       { shape: 'rectangle', w: 60, h: 70, x: 0.72, y: 0.50, material: 'wood' },
-      { shape: 'rectangle', w: 14, h: 110, x: 0.6773, y: 0.50, isShield: true, shieldTier: 'light' },
-      { shape: 'rectangle', w: 14, h: 110, x: 0.7627, y: 0.50, isShield: true, shieldTier: 'light' },
-      { shape: 'rectangle', w: 108, h: 14, x: 0.72, y: 0.4161, isShield: true, shieldTier: 'light' },
-      { shape: 'rectangle', w: 108, h: 14, x: 0.72, y: 0.5839, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 14, h: 70, x: 0.6864, y: 0.50, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 14, h: 70, x: 0.7536, y: 0.50, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 88, h: 14, x: 0.72, y: 0.4323, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 88, h: 14, x: 0.72, y: 0.5677, isShield: true, shieldTier: 'light' },
     ],
     parScore: 2000,
     pushParScore: 3000,
@@ -219,10 +226,10 @@ export const LEVELS = [
     pushStringLength: 160,
     targets: [
       { shape: 'rectangle', w: 60, h: 70, x: 0.72, y: 0.50, material: 'glass' },
-      { shape: 'rectangle', w: 14, h: 110, x: 0.6773, y: 0.50, isShield: true, shieldTier: 'medium' },
-      { shape: 'rectangle', w: 14, h: 110, x: 0.7627, y: 0.50, isShield: true, shieldTier: 'medium' },
-      { shape: 'rectangle', w: 108, h: 14, x: 0.72, y: 0.4161, isShield: true, shieldTier: 'medium' },
-      { shape: 'rectangle', w: 108, h: 14, x: 0.72, y: 0.5839, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 14, h: 70, x: 0.6864, y: 0.50, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 14, h: 70, x: 0.7536, y: 0.50, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 88, h: 14, x: 0.72, y: 0.4323, isShield: true, shieldTier: 'medium' },
+      { shape: 'rectangle', w: 88, h: 14, x: 0.72, y: 0.5677, isShield: true, shieldTier: 'medium' },
     ],
     parScore: 2200,
     pushParScore: 3000,

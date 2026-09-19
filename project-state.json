@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 171 next (swinging/feat/teaching-level-restructure): remap the gate cases by purpose onto the new level ids. 170 done - runs and saves carry layoutVersion 2. 136 still waits on the user feel verdict.",
+  "current_activity": "Phase 1 build is complete on swinging/feat/teaching-level-restructure (167-171). Next is the Phase 1 human playtest (172). 136 still waits on the user feel verdict.",
   "action_plan": [
     {
       "id": 45,
@@ -222,14 +222,15 @@
     {
       "id": 171,
       "task": "Remap dev/gate.mjs cases by purpose (shield, bumper, blade, needs-yank) onto the new level ids",
-      "status": "pending",
-      "context": "The yank case must be a level where the rope genuinely snags; confirm on the new bumper level before relying on it."
+      "status": "completed",
+      "context": "The yank case must be a level where the rope genuinely snags; confirm on the new bumper level before relying on it.",
+      "completed_date": "2026-09-20T01:39:58"
     },
     {
       "id": 172,
       "task": "Phase 1 playtest of the 12-level campaign: teaching levels clear >= 90% of runs (blade level fail <= ~20%), gate shields break >= 80% of runs, the three act signatures still separate",
       "status": "pending",
-      "context": "Criteria fixed before measuring. This playtest also sets per-level par (135) and the new blade thresholds (replacing 166). WATCH L8 Crate first: in 2 of 4 bot runs the medium cage OPENED (1 and 3 of 4 panels broken) but the bot then landed 0 damaging hits in 16-31 contacts, bouncing off the remaining panel. Looks like bot aiming, not the level (L7, same cage in light, cleared 4/4) - but it is the one new level the bot could not reliably finish. Also check the gate cages read as cages."
+      "context": "Criteria fixed before measuring. This playtest also sets per-level par (135) and the new blade thresholds (replacing 166). WATCH L8 Crate first: in 2 of 4 bot runs the medium cage OPENED (1 and 3 of 4 panels broken) but the bot then landed 0 damaging hits in 16-31 contacts, bouncing off the remaining panel. Looks like bot aiming, not the level (L7, same cage in light, cleared 4/4) - but it is the one new level the bot could not reliably finish. Also check the gate cages read as cages. ALSO WATCH L10 Deflector: it is meant to teach yank, but its bumper did not force one in 4/4 bot seeds. If players never snag there, the bumper needs placing to snag deliberately."
     },
     {
       "id": 173,
@@ -242,12 +243,6 @@
       "task": "Revisit MAX_OBSERVED_ZONED_CONTACT_SPEED: a zoned heavy contact arrived at 155 on 2026-09-19, far above the 104.6 recorded",
       "status": "pending",
       "context": "A single maximum is a fragile ceiling - one outlier moves it. Consider a high percentile instead. Current value errs strict, so nothing is broken meanwhile."
-    },
-    {
-      "id": 175,
-      "task": "js/dev/harness.js - runBot returns doc: null for runs that finished, so a caller cannot tell a win from a timeout",
-      "status": "pending",
-      "context": "Found 2026-09-19 while probing bot timeouts: finished runs came back with no document, which made the probe print undefined for completed runs. The stored run in yoyo_dev_runs is correct, so the batch runner is unaffected; the priorDoc identity check in runBot is the likely cause."
     }
   ],
   "recently_updated_files": [
