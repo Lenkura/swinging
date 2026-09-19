@@ -52,8 +52,15 @@ const t0 = Date.now();
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
+  // A dead CDN tag is invisible to 'pageerror': a 404'd script is a failed
+  // resource, not an exception. poly-decomp 404'd on every page load for two
+  // months (task 100) with this gate green throughout.
+  const failedLoads = [];
+  page.on('response', r => { if (r.status() >= 400) failedLoads.push(`${r.status()} ${r.url()}`); });
+  page.on('requestfailed', r => failedLoads.push(`${r.failure()?.errorText} ${r.url()}`));
   await page.goto(base, { waitUntil: 'load' });
   await page.waitForSelector('#ls-grid', { state: 'visible' });
+  check('every resource on page load succeeds', failedLoads.length === 0, failedLoads.join(' | '));
 
   const levelButtons = await page.locator('#ls-grid button').count();
   check('level select renders 9 levels', levelButtons === 9, `${levelButtons}`);

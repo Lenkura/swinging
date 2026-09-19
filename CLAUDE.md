@@ -91,7 +91,12 @@ swinging/
 
 **External deps (CDN, no install, SRI-pinned):**
 - Matter.js 0.19.0 — physics engine
-- poly-decomp 0.3.0 — concave polygon decomposition for fragments
+
+poly-decomp was listed here until 2026-09-19. It was never used — Matter only calls it from
+`Bodies.fromVertices`, which nothing in the game calls — and its cdnjs URL had 404'd on every
+page load since at least July. If concave bodies are ever needed (task 151 might), add it back
+from a CDN that actually serves it, with a freshly generated SRI hash. The gate now fails on
+any resource that does not load, so a dead tag cannot sit unnoticed again.
 
 ---
 

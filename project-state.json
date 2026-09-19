@@ -91,9 +91,10 @@
       "id": 100,
       "task": "index.html — remove the dead poly-decomp CDN <script> tag (or repoint to jsDelivr/unpkg with a regenerated SRI hash if concave decomposition is ever needed)",
       "priority": "medium",
-      "status": "pending",
+      "status": "completed",
       "done_when": "Page loads with zero console errors; no game code references decomp (verified 2026-07-10: no decomp/setDecomp/Common.setDecomp match anywhere in js/), and CLAUDE.md's External deps section is updated to drop poly-decomp",
-      "context": "Found during the 2026-07-10 automated playtest: cdnjs returns 404 for poly-decomp/0.3.0/decomp.min.js, producing two console errors on every page load (404 + SRI/MIME refusal). The library is entirely unused — fragments are circular Matter.js bodies; blobVerts is render-only — so Matter.js never calls window.decomp. This also resolves the CORS/0-byte load flagged in task 45's context. Removal preferred over repointing; the CLAUDE.md SRI-preservation rule applies to tags that stay, not to deleting a dead tag."
+      "context": "Found during the 2026-07-10 automated playtest: cdnjs returns 404 for poly-decomp/0.3.0/decomp.min.js, producing two console errors on every page load (404 + SRI/MIME refusal). The library is entirely unused — fragments are circular Matter.js bodies; blobVerts is render-only — so Matter.js never calls window.decomp. This also resolves the CORS/0-byte load flagged in task 45's context. Removal preferred over repointing; the CLAUDE.md SRI-preservation rule applies to tags that stay, not to deleting a dead tag.",
+      "completed_date": "2026-09-19T14:21:15"
     },
     {
       "id": 115,
