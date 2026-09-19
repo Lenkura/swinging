@@ -243,6 +243,12 @@
       "task": "Revisit MAX_OBSERVED_ZONED_CONTACT_SPEED: a zoned heavy contact arrived at 155 on 2026-09-19, far above the 104.6 recorded",
       "status": "pending",
       "context": "A single maximum is a fragile ceiling - one outlier moves it. Consider a high percentile instead. Current value errs strict, so nothing is broken meanwhile."
+    },
+    {
+      "id": 176,
+      "task": "Fixed-dt bot runs are not independent of earlier runs on the same page - find what carries over between runs",
+      "status": "pending",
+      "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed."
     }
   ],
   "recently_updated_files": [
