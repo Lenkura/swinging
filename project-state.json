@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Everything is merged and the tree is clean (merge f99f0c8). Blade cutSpeed is now per level at 175 / 105 / 90, inverting a curve that had the level teaching the hazard cutting 45% of human runs while the finale cut none, and cut events now record the tail speed and the threshold they beat - the first time that distribution has existed. 113/113 vitest, 95/95 gate. The nine-level reorganisation (task 128) closed on the previous merge, and history/session-008-summary.md covers this whole stretch. NOTHING IS IN FLIGHT. 22 live items. NEXT, in the order that unblocks most: 166 - confirm the new blade thresholds on HUMAN play, which must not use bot runs, since at cutSpeed 120 the bot gave 0/8, 1/8, 0/8 against a human 45% on L7. Then 163 (shield tiers sit easier than the 99/74/44 intent, actual 100/92/75), 150 (separate the medium and heavy tiers, heavy still has thin data), 135 (per-level parHits, now that all three acts are measured), 152 (getFragmentVerts is dead but may be useful geometry for 151), and 151 (destructible targets as an alternate-win level type - designed and deferred, the only genuine multi-session feature left). Older housekeeping: 45, 99, 100.",
+  "current_activity": "Three fix branches await the consolidated human playtest, none merged: swinging/fix/heavy-shield-tier (163), swinging/fix/remove-poly-decomp-tag (100, complete), swinging/fix/damage-intensity-range (136). All three edit project-state.json, so later merges will need that file resolved by hand. Next candidate fixes: housekeeping - 115 superseded by 128, 99 docs.",
   "action_plan": [
     {
       "id": 45,
@@ -124,9 +124,9 @@
       "id": 136,
       "task": "main.js - investigate the dormant damageIntensity range",
       "priority": "low",
-      "status": "pending",
+      "status": "in_progress",
       "done_when": "Either the saturation constant is retuned so burst scaling and hit-stop use their intended range, or a note records why the current range is correct.",
-      "context": "Found while checking the damage coupling for task 126: damageIntensity saturates at 240 but observed per-hit damage peaks around 18, so it runs at about 0.08 of its range and the burst-size scaling and hit-stop variation documented in CLAUDE.md are effectively inert. Logged rather than fixed inside the rebalance so it does not contaminate that measurement. CORRECTION 2026-09-13: the 0.08 figure is the value at the human MEDIAN hit, not the peak. The gate reports peak per-hit damage around 100 on the pre-change scale, so damageIntensity actually reached about 0.42 of its range on big hits. The finding survives but is narrower than first logged: the effect is inert on ordinary hits and only partially engaged on the hardest ones. The rebalance held this ratio constant by design (240 -> 600 alongside the 2.5x damage rise), so nothing about it changed - it remains a pre-existing question, not a regression. PARTLY ADDRESSED 2026-09-13: feedback now reads rawDamage rather than the capped value, so damageIntensity keeps its full observed range (raw p50 41, max 426 against /600) instead of being flattened to 40/600 by the cap. The underlying question - whether /600 and the 300 gate are the right values - is still open, but they are at least pointed at the right series."
+      "context": "Code change done on swinging/fix/damage-intensity-range (option A, user-approved), awaiting the consolidated playtest. Measured over 880 human hits: raw damage p50 46 / p90 182 / max 1015, so linear raw/600 left the median at 0.08 intensity and shake fired on 3.9% of hits, while 54.5% of hits took the full capped 40 HP. Now sqrt(raw/600) (p50 0.28, p90 0.55) and SHAKE_GATE 180 at the p90 (10.2% of hits), shake /120 so it opens at 1.5px as before. PLAYTEST: judge whether ordinary hits now feel punchier without shake becoming constant."
     },
     {
       "id": 137,
