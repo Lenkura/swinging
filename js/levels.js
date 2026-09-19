@@ -13,6 +13,7 @@ export const LEVELS = [
     // Short rope, low hand, one close target. The smallest possible version of
     // the whole game, so the first thing a player does is succeed at it.
     id: 1,
+    kind: 'teaching', teaches: 'swing',
     act: 1,
     name: 'Pipe Dreams',
     background: ['#3d2b1f', '#1e1208'],
@@ -32,6 +33,7 @@ export const LEVELS = [
     // swing is slow and wide and has to be committed to early. Targets sit low
     // and apart, which the short-rope reflexes from L1 cannot reach.
     id: 2,
+    kind: 'teaching', teaches: 'swing',
     act: 1,
     name: 'Long Drop',
     background: ['#1e2e1e', '#0e1a0e'],
@@ -53,6 +55,7 @@ export const LEVELS = [
     // has to be reversed rather than merely repeated. Nothing new is introduced
     // to do it - only the pivot moved.
     id: 3,
+    kind: 'mixed',
     act: 1,
     name: 'Both Ways',
     background: ['#2e2214', '#1a1408'],
@@ -80,6 +83,7 @@ export const LEVELS = [
     // L4 teaches the constraint gently: a wide floor but a low ceiling, so the
     // hand cannot be lifted and speed has to come from sweeping sideways.
     id: 4,
+    kind: 'teaching', teaches: 'zone',
     act: 2,
     name: 'Low Ceiling',
     background: ['#4a3020', '#2a1a10'],
@@ -102,6 +106,7 @@ export const LEVELS = [
     // A narrow column means sideways sweeping is gone, so the only way to build
     // speed is to pump up and down - the opposite motor skill to the one above.
     id: 5,
+    kind: 'teaching', teaches: 'shield-strong',
     act: 2,
     name: 'Narrow Column',
     background: ['#3a2a1a', '#201610'],
@@ -127,6 +132,7 @@ export const LEVELS = [
     // L5's motions is enough on its own - the constraint is now distance, so the
     // rope has to do the work the hand no longer can.
     id: 6,
+    kind: 'mixed',
     act: 2,
     name: 'Long Reach',
     background: ['#2a2018', '#181408'],
@@ -162,6 +168,7 @@ export const LEVELS = [
     // otherwise be free. L7 introduces that with a single blade and plenty of
     // room beneath it.
     id: 7,
+    kind: 'teaching', teaches: 'blade',
     act: 3,
     name: 'First Cut',
     background: ['#c8d4dc', '#90a4b0'],
@@ -190,6 +197,7 @@ export const LEVELS = [
     // pushes you toward one of them. This is the act's thesis - the danger is
     // not the obstacle, it is losing control near it.
     id: 8,
+    kind: 'mixed',
     act: 3,
     name: 'Crossfire',
     background: ['#b8ccd8', '#849ab4'],
@@ -218,6 +226,7 @@ export const LEVELS = [
     // and blades on both flanks so neither the high route nor the far side is
     // free. Deliberately no handZone - the finale tests control, not confinement.
     id: 9,
+    kind: 'mixed',
     act: 3,
     name: 'Full Experiment',
     background: ['#d0dce8', '#a0b4c8'],
@@ -245,6 +254,38 @@ export const LEVELS = [
 ];
 
 const SAVE_KEY = 'yoyo_progress';
+
+/**
+ * The mechanics a level uses, read from its data - the single definition the
+ * level design rules in CLAUDE.md are checked against. Deriving them rather
+ * than declaring them is the point: a level cannot claim to teach one thing
+ * while quietly containing another, which is exactly what the old Act 2 opener
+ * did (it introduced the movement zone and shields in the same level).
+ *
+ * Not mechanics: materials (their damage spread is deliberately narrow, so a
+ * glass level and a wood level play the same), pivot position, and the number
+ * of targets - multiple targets are what mixed levels build up to, and rule 2
+ * governs them separately.
+ *
+ * Shields are two mechanics, not three: 'shield' (any shield) and
+ * 'shield-strong' (medium or heavy). A stronger shield is taught once, with a
+ * medium; heavy only ever appears in mixed levels with another way to the rat's
+ * death, so it needs no teaching level of its own.
+ */
+export const MECHANICS = ['moving', 'zone', 'shield', 'shield-strong', 'bumper', 'blade'];
+
+export function levelMechanics(level) {
+  const m = new Set();
+  const targets = level.targets || [];
+  if (targets.some(t => t.movement)) m.add('moving');
+  if (level.handZone) m.add('zone');
+  const shields = targets.filter(t => t.isShield);
+  if (shields.length) m.add('shield');
+  if (shields.some(t => t.shieldTier === 'medium' || t.shieldTier === 'heavy')) m.add('shield-strong');
+  if ((level.bumpers || []).length) m.add('bumper');
+  if ((level.blades || []).length) m.add('blade');
+  return m;
+}
 
 export function loadProgress() {
   try {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { getLevel, saveProgress, loadProgress, LEVELS } from '../js/levels.js'
+import { getLevel, saveProgress, loadProgress, LEVELS, MECHANICS, levelMechanics } from '../js/levels.js'
 import { SHIELD_TIERS, MAX_OBSERVED_CONTACT_SPEED, MAX_OBSERVED_ZONED_CONTACT_SPEED } from '../js/target.js'
 import { RAT_VARIANTS } from '../js/rat.js'
 
@@ -339,5 +339,103 @@ describe('level movement zones', () => {
     for (const l of zoned) {
       expect(l.handZone.w < 0.95 || l.handZone.h < 0.95, `L${l.id} zone constrains nothing`).toBe(true)
     }
+  })
+})
+
+// -------------------------------------------------------------------
+// Level design rules (CLAUDE.md, "Level design rules"). The titles below
+// are quoted verbatim by those rules - rename one and the doc goes stale.
+// Everything is derived from the level data via levelMechanics, never from
+// a hand-kept list, so a new level is checked without anyone adding it here.
+// -------------------------------------------------------------------
+describe('level design rules', () => {
+  const ordered = [...LEVELS].sort((a, b) => a.id - b.id)
+  const hittable = l => (l.targets || []).filter(t => !t.isShield)
+  const teaching = ordered.filter(l => l.kind === 'teaching')
+  const mixed = ordered.filter(l => l.kind === 'mixed')
+
+  // Vacuity guards first (L0469): an empty filter passes every loop below.
+  it('there are teaching and mixed levels to check', () => {
+    expect(teaching.length).toBeGreaterThan(0)
+    expect(mixed.length).toBeGreaterThan(0)
+  })
+
+  it('every level declares a kind, and every teaching level a known teaches', () => {
+    for (const l of ordered) {
+      expect(['teaching', 'mixed'], `L${l.id} kind`).toContain(l.kind)
+      if (l.kind === 'teaching') expect(['swing', ...MECHANICS], `L${l.id} teaches`).toContain(l.teaches)
+      else expect(l.teaches, `L${l.id} is mixed and should not claim to teach`).toBeUndefined()
+    }
+  })
+
+  it('a teaching level introduces exactly its teaches mechanic', () => {  // rule 1
+    const taught = new Set()
+    for (const l of ordered) {
+      if (l.kind !== 'teaching') continue
+      const fresh = [...levelMechanics(l)].filter(m => !taught.has(m)).sort()
+      const expected = l.teaches === 'swing' ? [] : [l.teaches]
+      expect(fresh, `L${l.id} "${l.name}" teaches ${l.teaches}`).toEqual(expected)
+      if (l.teaches !== 'swing') taught.add(l.teaches)
+    }
+  })
+
+  it('a teaching level has exactly one target', () => {  // rule 2
+    for (const l of teaching) {
+      expect(hittable(l).length, `L${l.id} "${l.name}" targets`).toBe(1)
+    }
+  })
+
+  it('a mixed level uses only mechanics already taught', () => {  // rule 3
+    const taught = new Set()
+    for (const l of ordered) {
+      if (l.kind === 'teaching') { if (l.teaches !== 'swing') taught.add(l.teaches); continue }
+      const untaught = [...levelMechanics(l)].filter(m => !taught.has(m)).sort()
+      expect(untaught, `L${l.id} "${l.name}" uses untaught mechanics`).toEqual([])
+    }
+  })
+
+  it('each act opens with a teaching level and closes with a mixed one', () => {  // rule 4
+    const acts = [...new Set(ordered.map(l => l.act))]
+    for (const act of acts) {
+      const inAct = ordered.filter(l => l.act === act)
+      // An all-mixed act (the planned fourth section) teaches nothing, so it
+      // has nothing to open with; the rule governs acts that teach.
+      if (!inAct.some(l => l.kind === 'teaching')) continue
+      expect(inAct[0].kind, `act ${act} opens with L${inAct[0].id}`).toBe('teaching')
+      expect(inAct[inAct.length - 1].kind, `act ${act} closes with L${inAct[inAct.length - 1].id}`).toBe('mixed')
+    }
+  })
+
+  it('no heavy shield in a single-target level', () => {  // rule 6
+    // With one target every shield is a gate: the level cannot be won without
+    // breaking it, so an unbreakable one soft-locks the level.
+    for (const l of ordered) {
+      if (hittable(l).length !== 1) continue
+      const heavy = (l.targets || []).filter(t => t.isShield && t.shieldTier === 'heavy')
+      expect(heavy.length, `L${l.id} "${l.name}" gates its only target behind heavy`).toBe(0)
+    }
+  })
+})
+
+describe('levelMechanics', () => {
+  it('reads each mechanic from the data it names', () => {
+    expect([...levelMechanics({ targets: [{ material: 'glass' }] })]).toEqual([])
+    expect(levelMechanics({ targets: [{ movement: { axis: 'x' } }] }).has('moving')).toBe(true)
+    expect(levelMechanics({ targets: [], handZone: { x: 0, y: 0, w: 1, h: 1 } }).has('zone')).toBe(true)
+    expect(levelMechanics({ targets: [], bumpers: [{}] }).has('bumper')).toBe(true)
+    expect(levelMechanics({ targets: [], blades: [{}] }).has('blade')).toBe(true)
+  })
+
+  it('splits shields into shield and shield-strong by tier', () => {
+    const light = levelMechanics({ targets: [{ isShield: true, shieldTier: 'light' }] })
+    expect([...light]).toEqual(['shield'])
+    for (const tier of ['medium', 'heavy']) {
+      const m = levelMechanics({ targets: [{ isShield: true, shieldTier: tier }] })
+      expect([...m].sort(), tier).toEqual(['shield', 'shield-strong'])
+    }
+  })
+
+  it('does not count empty arrays or materials as mechanics', () => {
+    expect([...levelMechanics({ targets: [{ material: 'steel' }, { material: 'glass' }], bumpers: [], blades: [] })]).toEqual([])
   })
 })

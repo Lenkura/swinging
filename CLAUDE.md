@@ -272,10 +272,14 @@ Each rule is tagged with what enforces it. **[test]** rules are checked by the n
 new level is checked without anyone remembering to add it. **[playtest]** rules can only be
 judged from human runs, and each names the number that judges it.
 
-The mechanics a level uses are read from its data: `movement` on any target → *moving*;
-`handZone` → *zone*; a shield → *shield*, plus *shield-medium* or *shield-heavy* by tier;
-`bumpers` → *bumper*; `blades` → *blade*; more than one target → *multi-target*. Materials
-and pivot position are not mechanics.
+The mechanics a level uses are read from its data by `levelMechanics` in `levels.js`:
+`movement` on any target → *moving*; `handZone` → *zone*; any shield → *shield*, plus
+*shield-strong* if one is medium or heavy; `bumpers` → *bumper*; `blades` → *blade*.
+**Not mechanics:** materials, pivot position, and the number of targets — multiple targets
+are what mixed levels build up to, governed by rule 2. Shield tiers are deliberately two
+mechanics rather than three: a stronger shield is taught once, with a medium, and heavy
+only ever appears in mixed levels, so a separate *heavy* mechanic would have no teaching
+level and every mixed level using it would fail rule 3.
 
 **Structure**
 
@@ -289,9 +293,10 @@ and pivot position are not mechanics.
    target"]*
 3. **A mechanic is taught before it is mixed.** A mixed level uses only mechanics some
    earlier level has taught. *[test: "a mixed level uses only mechanics already taught"]*
-4. **Acts keep their order and their shape** — freedom → constraint → danger, each act opening
-   with teaching levels and closing with a mixed one. *[test: "each act opens with a teaching
-   level and closes with a mixed one"]*
+4. **Acts keep their order and their shape** — freedom → constraint → danger, each act that
+   teaches opening with a teaching level and closing with a mixed one. An all-mixed act (the
+   planned fourth section) teaches nothing and is exempt. *[test: "each act opens with a
+   teaching level and closes with a mixed one"]*
 
 **Fairness**
 
@@ -369,7 +374,9 @@ are different levels with the same id.
 
 **New level**: add an entry to `LEVELS` in `levels.js`.
 
-Required fields: `id`, `act`, `name`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`.
+Required fields: `id`, `act`, `name`, `kind`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`.
+
+**`kind`** — `'teaching'` or `'mixed'`, and a teaching level also sets **`teaches`**: one of `'swing'` (no new mechanic — the level varies pivot and placement only) or a mechanic from `MECHANICS` in `levels.js`. The suite checks the level against the **Level design rules** using its *derived* mechanics, so a teaching level that contains anything beyond what it declares fails — declare what the level is for, and the data has to agree. Read the rules before placing a level.
 
 Optional fields: `hint`, `pushStringLength` (overrides `stringLength`), `pushParScore` (default 1500), `bumpers[]`, `handZone`.
 
