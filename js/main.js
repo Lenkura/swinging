@@ -70,13 +70,19 @@ fitToViewport();
 const GRAB_RADIUS = 44;   // the tail tip is a 5px body; this is a touch target
 const RAT_MAX_HP = 100;
 // px²·step⁻² per HP — raise to nerf damage, lower to buff.
-// TUNING GROUP: three feedback thresholds below are expressed in raw damage units and so
-// are derived from this value — damageIntensity's /600, and the shake/hit-stop gate at 300
-// with its /200 divisor. Lowering DAMAGE_SCALE raises damage, so those three scale in the
-// SAME direction by the SAME factor, in the same commit. At 200 they were 240, 120 and 80.
+// TUNING GROUP: three feedback constants below are expressed in raw damage units and so
+// are derived from this value — damageIntensity's 600, SHAKE_GATE (180) and the /120 shake
+// divisor. Lowering DAMAGE_SCALE raises damage, so those three scale in the SAME direction
+// by the SAME factor, in the same commit. At DAMAGE_SCALE 200 they were 240, 120 and 80.
 // Those three read rawDamage, NOT the capped value (see applyDamageCap in target.js), so
 // the per-hit cap does not silently mute them - it bounds play, not feel.
 const DAMAGE_SCALE = 80;
+// Screen shake and hit-stop fire above this raw damage. Set at the measured p90 of human
+// hits (182 over 880 hits, 2026-09-19), so roughly one hit in ten shakes: an event, not a
+// constant. It was 300, which fired on 3.9% of hits - while 54.5% of hits were taking the
+// full capped 40 HP, so the hits doing the most visible damage to the HP bar mostly got no
+// shake at all. See task 136.
+const SHAKE_GATE = 180;
 
 let gameState = 'PICKER';
 let currentLevelId = 1;
@@ -120,8 +126,12 @@ function computePivot(level) {
   };
 }
 
+// Square root, not linear. Raw damage is heavily right-skewed (880 human hits: p25 21,
+// p50 46, p90 182, max 1015), and a linear raw/600 left the median hit at 0.08 intensity
+// with 59% of hits below 0.10 - the burst scaling was effectively dead. The root spreads
+// the common range (p50 0.28, p90 0.55) while monster hits still saturate on top.
 function damageIntensity(damage) {
-  return Math.min(damage / 600, 1); // was /240 at DAMAGE_SCALE 200 — see the tuning group
+  return Math.min(Math.sqrt(Math.max(damage, 0) / 600), 1); // 600 is in the tuning group
 }
 
 // Three-part impact burst: red blood splash (rat), material-colored chunk
@@ -255,8 +265,10 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, speed, hitPoint, material, angleF
     flashTimer = FLASH_DURATION;
     squashTimer = SQUASH_DURATION;
 
-    if (rawDamage > 300) {
-      shakeIntensity = Math.min(rawDamage / 200, 10);
+    if (rawDamage > SHAKE_GATE) {
+      // /120 keeps the shake at the gate at 1.5px, as /200 did at the old gate of
+      // 300. Left at /200 the new gate would open on a 0.9px shake nobody can see.
+      shakeIntensity = Math.min(rawDamage / 120, 10);
       shakeTimer = SHAKE_DURATION;
       hitStopTimer = 0.04 + 0.04 * intensity; // 40-80ms, same threshold as shake
     }
