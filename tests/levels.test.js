@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getLevel, saveProgress, loadProgress, LEVELS } from '../js/levels.js'
-import { SHIELD_TIERS, MAX_OBSERVED_CONTACT_SPEED } from '../js/target.js'
+import { SHIELD_TIERS, MAX_OBSERVED_CONTACT_SPEED, MAX_OBSERVED_ZONED_CONTACT_SPEED } from '../js/target.js'
 import { RAT_VARIANTS } from '../js/rat.js'
 
 const SAVE_KEY = 'yoyo_progress'
@@ -227,11 +227,18 @@ describe('level shield authoring', () => {
   })
 
   it('no level scales its hardest shield beyond anything ever recorded', () => {
-    const hardest = Math.max(...Object.values(SHIELD_TIERS).map(t => t.breakSpeed))
+    // A zoned level is measured against the ZONED ceiling. Against the global
+    // 150.8 this check is close to vacuous where it matters most: a zoned level
+    // at scale 0.75 would pass with a heavy tier of 200, which is worse than
+    // the unreachable-180 bug the assertion exists to prevent.
     for (const l of LEVELS) {
-      if (!(l.targets || []).some(t => t.isShield)) continue
+      const shields = (l.targets || []).filter(t => t.isShield)
+      if (!shields.length) continue
+      const ceiling = l.handZone ? MAX_OBSERVED_ZONED_CONTACT_SPEED : MAX_OBSERVED_CONTACT_SPEED
+      const hardest = Math.max(...shields.map(t => SHIELD_TIERS[t.shieldTier].breakSpeed))
       const scaled = hardest * (l.shieldSpeedScale ?? 1)
-      expect(scaled, `L${l.id} hardest shield`).toBeLessThan(MAX_OBSERVED_CONTACT_SPEED)
+      expect(scaled, `L${l.id} hardest shield vs ${l.handZone ? 'zoned' : 'unzoned'} ceiling`)
+        .toBeLessThan(ceiling)
     }
   })
 

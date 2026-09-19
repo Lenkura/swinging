@@ -142,7 +142,7 @@
       "priority": "medium",
       "status": "pending",
       "done_when": "Medium and heavy show a clear gap in per-run break rate across at least ~20 runs per tier, either by widening the threshold gap or by placing heavy shields where the approach is slower.",
-      "context": "Measured 2026-09-14: medium 61% and heavy 57% per-run are within noise of each other at n=23 and n=7. The cause is placement, not the table - players arrive at heavy shields at p50 72.0 against medium's 53.1, cancelling most of the threshold gap. Heavy contacts reached 120.6, so a threshold near 110 would stay reachable. Not urgent: the defect this was raised for (a tier that never opened) is fixed."
+      "context": "Likely resolved by 163 and pending the same playtest: medium and heavy were 77% and 75% of runs, i.e. not separated at all, and 163 moved heavy alone to ~55%. Confirm on human runs before closing."
     },
     {
       "id": 151,
@@ -190,10 +190,10 @@
     {
       "id": 163,
       "priority": "low",
-      "status": "pending",
+      "status": "in_progress",
       "task": "Tighten the shield tier spread - they now sit easier than the design intent",
       "done_when": "Per-run break rates sit nearer the intended ~99/74/44 spread without any tier approaching 0%.",
-      "context": "Measured 2026-09-16: actual is 100/92/75, so heavy is about as easy as medium was meant to be. The window is narrow - heavy's arrival max is 91.7 against its 71.25 threshold - so this probably needs level geometry that permits more speed rather than a higher scale alone."
+      "context": "Code change done on swinging/fix/heavy-shield-tier, awaiting the consolidated human playtest. Re-measured on 132 contacts / 32 runs of the re-laid levels: light 94% of runs vs 99% intent and medium 77% vs 74% were already on target, so this was NOT a spread retune. Only heavy was adrift at 75% vs 44%. Heavy 95 -> 105, putting its scaled threshold (78.75) on heavy own measured p90 of 78.6, against a max heavy arrival of 98.5. Deliberately undershoots the intent (~55% vs 44%) because the unreachable-tier failure is the costlier direction."
     },
     {
       "id": 165,
