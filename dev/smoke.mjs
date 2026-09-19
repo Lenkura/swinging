@@ -93,8 +93,8 @@ try {
   server.close();
 }
 
-// Reported, not fatal: the known poly-decomp 404 (task 100) lives here, and
-// the smoke test's job is to prove Playwright works, not to gate on that.
+// Reported, not fatal: the smoke test's job is to prove Playwright works, not
+// to gate on page health. Failed resource loads are gated in dev/gate.mjs.
 if (pageErrors.length) console.log(`[smoke] page errors (${pageErrors.length}):\n  ` + pageErrors.join('\n  '));
 if (consoleErrors.length) console.log(`[smoke] console errors (${consoleErrors.length}):\n  ` + consoleErrors.join('\n  '));
 if (failedRequests.length) console.log(`[smoke] failed requests (${failedRequests.length}):\n  ` + failedRequests.join('\n  '));

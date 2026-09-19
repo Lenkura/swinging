@@ -23,7 +23,7 @@ with zero build step keeps it instantly playable via any static file server.
 
 ## What This Project Is Not
 
-- Not a build-tooled project — ES6 modules + CDN-loaded Matter.js/poly-decomp, no
+- Not a build-tooled project — ES6 modules + CDN-loaded Matter.js, no
   bundler or framework
 - Not multiplayer or networked — single-player, localStorage-only progress
   (`yoyo_progress` key)
@@ -54,7 +54,7 @@ with zero build step keeps it instantly playable via any static file server.
   (localStorage)
 - **Platform / environment:** Any modern browser (Canvas 2D, Pointer Events, Web
   Audio, ES6 modules); must be served over HTTP — `file://` breaks ES modules
-- **Other constraints:** No build system; Matter.js 0.19.0 + poly-decomp 0.3.0 via
+- **Other constraints:** No build system; Matter.js 0.19.0 via
   CDN with SRI
 
 ---

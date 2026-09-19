@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Everything is merged and the tree is clean (merge f99f0c8). Blade cutSpeed is now per level at 175 / 105 / 90, inverting a curve that had the level teaching the hazard cutting 45% of human runs while the finale cut none, and cut events now record the tail speed and the threshold they beat - the first time that distribution has existed. 113/113 vitest, 95/95 gate. The nine-level reorganisation (task 128) closed on the previous merge, and history/session-008-summary.md covers this whole stretch. NOTHING IS IN FLIGHT. 22 live items. NEXT, in the order that unblocks most: 166 - confirm the new blade thresholds on HUMAN play, which must not use bot runs, since at cutSpeed 120 the bot gave 0/8, 1/8, 0/8 against a human 45% on L7. Then 163 (shield tiers sit easier than the 99/74/44 intent, actual 100/92/75), 150 (separate the medium and heavy tiers, heavy still has thin data), 135 (per-level parHits, now that all three acts are measured), 152 (getFragmentVerts is dead but may be useful geometry for 151), and 151 (destructible targets as an alternate-win level type - designed and deferred, the only genuine multi-session feature left). Older housekeeping: 45, 99, 100.",
+  "current_activity": "Task 100 done on swinging/fix/remove-poly-decomp-tag: the dead poly-decomp tag is removed (unused, 404 on every load), and the gate now fails on any resource that does not load - verified to fail on the real 404 first. Task 163 is separately on swinging/fix/heavy-shield-tier, unmerged. Both branches wait for the consolidated human playtest the user asked for; next candidate fixes are 136 (is damageIntensity still dormant) and housekeeping (115 superseded, 99 docs).",
   "action_plan": [
     {
       "id": 45,
@@ -91,9 +91,10 @@
       "id": 100,
       "task": "index.html — remove the dead poly-decomp CDN <script> tag (or repoint to jsDelivr/unpkg with a regenerated SRI hash if concave decomposition is ever needed)",
       "priority": "medium",
-      "status": "pending",
+      "status": "completed",
       "done_when": "Page loads with zero console errors; no game code references decomp (verified 2026-07-10: no decomp/setDecomp/Common.setDecomp match anywhere in js/), and CLAUDE.md's External deps section is updated to drop poly-decomp",
-      "context": "Found during the 2026-07-10 automated playtest: cdnjs returns 404 for poly-decomp/0.3.0/decomp.min.js, producing two console errors on every page load (404 + SRI/MIME refusal). The library is entirely unused — fragments are circular Matter.js bodies; blobVerts is render-only — so Matter.js never calls window.decomp. This also resolves the CORS/0-byte load flagged in task 45's context. Removal preferred over repointing; the CLAUDE.md SRI-preservation rule applies to tags that stay, not to deleting a dead tag."
+      "context": "Found during the 2026-07-10 automated playtest: cdnjs returns 404 for poly-decomp/0.3.0/decomp.min.js, producing two console errors on every page load (404 + SRI/MIME refusal). The library is entirely unused — fragments are circular Matter.js bodies; blobVerts is render-only — so Matter.js never calls window.decomp. This also resolves the CORS/0-byte load flagged in task 45's context. Removal preferred over repointing; the CLAUDE.md SRI-preservation rule applies to tags that stay, not to deleting a dead tag.",
+      "completed_date": "2026-09-19T14:21:15"
     },
     {
       "id": 115,
