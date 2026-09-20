@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Phase 1 build is complete on swinging/feat/teaching-level-restructure (167-171). Next is the Phase 1 human playtest (172). 136 still waits on the user feel verdict.",
+  "current_activity": "Phase 1 playtest closed (172) and 136 closed on the user verdict. Six tasks from the 2026-09-20 feedback: 177 L11 blade diagonal, 178 L12 rework, 179 angle-rewarding shapes (needs /brainstorm), 180 rat tunnels through shields (a real bug), 181 blood spurt on a tail cut, 182 whether acts still need distinct signatures. Still on swinging/feat/teaching-level-restructure, unmerged.",
   "action_plan": [
     {
       "id": 45,
@@ -119,9 +119,10 @@
       "id": 136,
       "task": "main.js - investigate the dormant damageIntensity range",
       "priority": "low",
-      "status": "in_progress",
+      "status": "completed",
       "done_when": "Either the saturation constant is retuned so burst scaling and hit-stop use their intended range, or a note records why the current range is correct.",
-      "context": "Code change done on swinging/fix/damage-intensity-range (option A, user-approved), awaiting the consolidated playtest. Measured over 880 human hits: raw damage p50 46 / p90 182 / max 1015, so linear raw/600 left the median at 0.08 intensity and shake fired on 3.9% of hits, while 54.5% of hits took the full capped 40 HP. Now sqrt(raw/600) (p50 0.28, p90 0.55) and SHAKE_GATE 180 at the p90 (10.2% of hits), shake /120 so it opens at 1.5px as before. PLAYTEST: judge whether ordinary hits now feel punchier without shake becoming constant."
+      "context": "Code change done on swinging/fix/damage-intensity-range (option A, user-approved), awaiting the consolidated playtest. Measured over 880 human hits: raw damage p50 46 / p90 182 / max 1015, so linear raw/600 left the median at 0.08 intensity and shake fired on 3.9% of hits, while 54.5% of hits took the full capped 40 HP. Now sqrt(raw/600) (p50 0.28, p90 0.55) and SHAKE_GATE 180 at the p90 (10.2% of hits), shake /120 so it opens at 1.5px as before. PLAYTEST: judge whether ordinary hits now feel punchier without shake becoming constant. CLOSED 2026-09-20: user verdict on the new curve - \"Hits feel good.\"",
+      "completed_date": "2026-09-20T13:09:44"
     },
     {
       "id": 137,
@@ -229,8 +230,9 @@
     {
       "id": 172,
       "task": "Phase 1 playtest of the 12-level campaign: teaching levels clear >= 90% of runs (blade level fail <= ~20%), gate shields break >= 80% of runs, the three act signatures still separate",
-      "status": "pending",
-      "context": "Criteria fixed before measuring. This playtest also sets per-level par (135) and the new blade thresholds (replacing 166). WATCH L8 Crate first: in 2 of 4 bot runs the medium cage OPENED (1 and 3 of 4 panels broken) but the bot then landed 0 damaging hits in 16-31 contacts, bouncing off the remaining panel. Looks like bot aiming, not the level (L7, same cage in light, cleared 4/4) - but it is the one new level the bot could not reliably finish. Also check the gate cages read as cages. ALSO WATCH L10 Deflector: it is meant to teach yank, but its bumper did not force one in 4/4 bot seeds. If players never snag there, the bumper needs placing to snag deliberately."
+      "status": "completed",
+      "context": "Criteria fixed before measuring. This playtest also sets per-level par (135) and the new blade thresholds (replacing 166). WATCH L8 Crate first: in 2 of 4 bot runs the medium cage OPENED (1 and 3 of 4 panels broken) but the bot then landed 0 damaging hits in 16-31 contacts, bouncing off the remaining panel. Looks like bot aiming, not the level (L7, same cage in light, cleared 4/4) - but it is the one new level the bot could not reliably finish. Also check the gate cages read as cages. ALSO WATCH L10 Deflector: it is meant to teach yank, but its bumper did not force one in 4/4 bot seeds. If players never snag there, the bumper needs placing to snag deliberately. CLOSED 2026-09-20 on 68 human runs of layout 2. Gate shields break in 100% of runs (L7 4/4, L8 7/7) - criterion was 80%. Teaching levels clear 100% except L11 First Cut at 71% (2 of 7 cut), which fails the <= 20% blade criterion -> task 177. Acts no longer separate on glancing (28.1/27.2/28.3 against 18.7/12.5/11.7 in layout 1); Act 3 still the only act that can kill (11% cut) and Act 2 still the slowest (3.5s vs 2.9s) -> task 182. Yank unused in 67 of 68 runs.",
+      "completed_date": "2026-09-20T13:09:44"
     },
     {
       "id": 173,
@@ -249,6 +251,42 @@
       "task": "Fixed-dt bot runs are not independent of earlier runs on the same page - find what carries over between runs",
       "status": "pending",
       "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed."
+    },
+    {
+      "id": 177,
+      "task": "L11 First Cut - move the blade to the diagonal the user drew, and ease cutSpeed",
+      "status": "pending",
+      "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 11 feedback.png): the blade moves from horizontal overhead to a diagonal running up-to-the-right between the hand and the target, roughly (577,325)-(755,168) in canvas px, so ~x 0.605 y 0.397, length ~237, angle ~-41 deg. It also cut 2 of 7 runs at 230 (tail speeds 233 and 272) against the <= 20% rule-7 criterion, so ease the threshold as well - but the diagonal changes which speeds ever reach it, so re-measure rather than trusting a number picked now."
+    },
+    {
+      "id": 178,
+      "task": "L12 Full Experiment - second blade along the bottom, two more shields, two targets removed",
+      "status": "pending",
+      "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 12 feedback.png): add a blade along the bottom (~x 0.527, y 0.771, w ~410), add two more light shields above and below the existing one to make a column, and delete the wood rectangle and the glass circle, leaving the moving steel target. Check the rules still pass: a single-target level may not put a heavy shield in the way (rule 6) - these are light, so it should hold."
+    },
+    {
+      "id": 179,
+      "task": "Angle-rewarding target shapes - eight shapes, one per cardinal and diagonal",
+      "status": "pending",
+      "context": "User idea 2026-09-20: a target shape that grants more damage when struck from a particular direction (e.g. from below), so a level can be built around approaching from that side. Needs a design pass - it touches the damage formula, which has exactly one direction term today (angleFactor, the dot product of approach and surface normal) and no notion of a preferred side. Run /brainstorm."
+    },
+    {
+      "id": 180,
+      "task": "The rat tunnels through shield panels - it has no continuous collision and panels are 12-14px thick",
+      "status": "pending",
+      "context": "Measured 2026-09-20, answering the user question \"sometimes I hit the target before breaking any shield\": four hits landed on caged targets while the cage still stood, at 48, 52, 60 and 61 px/step through a 14px panel. Only the ROPE is swept (physics.js sweepRopeSegments / resolveRopeLinks); the rat deliberately has none, which is why the arena walls are 800px thick. A shield is the thinnest solid body in the game, so it is the one that leaks. Thickening panels cannot fix it (rat peaks 250-460 px/step); the fix is to sweep the rat against shield bodies, reusing the rope machinery."
+    },
+    {
+      "id": 181,
+      "task": "Make a tail cut visually dramatic - blood spurting from the cut",
+      "status": "pending",
+      "context": "User request 2026-09-20, extending the 2.6s tumble already added for the loss: the cut itself should read. Blood particles exist (emitImpactBurst, the red splash) and the rope-cut handler already knows the cut point and speed."
+    },
+    {
+      "id": 182,
+      "task": "Decide whether acts still need distinct signatures now that teaching levels flatten them",
+      "status": "pending",
+      "context": "Measured 2026-09-20: glancing is 28.1/27.2/28.3 across the three acts, against 18.7/12.5/11.7 in the nine-level layout. Teaching levels are simple by design, so \"one mechanic per level\" and \"each act has its own signature\" pull against each other. Either accept that the act signature is now carried by the mixed levels alone and measure it there, or restate the criterion. Act 3 is still the only act that can kill (11% cut) and Act 2 is still the slowest (3.5s vs 2.9s)."
     }
   ],
   "recently_updated_files": [
@@ -630,6 +668,11 @@
       "date": "2026-09-19",
       "decision": "Restructure the campaign into teaching and mixed levels under written level-design rules. Each act opens with one-mechanic teaching levels and closes with a mixed level (12 levels), followed later by ~9 miscellaneous mixed levels. Phased: rules and tests, Acts 1-3, playtest, then the mixed set.",
       "rationale": "User playtest feedback: early levels should be single-object teaching levels, the zone and shields should be taught separately, and multiple targets should be earned. Per-act teaching keeps the measured act identities (task 128) and keeps the fail state out of the first minutes; phasing builds the mixed levels on rules that have met real play (L0029) instead of committing 21 levels to one untested rule set. Two conflicts resolved with the user: a shield caging the only target turns shields into a hard gate, so gate shields must be measured-breakable (light always, medium where measured, heavy never alone - the L9 medium shield broke in 0/4 runs this playtest); and materials stay cosmetic, so the material levels teach the swing via pivot and placement rather than reopening the 2026-09-13 material balance. Cage shields are separate ordinary panels - no new code."
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "Phase 1 of the teaching restructure passes its playtest: 12 levels, 68 human runs, gate shields breaking in 100% of runs and every teaching level clearing 100% except the blade level.",
+      "rationale": "Criteria were fixed before measuring. Two misses are tracked rather than patched quietly: First Cut cuts 2 of 7 runs against a <= 20% target (177), and the acts no longer separate on glancing now that teaching levels are deliberately simple (182). The playtest also answered a user question with a measurement: the rat tunnels through 14px shield panels at 48-61 px/step because only the rope is swept (180)."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
