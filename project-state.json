@@ -5,17 +5,8 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "185 done - L5 Soft Spot teaches the weak point; the campaign is 13 levels at LAYOUT_VERSION 3. Remaining: 186 (measure the weak point on human play), 182 (act signatures), 183 (watch L9/L10 stuck rat), 173 (Phase 2 mixed levels). The branch swinging/feat/teaching-level-restructure is large and unmerged - worth /finish-branch before Phase 2.",
+  "current_activity": "The 13-level teaching/mixed campaign is merged (LAYOUT_VERSION 3). Next is a human playtest of all 13 levels, which closes 186 (do players find the weak face - the bot manages 34%), settles L12 First Cut's cutSpeed 280 and L13's floor blade at 200, and watches 183 (a rat stuck in Narrow Column). Then 182 (whether acts still need distinct signatures) and 173 (Phase 2: ~9 mixed levels, which can now use wedges).",
   "action_plan": [
-    {
-      "id": 45,
-      "task": "Smoke-test a full 9-level playthrough post-migration via a local static server",
-      "priority": "medium",
-      "status": "completed",
-      "done_when": "All 9 levels across 3 acts (Sewer/Warehouse/Lab) can be completed in sequence with no console errors, the CDN-loaded Matter.js/poly-decomp scripts load successfully, and `yoyo_progress` in localStorage reflects updated high scores and unlockedLevel",
-      "context": "Paused mid-playthrough — that session surfaced the tuning/feature feedback in tasks 63-74 (speed/damage recalibration, shape variety, moving targets, giblet blobs, trail tone-down). Resume the full playthrough once those land. NOTE: a DevTools screenshot from a prior debug session (blobcheck.png, since deleted) showed decomp.min.js failing to load with a CORS error (0 bytes transferred) while matter.min.js loaded fine — explicitly verify poly-decomp loads (SRI/crossorigin intact) during this playthrough. NOTE 2026-09-13: the poly-decomp CDN 404 flagged here was observed again during the tail-grab screenshot run - 'Refused to execute script ... MIME type (text/html)'. It is the dead tag task 100 removes, and it is harmless today because no concave decomposition is used. CLOSED 2026-09-19: all nine levels played and cleared in one human session (47 runs), no page errors.",
-      "completed_date": "2026-09-19T21:05:29"
-    },
     {
       "id": 78,
       "task": "target.js — evaluate lowering steel restitution (0.55): Matter.js resolves collision restitution as max(rat, target), so steel targets still bounce the rat despite its near-zero restitution",
@@ -81,33 +72,6 @@
       "context": "Act theming pass (audio)."
     },
     {
-      "id": 99,
-      "task": "CLAUDE.md — document the game-feel bundle in Key Concepts: hit-stop (sim-freeze timer, damage>120 threshold), impact flash + velocity-aligned squash-stretch in drawRat, ground-only blood decals (offscreen canvas, paintSplat/clearDecals), audio master GainNode->DynamicsCompressor bus + persisted mute (yoyo_muted), and the speed-tracking swing whoosh",
-      "priority": "medium",
-      "status": "completed",
-      "done_when": "Key Concepts describes all five committed game-feel effects with their tuning constants, matching the pattern of the tail-attachment (#54), impact-feedback (#62), and moving-target (#74) doc passes",
-      "context": "Documentation gap found 2026-07-06: tasks 93-97 shipped in commit d771795 but no CLAUDE.md doc subtask was ever queued (the 2026-07-03 docs commit only touched project-state.json). Sequenced after task 98 so any playtest tuning (flash/squash durations, whoosh curve, splat sizes) is captured with final values rather than documenting constants that may still move. DONE 2026-09-19 as a Game feel entry in Key Concepts, written from the current code. Two specifics in this task had gone stale and were NOT copied: hit-stop now keys off SHAKE_GATE 180 (not damage>120) and scales 40-80ms with intensity.",
-      "completed_date": "2026-09-19T15:40:26"
-    },
-    {
-      "id": 100,
-      "task": "index.html — remove the dead poly-decomp CDN <script> tag (or repoint to jsDelivr/unpkg with a regenerated SRI hash if concave decomposition is ever needed)",
-      "priority": "medium",
-      "status": "completed",
-      "done_when": "Page loads with zero console errors; no game code references decomp (verified 2026-07-10: no decomp/setDecomp/Common.setDecomp match anywhere in js/), and CLAUDE.md's External deps section is updated to drop poly-decomp",
-      "context": "Found during the 2026-07-10 automated playtest: cdnjs returns 404 for poly-decomp/0.3.0/decomp.min.js, producing two console errors on every page load (404 + SRI/MIME refusal). The library is entirely unused — fragments are circular Matter.js bodies; blobVerts is render-only — so Matter.js never calls window.decomp. This also resolves the CORS/0-byte load flagged in task 45's context. Removal preferred over repointing; the CLAUDE.md SRI-preservation rule applies to tags that stay, not to deleting a dead tag.",
-      "completed_date": "2026-09-19T14:21:15"
-    },
-    {
-      "id": 128,
-      "task": "/brainstorm level design, movement zones and obstacle cohesion across all 9 levels so they present a connected, escalating challenge",
-      "priority": "high",
-      "status": "completed",
-      "done_when": "Each act has a stated design intent; the obstacle vocabulary is decided and each obstacle serves that intent; the levels are reorganised against it; and the acts are measurably distinct on metrics the damage cap does not floor. Whether the game gains a fail state is settled here, once.",
-      "context": "User side note 2026-09-12: the levels and obstacles need to present a cohesive challenge. Evidence already on hand: a shield-avoiding bot cleared 24/24 runs across L4-L9 (task 115 measurement), the Act 2 finale L6 fell in 4 hits to the bot where L1 took 9, and human L1 takes 10.5 hits on standard while human L6 heavy took 2 - so the curve is inverted for the player as well. The rope changes what obstacle geometry can do (a tail that catches is new level-design vocabulary) and breakable targets (task 113) would change it again, so this brainstorm should probably follow or absorb 113 and 115 rather than run before them. SCOPE EXPANDED 2026-09-14 by the user, who asked for three things to be folded in here rather than filed separately - they are level-design vocabulary, which is what this gate exists to decide. (1) MOVEMENT ZONES: a region the player's hand is allowed to occupy on some levels. The stated flaw is that the player can currently flail wildly to win, and constraining where you may swing should promote deliberate, accurate play. NOTE THE PRECEDENT: a hand constraint was tried before - the `hand` dev knob capping px per frame - and the 2026-09-11 decision records it as having capped the skill ceiling while not fixing the tunneling it was for. A positional zone is a different constraint (where, not how fast) and plausibly increases skill expression rather than capping it, but the design should engage with that history rather than rediscover it. Also connects to the task 149 finding that shield placement dominated shield tier: if where the player can be is the strongest lever, a zone controls it directly instead of regulating it downstream. (2) BLADE/RAZOR OBSTACLE: cuts the tail and fails the level. Feasible specifically because of the task 124 link-level CCD work, which took rope link crossings from 5-7.5% to under 1% - without accurate rope collision a blade would kill through phantom contacts the renderer never drew. Implementation likely leans on detachRope. (3) GENERAL REORGANISATION of the levels. CROSS-CUTTING DECISION THIS GATE SHOULD SETTLE ONCE: the game currently has no way to lose, only to score badly. The blade introduces failure, and so does task 151's alternate-win mode, so the question is arriving from two directions and should be decided deliberately rather than twice. DESIGN GATE CLOSED 2026-09-14 - see that day's decision entry. Implementation is tasks 153-157, with 158-160 gated behind the task 156 pilot measurement. 128 stays open until the levels are actually re-laid and the curve is measured to rise. CLOSED 2026-09-17. All nine levels re-laid across tasks 153-160: Act 1 open (no obstacles, variation from pivot and rope length, including the first central-pivot level in the campaign), Act 2 constrained (movement zones), Act 3 hazardous (blades and the game's first fail state, settled once here rather than per-feature). The acts measure as distinct with each carrying its predicted signature. ONE GAP CARRIED FORWARD to task 165 rather than hidden: blades fired in 5 of 24 Act 3 runs but ALL FIVE on L7 - L8 and L9's blades never fired once, so on those two they are currently decoration, which is exactly the failure this task's own done_when names.",
-      "completed_date": "2026-09-17T19:05:00"
-    },
-    {
       "id": 135,
       "task": "Per-level parHits overrides once Acts 2-3 are measured",
       "priority": "medium",
@@ -116,30 +80,12 @@
       "context": "Deliberately out of scope for the 126 rebalance: L1 is the only level with measured data for both variants, so per-level pars now would be invented numbers. MORE LIKELY NOW 2026-09-13: par is set from L1 medians, and if Act 3 hit counts differ materially a single global par per variant will not fit the campaign. FOLDED 2026-09-19 into the teaching restructure: set per-level par from the Phase 1 playtest on the new levels, not on levels about to be replaced."
     },
     {
-      "id": 136,
-      "task": "main.js - investigate the dormant damageIntensity range",
-      "priority": "low",
-      "status": "completed",
-      "done_when": "Either the saturation constant is retuned so burst scaling and hit-stop use their intended range, or a note records why the current range is correct.",
-      "context": "Code change done on swinging/fix/damage-intensity-range (option A, user-approved), awaiting the consolidated playtest. Measured over 880 human hits: raw damage p50 46 / p90 182 / max 1015, so linear raw/600 left the median at 0.08 intensity and shake fired on 3.9% of hits, while 54.5% of hits took the full capped 40 HP. Now sqrt(raw/600) (p50 0.28, p90 0.55) and SHAKE_GATE 180 at the p90 (10.2% of hits), shake /120 so it opens at 1.5px as before. PLAYTEST: judge whether ordinary hits now feel punchier without shake becoming constant. CLOSED 2026-09-20: user verdict on the new curve - \"Hits feel good.\"",
-      "completed_date": "2026-09-20T13:09:44"
-    },
-    {
       "id": 137,
       "task": "Verify the CLAUDE.md tuning-group note survives the next DAMAGE_SCALE change",
       "priority": "low",
       "status": "pending",
       "done_when": "The next time DAMAGE_SCALE moves, the three derived thresholds move with it in the same commit and in the same direction.",
       "context": "Added after scaling those thresholds the wrong way during task 131 - the inverse felt intuitive because DAMAGE_SCALE is a divisor, and the wide-bounded gate passed anyway. The note at main.js:63 spells out the direction explicitly for this reason (L0169)."
-    },
-    {
-      "id": 150,
-      "task": "Separate the medium and heavy shield tiers, on more data",
-      "priority": "medium",
-      "status": "completed",
-      "done_when": "Medium and heavy show a clear gap in per-run break rate across at least ~20 runs per tier, either by widening the threshold gap or by placing heavy shields where the approach is slower.",
-      "context": "Likely resolved by 163 and pending the same playtest: medium and heavy were 77% and 75% of runs, i.e. not separated at all, and 163 moved heavy alone to ~55%. Confirm on human runs before closing. CLOSED 2026-09-19 playtest: on Long Reach medium broke on 67% of contacts vs heavy 16% - separated, where before they were 77% vs 75% of runs.",
-      "completed_date": "2026-09-19T21:05:29"
     },
     {
       "id": 151,
@@ -156,83 +102,6 @@
       "status": "pending",
       "done_when": "Either removed along with its tests, or a note records what it is kept for.",
       "context": "Found during the 147 audit but left alone because it was outside the scope agreed with the user. getFragmentVerts and the RECT_FRAGMENTS_10/6 tables have no production caller - only tests reference them - so they are dead in the same way the six material fields were. They may be worth keeping as ready-made geometry for task 151, which will want target fragments; decide then rather than now."
-    },
-    {
-      "id": 160,
-      "priority": "medium",
-      "status": "completed",
-      "task": "Full-campaign re-measure - confirm the difficulty curve finally rises",
-      "done_when": "Human runs across all 9 levels show each act distinguishable from the others on metrics the damage cap does not floor - glancing rate, time to clear, failure rate - with each act carrying the signature its stated intent predicts.",
-      "context": "GATED on 158 and 159. This is what closes task 128, and also revisits tasks 115 and 150, both of which were deferred pending a level layer that actually varies. DONE 2026-09-17 on 96 human runs across the re-laid campaign. THE ORIGINAL CRITERION COULD NOT BE MEASURED: it asked for a rising hits-to-clear curve, but the per-hit damage cap makes 3 hits the physical minimum and 44% of runs sit exactly on that floor, so act means came out 3.79 / 3.96 / 3.79. Restated at the user's direction. Against the restated criterion it PASSES: Act 1 18.7% glancing and 3.05s, Act 2 12.5% and 4.97s, Act 3 11.7% and 21% of runs cut. All three pairs are distinguishable and each act's signature is the one its intent predicts. Also confirmed: zero one-hit clears in 91 cleared runs, against 34% before the cap.",
-      "completed_date": "2026-09-17T19:00:00"
-    },
-    {
-      "id": 163,
-      "priority": "low",
-      "status": "completed",
-      "task": "Tighten the shield tier spread - they now sit easier than the design intent",
-      "done_when": "Per-run break rates sit nearer the intended ~99/74/44 spread without any tier approaching 0%.",
-      "context": "Code change done on swinging/fix/heavy-shield-tier, awaiting the consolidated human playtest. Re-measured on 132 contacts / 32 runs of the re-laid levels: light 94% of runs vs 99% intent and medium 77% vs 74% were already on target, so this was NOT a spread retune. Only heavy was adrift at 75% vs 44%. Heavy 95 -> 105, putting its scaled threshold (78.75) on heavy own measured p90 of 78.6, against a max heavy arrival of 98.5. Deliberately undershoots the intent (~55% vs 44%) because the unreachable-tier failure is the costlier direction. CLOSED 2026-09-19: heavy per-contact break rate moved 20% -> 16% as intended; per-run (3/4) is too thin to confirm the ~55% target. Not re-tuned further because Long Reach is being replaced by the teaching restructure, where heavy appears only in mixed levels with an alternative surface.",
-      "completed_date": "2026-09-19T21:05:29"
-    },
-    {
-      "id": 165,
-      "priority": "high",
-      "status": "completed",
-      "task": "Human judgement on blade cutSpeed - are blades still dangerous, or now decoration?",
-      "done_when": "A verdict from human play on whether blades threaten meaningfully at cutSpeed 120, with the threshold adjusted if not, and cut rates recorded.",
-      "context": "The 120 default was chosen to stop blades killing half of all runs and is deliberately biased safe - bot runs now show 0/8, 1/8, 0/8, which may mean the hazard no longer registers. Bot data cannot settle this: the bot does not deliberately approach a blade, and the whole point of the act is how the threat feels to someone steering. Pair it with task 160. SHARPENED 2026-09-17 by the task 160 measurement, which partly answers it. Blades are NOT decoration in general - they cut in 5 of 24 Act 3 runs - but all five cuts were on L7, and L8 and L9's blades never fired. So cutSpeed 120 is about right for L7's placement and too lenient for the other two. The question is now per-level rather than global: either lower cutSpeed on L8 and L9, or move those blades into the line of play. ANSWERED 2026-09-18 from the 96-run task 160 data, and the answer inverted the expectation. Blades are not decoration in general, but per level they are exactly backwards: at the shared default of 120, L7 First Cut - the level that TEACHES the hazard - cut 5 of 11 human runs (45%), while L8 cut 0 of 6 and L9 0 of 7. Thresholds are now per level at 175 / 105 / 90. TWO FINDINGS WORTH MORE THAN THE NUMBERS. (1) Bot runs cannot calibrate blades at all: at the same threshold on the same levels the bot gave 0/8, 1/8, 0/8 against a human 45% on L7, because it does not approach a blade the way a person does. (2) Cut events were not recorded in telemetry - only damage, shield-block and shield-break - so cutSpeed could not be calibrated from anything but cut/no-cut counts, which is why the first values were guesses. Cuts now record the tail speed and the threshold they beat. 113/113 vitest, 95/95 gate.",
-      "completed_date": "2026-09-18T12:00:00"
-    },
-    {
-      "id": 166,
-      "priority": "medium",
-      "status": "superseded",
-      "task": "Confirm the per-level blade thresholds on human play, now that cuts are recorded",
-      "done_when": "Human runs across L7-L9 give a cut rate that rises across the act rather than falling, with the tail-speed-at-cut distribution recorded and the thresholds chosen from it.",
-      "context": "175 / 105 / 90 were set from cut/no-cut counts alone, because tail speed at the cut was not recorded until now - they are coarse. This is the first pass that can pick the values from a measured distribution. Do NOT use bot runs: at cutSpeed 120 the bot gave 0/8, 1/8, 0/8 against a human 45% on L7, so it carries no signal about blade lethality. SUPERSEDED 2026-09-19 by the teaching-level restructure: L7-L9 are being replaced, so their blade thresholds are re-derived on the new levels at the Phase 1 playtest. This playtest: L7 cut 2/6 (tail 244, 203 vs 175), L8 0/3 - its blade has never fired - L9 1/6 (94 vs 90)."
-    },
-    {
-      "id": 167,
-      "task": "Write the level-design rules into CLAUDE.md as a Level Design Rules section, replacing the current guidance",
-      "status": "completed",
-      "context": "Eleven rules agreed 2026-09-19 (structure, fairness, carried-over legibility and arrangement rules). Each rule is marked either enforced-by-test or checked-by-playtest.",
-      "completed_date": "2026-09-19T21:20:21"
-    },
-    {
-      "id": 168,
-      "task": "Add level kind/teaches fields and the rule tests, written first against the CURRENT nine levels",
-      "status": "completed",
-      "context": "Tests: teaching level mechanics minus everything taught earlier equals exactly its teaches field; teaching levels have one target; no heavy shield in a single-target level. They must FAIL on the current layout for the right reasons (L2/L3 multi-target, L9 shield) before any level is rewritten, proving they can fail. The rules in CLAUDE.md name FOUR tests by exact title - use those titles verbatim: \"a teaching level introduces exactly its teaches mechanic\", \"a teaching level has exactly one target\", \"a mixed level uses only mechanics already taught\", \"each act opens with a teaching level and closes with a mixed one\", plus \"no heavy shield in a single-target level\". The act-shape test is a fourth structural test the design did not list; it enforces rule 4.",
-      "completed_date": "2026-09-19T21:27:26"
-    },
-    {
-      "id": 169,
-      "task": "Re-lay the campaign as 12 levels per the approved plan: Act 1 glass/wood/steel/moving/mixed, Act 2 zone/shield-cage/medium-shield/mixed, Act 3 bumper+yank/blade/mixed finale",
-      "status": "completed",
-      "context": "Verify with the rule tests, the existing structural zone checks, and a screenshot of every level - screenshots caught what green tests missed twice last session. New shield and blade values start deliberately forgiving. Entry state: 4 rule tests FAIL by design on the old layout (committed that way, 168) - R1 L4/L5/L7, R2 L2/L5, R3 L6/L8/L9, R6 L6. The re-lay is done when the whole suite is green again.",
-      "completed_date": "2026-09-19T22:05:24"
-    },
-    {
-      "id": 170,
-      "task": "Stamp layoutVersion into run telemetry meta and saved progress; clear stale high scores on a layout change, keep unlock progress capped at the new level count",
-      "status": "completed",
-      "context": "Analysis groups runs by level id, and L4-before and L4-after are different levels - without a version stamp old and new data mix silently.",
-      "completed_date": "2026-09-19T22:19:17"
-    },
-    {
-      "id": 171,
-      "task": "Remap dev/gate.mjs cases by purpose (shield, bumper, blade, needs-yank) onto the new level ids",
-      "status": "completed",
-      "context": "The yank case must be a level where the rope genuinely snags; confirm on the new bumper level before relying on it.",
-      "completed_date": "2026-09-20T01:39:58"
-    },
-    {
-      "id": 172,
-      "task": "Phase 1 playtest of the 12-level campaign: teaching levels clear >= 90% of runs (blade level fail <= ~20%), gate shields break >= 80% of runs, the three act signatures still separate",
-      "status": "completed",
-      "context": "Criteria fixed before measuring. This playtest also sets per-level par (135) and the new blade thresholds (replacing 166). WATCH L8 Crate first: in 2 of 4 bot runs the medium cage OPENED (1 and 3 of 4 panels broken) but the bot then landed 0 damaging hits in 16-31 contacts, bouncing off the remaining panel. Looks like bot aiming, not the level (L7, same cage in light, cleared 4/4) - but it is the one new level the bot could not reliably finish. Also check the gate cages read as cages. ALSO WATCH L10 Deflector: it is meant to teach yank, but its bumper did not force one in 4/4 bot seeds. If players never snag there, the bumper needs placing to snag deliberately. CLOSED 2026-09-20 on 68 human runs of layout 2. Gate shields break in 100% of runs (L7 4/4, L8 7/7) - criterion was 80%. Teaching levels clear 100% except L11 First Cut at 71% (2 of 7 cut), which fails the <= 20% blade criterion -> task 177. Acts no longer separate on glancing (28.1/27.2/28.3 against 18.7/12.5/11.7 in layout 1); Act 3 still the only act that can kill (11% cut) and Act 2 still the slowest (3.5s vs 2.9s) -> task 182. Yank unused in 67 of 68 runs.",
-      "completed_date": "2026-09-20T13:09:44"
     },
     {
       "id": 173,
@@ -265,19 +134,6 @@
       "status": "completed",
       "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 12 feedback.png): add a blade along the bottom (~x 0.527, y 0.771, w ~410), add two more light shields above and below the existing one to make a column, and delete the wood rectangle and the glass circle, leaving the moving steel target. Check the rules still pass: a single-target level may not put a heavy shield in the way (rule 6) - these are light, so it should hold. DONE 2026-09-20 to the sketch: floor blade (x 0.527, y 0.771, w 412), the single light shield became a column of three (y 0.345 / 0.52 / 0.695), and the wood and glass targets are gone, leaving the moving steel one. The floor blade cuts 8 of 8 BOT runs at tail speeds 405-565 against its 200 threshold; the player was shown that and chose to keep it lethal as drawn, so the level now asks that the tail never drops. The gate finale case moved to L9 - the bot cannot clear L12 by design.",
       "completed_date": "2026-09-20T15:57:44"
-    },
-    {
-      "id": 179,
-      "task": "Angle-rewarding target shapes - eight shapes, one per cardinal and diagonal",
-      "status": "superseded",
-      "context": "User idea 2026-09-20: a target shape that grants more damage when struck from a particular direction (e.g. from below), so a level can be built around approaching from that side. Needs a design pass - it touches the damage formula, which has exactly one direction term today (angleFactor, the dot product of approach and surface normal) and no notion of a preferred side. Run /brainstorm. Designed 2026-09-20 and split into 184-186; see that day's decision entry."
-    },
-    {
-      "id": 180,
-      "task": "The rat tunnels through shield panels - it has no continuous collision and panels are 12-14px thick",
-      "status": "completed",
-      "context": "Measured 2026-09-20, answering the user question \"sometimes I hit the target before breaking any shield\": four hits landed on caged targets while the cage still stood, at 48, 52, 60 and 61 px/step through a 14px panel. Only the ROPE is swept (physics.js sweepRopeSegments / resolveRopeLinks); the rat deliberately has none, which is why the arena walls are 800px thick. A shield is the thinnest solid body in the game, so it is the one that leaks. Thickening panels cannot fix it (rat peaks 250-460 px/step); the fix is to sweep the rat against shield bodies, reusing the rope machinery. FIXED 2026-09-20 with Physics.sweepRat (rewind-only, velocity untouched). A/B over 3 reps of a 16-run sequence: 3 tunnelled hits every rep without it, 0 with it. Bot clears on the cage levels fall 16/16 -> 14-15/16 because the bot arrives at ~46 px/step against light 45 and must now break a panel it used to slip through; humans broke that cage 4/4, so nothing was retuned. dev/smoke.mjs also had a hardcoded 9-level count - now asserts only that levels render, since the gate owns the exact number.",
-      "completed_date": "2026-09-20T14:12:43"
     },
     {
       "id": 181,
@@ -718,6 +574,11 @@
       "date": "2026-09-20",
       "decision": "The weak-point teaching level faces its wedge AWAY from the hand rather than downwards.",
       "rationale": "Measured, not guessed. Facing down, the reward was inert: over 8 bot runs every weak hit was slow (raw damage 0-40) while ordinary hits reached 203, because an underside face can only be struck by swinging up against gravity - the slowest part of a swing - so the raised cap never bound. Facing away from the hand, the face is struck on the fast return swing, and the same level produced weak hits of raw 110 and 141 taking the full 65 HP while ordinary hits still clamped at 40. General rule now in CLAUDE.md: which way a face points decides whether the reward can ever pay, and an underside face is a hard shot for a later level rather than a teaching one."
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "Merged branch swinging/feat/teaching-level-restructure into main",
+      "rationale": "4643f6d24679264751f4bb55e11dddf0c6259207"
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
