@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "180 done (rat tunnelling through shields, fixed and gated). Next from the 2026-09-20 feedback: 177 L11 blade diagonal, 178 L12 rework, 181 blood spurt on a tail cut, 179 angle-rewarding shapes (needs /brainstorm), 182 act signatures. Branch swinging/feat/teaching-level-restructure, unmerged. WATCH at the next playtest: the shield cages are genuinely harder now that they no longer leak.",
+  "current_activity": "177 done (L11 diagonal blade). Next: 178 L12 rework, then 181 blood spurt, 179 angle shapes (/brainstorm), 182 act signatures. Branch swinging/feat/teaching-level-restructure, unmerged. Both 177 and 178 need the next human playtest to set blade thresholds.",
   "action_plan": [
     {
       "id": 45,
@@ -255,8 +255,9 @@
     {
       "id": 177,
       "task": "L11 First Cut - move the blade to the diagonal the user drew, and ease cutSpeed",
-      "status": "pending",
-      "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 11 feedback.png): the blade moves from horizontal overhead to a diagonal running up-to-the-right between the hand and the target, roughly (577,325)-(755,168) in canvas px, so ~x 0.605 y 0.397, length ~237, angle ~-41 deg. It also cut 2 of 7 runs at 230 (tail speeds 233 and 272) against the <= 20% rule-7 criterion, so ease the threshold as well - but the diagonal changes which speeds ever reach it, so re-measure rather than trusting a number picked now."
+      "status": "completed",
+      "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 11 feedback.png): the blade moves from horizontal overhead to a diagonal running up-to-the-right between the hand and the target, roughly (577,325)-(755,168) in canvas px, so ~x 0.605 y 0.397, length ~237, angle ~-41 deg. It also cut 2 of 7 runs at 230 (tail speeds 233 and 272) against the <= 20% rule-7 criterion, so ease the threshold as well - but the diagonal changes which speeds ever reach it, so re-measure rather than trusting a number picked now. DONE 2026-09-20: blade moved to the sketched diagonal (x 0.605, y 0.398, w 237, angle -41) and cutSpeed 230 -> 280. Screenshot matches the sketch; bot 8/8 cleared, 0 cut - which says nothing about the human cut rate (at a shared 120 the bot gave 0/8 against a human 45%). The threshold is a starting point, not a measurement: a blade in the swing path is crossed far more often than an overhead one, so it needs the next playtest.",
+      "completed_date": "2026-09-20T15:03:34"
     },
     {
       "id": 178,

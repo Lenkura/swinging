@@ -297,15 +297,22 @@ export const LEVELS = [
     hint: 'Bumpers knock you off course. If your tail snags on one, CLICK to yank it free.',
   },
   {
-    // TEACHES blades and the fail state. One blade high overhead with plenty of
-    // room beneath: it never blocks the ordinary line, it only taxes the
-    // biggest, least controlled swing. No bumper - the old First Cut paired the
-    // two, which is why it both taught blades and cut 45% of runs.
+    // TEACHES blades and the fail state. No bumper - the old First Cut paired
+    // the two, which is why it both taught blades and cut 45% of runs.
     //
-    // cutSpeed 230, deliberately forgiving (rule 7). At 175 the 2026-09-19
-    // playtest cut 2 of 6 runs, at tail speeds of 203 and 244; 230 would have
-    // spared one of those two. Two data points - tune from the Phase 1
-    // playtest. Working if: at most ~20% of runs are cut.
+    // The blade is a DIAGONAL across the approach, not a ceiling: from (576,325)
+    // to (754,168) in canvas px, so centre (0.605, 0.398), length 237, -41 deg.
+    // Placed from a player sketch on 2026-09-20 (temp/level 11 feedback.png).
+    // Overhead, it only taxed the biggest swing and was easy to forget; across
+    // the approach it is a thing you steer around, which is the lesson.
+    //
+    // cutSpeed 280, raised from 230 and deliberately forgiving (rule 7). At 230
+    // the 2026-09-20 playtest cut 2 of 7 runs (29%, tail speeds 233 and 272)
+    // against the <= 20% criterion. The number is NOT carried over from the
+    // overhead placement though: a blade in the swing path is crossed far more
+    // often, so both the crossing rate and the speeds change. Bot runs cannot
+    // settle it either - at a shared 120 the bot gave 0/8 where humans gave 45%.
+    // Start easy, measure on human play. Working if: at most ~20% of runs cut.
     id: 11,
     kind: 'teaching', teaches: 'blade',
     act: 3,
@@ -319,11 +326,11 @@ export const LEVELS = [
       { shape: 'circle', r: 40, x: 0.70, y: 0.58, material: 'glass' },
     ],
     blades: [
-      { x: 0.46, y: 0.14, w: 240, h: 10, cutSpeed: 230 },
+      { x: 0.605, y: 0.398, w: 237, h: 10, angle: -41, cutSpeed: 280 },
     ],
     parScore: 1800,
     pushParScore: 3000,
-    hint: 'A blade overhead. It will not touch the rat - but swing too wild and it cuts your tail, and you lose.',
+    hint: 'A blade across your path. It will not touch the rat - but whip your tail through it and you lose.',
   },
   {
     // MIXED finale: everything taught outside the zone - a shield, bumpers, a
