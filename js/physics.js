@@ -56,6 +56,7 @@ let ropeBodies = [];
 let ropeConstraints = [];
 let ropeContactCount = 0;
 let ratSweepCount = 0;    // rat crossings caught by sweepRat (see there)
+let simClock = 0;         // seconds of simulated time, for graze cooldowns
 let groundBody, leftWall, rightWall, ceiling;
 let canvasW, canvasH;
 
@@ -126,6 +127,8 @@ function onCollision(event) {
         const seg = bodyA.label === 'rope' ? bodyA : bodyB;
         if (fastEnoughToCut(other, seg)) {
           cutRope({ x: other.position.x, y: other.position.y }, segSpeed(seg), other);
+        } else {
+          grazeBlade(other, seg.position, segSpeed(seg));
         }
         continue;
       }
@@ -217,6 +220,29 @@ function clampRopeSpeed() {
  * between adjacent segments are tested, for the same reason resolveRopeLinks
  * exists: the rope is a chain of circles with gaps a thin blade can sit inside.
  */
+/**
+ * A crossing that was too slow to cut.
+ *
+ * It used to be silent, and that is what made blades read as broken: the tail
+ * sweeps through one, nothing happens, and nothing tells the player why. The
+ * rule is speed, and a rule the player cannot see is indistinguishable from a
+ * bug (player feedback, 2026-09-20). Emitting it also gives the first
+ * measurement of the crossings that DON'T cut - until now telemetry recorded
+ * only cuts, so the whole sub-threshold distribution was invisible and the
+ * thresholds were set from cut/no-cut counts alone.
+ *
+ * Rate-limited per blade, or a tail resting against one would emit every step.
+ */
+const GRAZE_COOLDOWN = 0.2;
+
+function grazeBlade(blade, at, speed) {
+  if (ropeCut) return;
+  const last = blade.plugin.lastGraze ?? -Infinity;
+  if (simClock - last < GRAZE_COOLDOWN) return;
+  blade.plugin.lastGraze = simClock;
+  emit('blade-graze', { x: at.x, y: at.y, speed, cutSpeed: blade.plugin.cutSpeed });
+}
+
 function detectBladeCuts(prev) {
   if (!bladeBodies.length || !ropeBodies.length || ropeCut) return;
   const r = ropeConfig.radius;
@@ -227,8 +253,11 @@ function detectBladeCuts(prev) {
     const seg = ropeBodies[i];
     const to = seg.position;
     const hit = Query.ray(bladeBodies, from, to, r * 2)[0];
-    if (hit && fastEnoughToCut(hit.body, seg)) {
-      return cutRope({ x: to.x, y: to.y }, segSpeed(seg), hit.body);
+    if (hit) {
+      if (fastEnoughToCut(hit.body, seg)) {
+        return cutRope({ x: to.x, y: to.y }, segSpeed(seg), hit.body);
+      }
+      grazeBlade(hit.body, to, segSpeed(seg));
     }
   }
 
@@ -236,6 +265,10 @@ function detectBladeCuts(prev) {
     const a = ropeBodies[i];
     const b = ropeBodies[i + 1];
     const hit = Query.ray(bladeBodies, a.position, b.position, r)[0];
+    if (hit && !fastEnoughToCut(hit.body, a) && !fastEnoughToCut(hit.body, b)) {
+      grazeBlade(hit.body, { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 },
+        Math.max(segSpeed(a), segSpeed(b)));
+    }
     if (hit && (fastEnoughToCut(hit.body, a) || fastEnoughToCut(hit.body, b))) {
       return cutRope(
         { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 },
@@ -406,6 +439,7 @@ function sweepRat(prev) {
 }
 
 export function step(delta) {
+  simClock += delta / 1000;
   const dt = subSteps === 1 ? delta : delta / subSteps;
   const fraction = subSteps === 1 ? 1 : 1 / subSteps;
   for (let i = 0; i < subSteps; i++) {
@@ -633,6 +667,7 @@ export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ro
 export function detachRope() {
   ropeContactCount = 0;
   ratSweepCount = 0;
+  simClock = 0;
   ropeConstraints.forEach(c => { try { Composite.remove(world, c); } catch { /* already gone */ } });
   ropeBodies.forEach(b => { try { Composite.remove(world, b); } catch { /* already gone */ } });
   if (ropeConstraints.includes(stringConstraint)) stringConstraint = null;
@@ -711,7 +746,7 @@ export function spawnTargets(levelTargets, shieldSpeedScale = 1) {
       // An angle-rewarding target: blunt open face, armoured point. The shape
       // is convex on purpose - Matter falls back to poly-decomp for concave
       // vertex sets, and that library was deleted in task 100.
-      body = Bodies.fromVertices(x, y, [wedgeVerts(td.size, td.weakDir)], {
+      body = Bodies.fromVertices(x, y, [wedgeVerts(td.size, td.spikeDir)], {
         isStatic: true,
         label: 'target',
         restitution: material.restitution,
@@ -726,7 +761,7 @@ export function spawnTargets(levelTargets, shieldSpeedScale = 1) {
           fragmentsSpawned: false,
           isShield: false,
           breakSpeed: 0,
-          weakDir: td.weakDir,
+          spikeDir: td.spikeDir,
           movement: makeMovementPlugin(td.movement, x, y),
         },
       });
@@ -1138,6 +1173,7 @@ export function reset() {
   ropeConstraints = [];
   ropeContactCount = 0;
   ratSweepCount = 0;
+  simClock = 0;
   targetBodies = [];
   fragmentBodies = [];
   bumperBodies = [];

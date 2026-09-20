@@ -5,8 +5,8 @@ import * as Particles from './particles.js';
 import * as UI from './ui.js';
 import { RAT_VARIANTS } from './rat.js';
 import { LEVELS, getLevel, saveProgress, loadProgress } from './levels.js';
-import { generateCrackPattern, applyDamageCap, isWeakHit, WEAK_POINT_CAP_FRACTION, MAX_HIT_DAMAGE_FRACTION } from './target.js';
-import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak, startWhoosh, updateWhoosh, stopWhoosh } from './audio.js';
+import { generateCrackPattern, applyDamageCap, isSpikeHit, SPIKE_CAP_FRACTION, MAX_HIT_DAMAGE_FRACTION } from './target.js';
+import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak, playBladeGraze, startWhoosh, updateWhoosh, stopWhoosh } from './audio.js';
 import { calcPushScore, comboMultiplier } from './scoring.js';
 
 // --- Dev instrumentation (?dev=1) ---------------------------------------
@@ -243,14 +243,14 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, speed, hitPoint, material, angleF
     // is deliberately unbounded, so a monster swing still reads as one. Only the
     // HP subtraction is capped, which is what stops a single hit ending a level.
     const rawDamage = speed * speed * af * (material.yoyoDamage || 1.0) * (yoyo.plugin.impactMultiplier || 1.0) * cm / DAMAGE_SCALE;
-    // A wedge rewards being struck on its open face by raising THIS hit's
+    // A wedge rewards being run onto its SPIKE by raising THIS hit's
     // ceiling, not by multiplying damage: over half of all hits already clamp
     // at the ordinary cap, so a multiplier would be invisible exactly on the
     // hardest hits. The approach angle is the rat's own heading at contact.
-    const weakHit = Boolean(target.plugin.weakDir)
-      && isWeakHit(Math.atan2(yoyo.velocity.y, yoyo.velocity.x), target.plugin.weakDir);
+    const spikeHit = Boolean(target.plugin.spikeDir)
+      && isSpikeHit(Math.atan2(yoyo.velocity.y, yoyo.velocity.x), target.plugin.spikeDir);
     const damage = applyDamageCap(rawDamage, RAT_MAX_HP,
-      weakHit ? WEAK_POINT_CAP_FRACTION : MAX_HIT_DAMAGE_FRACTION);
+      spikeHit ? SPIKE_CAP_FRACTION : MAX_HIT_DAMAGE_FRACTION);
     ratHp = Math.max(0, ratHp - damage);
     hitCount++;
     hitCooldown = 0.35;
@@ -264,12 +264,12 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, speed, hitPoint, material, angleF
       damage, rawDamage, combo: comboCount, multiplier: cm, hpAfter: ratHp, hitIndex: hitCount,
       // Recorded on every hit at a wedge, hit or miss of the face, so the
       // window and the raised cap can be tuned from the distribution rather
-      // than from anecdote - and so "did players find the face?" is answerable.
-      ...(target.plugin.weakDir ? { weakDir: target.plugin.weakDir, weakHit } : {}),
+      // than from anecdote - and so "did players find the spike?" is answerable.
+      ...(target.plugin.spikeDir ? { spikeDir: target.plugin.spikeDir, spikeHit } : {}),
     });
 
-    if (weakHit) {
-      hitLabel = { text: 'WEAK POINT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#ffd166' };
+    if (spikeHit) {
+      hitLabel = { text: 'SPIKED!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#ffd166' };
     } else if (af < 0.55) {
       hitLabel = { text: 'GLANCING!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#f4a261' };
     } else if (af > 0.88) {
@@ -342,6 +342,23 @@ Input.onYank(pos => {
 
 // A blade has severed the tail. This is the game's only losing outcome: the rat
 // survives, which is precisely the problem, since killing it is how you win.
+// A crossing too slow to cut. Silence here is what made blades read as broken:
+// the rule is speed, and the player could only ever see the half of it that
+// kills. Sparks and a scrape say "this one is live, you were just slow", and
+// the crossing is recorded so the thresholds can finally be set from the whole
+// distribution rather than from the cuts alone.
+Physics.on('blade-graze', ({ x, y, speed, cutSpeed }) => {
+  if (gameState !== 'SWINGING') return;
+  const closeness = cutSpeed > 0 ? Math.min(speed / cutSpeed, 1) : 0;
+  Particles.emit(x, y, {
+    count: 4 + Math.round(8 * closeness),
+    color: '#ffe9a8', speed: 120 + 260 * closeness, radius: 1.6,
+    lifetime: 0.25, gravity: 260,
+  });
+  playBladeGraze(closeness);
+  Telemetry.recordHit({ kind: 'blade-graze', speed, cutSpeed, hitIndex: hitCount, hpAfter: ratHp });
+});
+
 Physics.on('rope-cut', ({ x, y, speed, cutSpeed }) => {
   if (gameState !== 'SWINGING') return;
   gameState = 'IMPACT';

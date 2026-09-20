@@ -18,7 +18,7 @@
 export const MAX_HIT_DAMAGE_FRACTION = 0.40;
 
 /**
- * The per-hit ceiling for a hit that lands on a wedge's open face.
+ * The per-hit ceiling for a hit that lands on a wedge's SPIKE.
  *
  * A weak point had to reward the player with something the cap does not
  * swallow. 54.5% of measured hits already clamp at MAX_HIT_DAMAGE_FRACTION, so
@@ -27,17 +27,17 @@ export const MAX_HIT_DAMAGE_FRACTION = 0.40;
  * ceiling for an earned hit is visible every time, and leaves the cap as the
  * safety rail it was added to be for every other hit (2026-09-20 design).
  */
-export const WEAK_POINT_CAP_FRACTION = 0.65;
+export const SPIKE_CAP_FRACTION = 0.65;
 
-/** How far off the weak direction a hit may land and still count, in radians.
+/** How far off the spike direction a hit may land and still count, in radians.
  *  Deliberately generous to start (a quarter turn either side); it is a tuning
  *  number to settle on human play, like every threshold here. */
-export const WEAK_POINT_WINDOW = Math.PI / 4;
+export const SPIKE_WINDOW = Math.PI / 4;
 
-/** The eight directions a wedge can face, as compass points -> radians, in
- *  canvas space where +y is DOWN: 'n' therefore points to -y. A level writes
+/** The eight directions a wedge's SPIKE can face, as compass points -> radians,
+ *  in canvas space where +y is DOWN: 'n' therefore points to -y. A level writes
  *  the compass point; nothing outside this file deals in angles. */
-export const WEAK_DIRECTIONS = {
+export const SPIKE_DIRECTIONS = {
   n:  -Math.PI / 2,
   ne: -Math.PI / 4,
   e:   0,
@@ -49,42 +49,48 @@ export const WEAK_DIRECTIONS = {
 };
 
 /**
- * Vertices for a wedge whose OPEN face points in `weakDir` - a blunt face on
- * the weak side and a point on the armoured side, so the silhouette alone says
+ * Vertices for a wedge whose SPIKE points in `spikeDir` - a point on the
+ * rewarding side and a blunt back face opposite, so the silhouette alone says
  * where to hit from (rule 9: legible before it is encountered).
+ *
+ * The reward sat on the FLAT face first, and a player called that out at once
+ * (2026-09-20): a spike should hurt more than a slab, especially in a game
+ * where the damage lands on your own rat. It measured fine either way - 38% of
+ * human hits found the flat face - but an affordance the shape argues against
+ * is one the player has to memorise instead of read.
  *
  * Returned in canvas orientation, centred on (0,0), for `Bodies.fromVertices`.
  * Convex on purpose: Matter decomposes concave vertex sets with poly-decomp,
  * which this project deleted in task 100 as a dead CDN tag.
  */
-export function wedgeVerts(size, weakDir) {
-  const a = WEAK_DIRECTIONS[weakDir];
+export function wedgeVerts(size, spikeDir) {
+  const a = SPIKE_DIRECTIONS[spikeDir];
   if (a === undefined) {
-    throw new Error(`Unknown weakDir "${weakDir}" - expected one of ${Object.keys(WEAK_DIRECTIONS).join(', ')}`);
+    throw new Error(`Unknown spikeDir "${spikeDir}" - expected one of ${Object.keys(SPIKE_DIRECTIONS).join(', ')}`);
   }
   const h = size / 2;
-  // Local space: open face is the flat edge facing +x, the point is at -x.
+  // Local space: the SPIKE is at +x, the blunt back face at -x.
   const local = [
-    { x: h, y: -h },
-    { x: h, y: h },
-    { x: -h, y: h * 0.45 },
-    { x: -h * 1.25, y: 0 },
-    { x: -h, y: -h * 0.45 },
+    { x: -h, y: -h },
+    { x: -h, y: h },
+    { x: h, y: h * 0.45 },
+    { x: h * 1.25, y: 0 },
+    { x: h, y: -h * 0.45 },
   ];
   const ca = Math.cos(a), sa = Math.sin(a);
   return local.map(v => ({ x: v.x * ca - v.y * sa, y: v.x * sa + v.y * ca }));
 }
 
 /**
- * Did a hit land on the open face? `approach` is the direction the rat was
- * TRAVELLING in (radians). A rat moving east strikes a west-facing open face,
- * so the two are compared after flipping one of them.
+ * Did a hit land on the spike? `approach` is the direction the rat was
+ * TRAVELLING in (radians). A rat moving east runs onto a west-facing spike, so
+ * the two are compared after flipping one of them.
  */
-export function isWeakHit(approach, weakDir, window = WEAK_POINT_WINDOW) {
-  const a = WEAK_DIRECTIONS[weakDir];
+export function isSpikeHit(approach, spikeDir, window = SPIKE_WINDOW) {
+  const a = SPIKE_DIRECTIONS[spikeDir];
   if (a === undefined) return false;
   // Angle between the incoming direction reversed (i.e. where the rat came
-  // FROM) and the open face's direction, wrapped to [-PI, PI].
+  // FROM) and the spike's direction, wrapped to [-PI, PI].
   let diff = (approach + Math.PI) - a;
   while (diff > Math.PI) diff -= Math.PI * 2;
   while (diff < -Math.PI) diff += Math.PI * 2;
@@ -185,7 +191,7 @@ export function resolveShieldTier(td, shieldSpeedScale = 1) {
 
 /** Clamp a raw damage value to the per-hit ceiling. Pure; maxHp is passed in.
  *  `fraction` defaults to the ordinary cap, so every existing call is
- *  unchanged; a weak-point hit passes WEAK_POINT_CAP_FRACTION instead. */
+ *  unchanged; a spike hit passes SPIKE_CAP_FRACTION instead. */
 export function applyDamageCap(rawDamage, maxHp, fraction = MAX_HIT_DAMAGE_FRACTION) {
   return Math.min(rawDamage, maxHp * fraction);
 }

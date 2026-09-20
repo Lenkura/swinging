@@ -185,6 +185,26 @@ export function playShatter() {
 }
 
 // dull metallic clang — used for shield hits that don't break (TOO SLOW!)
+/**
+ * Blade scrape - a crossing too slow to cut. Deliberately thin and short: it
+ * fires whenever the tail brushes a blade, so it has to sit under the whoosh
+ * without ever competing with the cut. Bright highpassed noise, no body.
+ */
+export function playBladeGraze(intensity = 0.5) {
+  const ac = ctx();
+  const t = ac.currentTime;
+  const src = noise(0.09);
+  const hpf = ac.createBiquadFilter();
+  hpf.type = 'highpass';
+  hpf.frequency.setValueAtTime(2600, t);
+  hpf.frequency.exponentialRampToValueAtTime(5200, t + 0.08);
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.05 + 0.13 * Math.max(0, Math.min(1, intensity)), t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+  src.connect(hpf); hpf.connect(g); g.connect(master());
+  src.start(t); src.stop(t + 0.1);
+}
+
 export function playShieldBlock() {
   const ac = ctx();
   const t = ac.currentTime;

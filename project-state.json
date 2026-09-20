@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "The 13-level teaching/mixed campaign is merged (LAYOUT_VERSION 3). Next is a human playtest of all 13 levels, which closes 186 (do players find the weak face - the bot manages 34%), settles L12 First Cut's cutSpeed 280 and L13's floor blade at 200, and watches 183 (a rat stuck in Narrow Column). Then 182 (whether acts still need distinct signatures) and 173 (Phase 2: ~9 mixed levels, which can now use wedges).",
+  "current_activity": "On swinging/feat/spike-and-blade-feedback: the spike reward is on the point (LAYOUT_VERSION 4) and blade near-misses spark, scrape and are recorded. Next: a playtest to close 187 (is the spike reward still frequent enough) and 188 (set cut speeds from the crossing distribution). Also open: 182 act signatures, 183 stuck-rat watch, 173 Phase 2 mixed levels.",
   "action_plan": [
     {
       "id": 78,
@@ -171,8 +171,21 @@
     {
       "id": 186,
       "task": "Measure the weak point on human play: cap value, window width, and whether players notice the face",
+      "status": "completed",
+      "context": "Telemetry records weak-face hits and the cap applied. Working if the share of hits landing on weak faces RISES across attempts - a flat share means the face is not readable and the silhouette, not the numbers, is the dial. Bot runs cannot answer this (they aim at target centres). Baseline to beat: the bot, which aims at target centres, lands 34% of its hits on the open face. A human share below that would mean the silhouette is not readable. CLOSED 2026-09-20 on 52 human runs of layout 3: 38% of hits at the wedge landed on the rewarded face (bot 34%) and 8 of 12 beat the ordinary cap, taking 65 instead of 40 - the mechanic fires and pays. The player rejected the AFFORDANCE, not the numbers, so the reward moved to the point (task 187) and the share needs re-measuring on the new shape.",
+      "completed_date": "2026-09-20T21:37:12"
+    },
+    {
+      "id": 187,
+      "task": "Re-measure the spike on human play now that the reward is on the point, not the flat face",
       "status": "pending",
-      "context": "Telemetry records weak-face hits and the cap applied. Working if the share of hits landing on weak faces RISES across attempts - a flat share means the face is not readable and the silhouette, not the numbers, is the dial. Bot runs cannot answer this (they aim at target centres). Baseline to beat: the bot, which aims at target centres, lands 34% of its hits on the open face. A human share below that would mean the silhouette is not readable."
+      "context": "Moving the reward costs frequency: bot runs give 2 of 7 spike hits beating the ordinary cap, against 8 of 12 on the flat face, because a point is small and glances easily. Baseline to beat: 38% of hits found the flat face. If the reward is now too rare to feel, the dials are SPIKE_WINDOW (currently 45 degrees either side) and SPIKE_CAP_FRACTION - not the shape, which the player chose on sight."
+    },
+    {
+      "id": 188,
+      "task": "Set the blade cut speeds from the crossing distribution, now that every crossing is recorded",
+      "status": "pending",
+      "context": "blade-graze records speed and threshold for every crossing, cut or not (2026-09-20). First look, bot runs on First Cut: crossings 0-64 px/step against a 280 threshold while the cuts that do happen are 527 - so an ordinary pass is nowhere near biting, which is what \"it seems to do nothing\" was. Needs the human distribution: bot crossings are not human ones. Supersedes the guessed 280 and 200."
     }
   ],
   "recently_updated_files": [
@@ -579,6 +592,11 @@
       "date": "2026-09-20",
       "decision": "Merged branch swinging/feat/teaching-level-restructure into main",
       "rationale": "4643f6d24679264751f4bb55e11dddf0c6259207"
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "The wedge's reward moved from its flat face to its point, and a blade crossing that is too slow to cut now sparks and scrapes.",
+      "rationale": "Both came from the same player report. The spike reward measured fine where it was - 38% of human hits found the flat face, 8 of 12 beating the ordinary cap - but \"it would make more sense for the point to do more damage\" is an affordance argument, and the shape was arguing against the rule: a point that rewards nothing has to be memorised rather than read. The cost is frequency, since a point glances easily (bot: 2 of 7 against 8 of 12), and that is now task 187 to measure rather than a guess to pre-correct. The blade half is the same problem in reverse: the rule is speed, and the player could only ever see the half that kills, so a slow crossing looked like a broken hazard. Sparks and a scrape make the live-but-slow case visible, and recording every crossing finally exposes the sub-threshold distribution that the thresholds should have been set from all along (task 188)."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
