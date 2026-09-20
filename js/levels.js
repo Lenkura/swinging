@@ -13,8 +13,11 @@ export const ACT_NAMES = { 1: 'The Sewer', 2: 'The Warehouse', 3: 'The Lab' };
  * 1 = the nine-level layout (2026-09-14 to 2026-09-19). Anything recorded
  *     before this field existed is layout 1.
  * 2 = the 12-level teaching/mixed layout (2026-09-19).
+ * 3 = the weak-point teaching level inserted at id 5 (2026-09-20), which
+ *     pushed every later level up by one - L5 was Both Ways and is now
+ *     Soft Spot; the campaign is 13 levels.
  */
-export const LAYOUT_VERSION = 2;
+export const LAYOUT_VERSION = 3;
 
 export const LEVELS = [
   // ─────────────────────────────────────────────
@@ -114,11 +117,46 @@ export const LEVELS = [
     hint: 'This one moves. Swing for where it is going to be, not where it is.',
   },
   {
+    // TEACHES the weak point: a target armoured everywhere but one face. This
+    // one opens AWAY from the hand, so the lazy swing hits armour and the deep
+    // hit has to come back from the far side - round the target and in.
+    //
+    // It faced DOWN first, which reads better as an idea and measured badly:
+    // over 8 bot runs every weak hit was slow (raw damage 0-40) while ordinary
+    // hits reached 203, because reaching an underside means swinging UP against
+    // gravity - the slowest part of any swing - so the raised cap never bound
+    // and the reward was inert. A face that is reached on the fast return swing
+    // can actually pay. An underside face is not wasted, but it belongs in a
+    // later level as a hard shot, not in the one that teaches the idea.
+    //
+    // A weak hit raises that hit's damage cap (0.40 -> 0.65 of max HP) rather
+    // than multiplying damage; see WEAK_POINT_CAP_FRACTION in target.js for why
+    // a multiplier would have been invisible. Working if: >= 90% clear, and the
+    // share of hits landing on the open face RISES across attempts - a flat
+    // share means the silhouette is not readable and the shape, not the
+    // numbers, is the dial.
+    id: 5,
+    kind: 'teaching', teaches: 'weak-point',
+    act: 1,
+    name: 'Soft Spot',
+    background: ['#2a2e1a', '#16180e'],
+    groundColor: '#101206',
+    pivot: { x: 0.20, y: 0.46 },
+    stringLength: 140,
+    pushStringLength: 150,
+    targets: [
+      { shape: 'wedge', size: 92, x: 0.56, y: 0.44, weakDir: 'e', material: 'steel' },
+    ],
+    parScore: 1600,
+    pushParScore: 3000,
+    hint: 'Armoured on this side. Swing PAST it and come back into the open face for a much deeper hit.',
+  },
+  {
     // MIXED closer for Act 1: the first level with two targets, one on each side
     // of a central start, and the right one drifting. The swing has to be
     // reversed rather than repeated - built only from what L1-L4 taught.
     // Working if: clears stay >= 90% but take longer than any teaching level.
-    id: 5,
+    id: 6,
     kind: 'mixed',
     act: 1,
     name: 'Both Ways',
@@ -148,7 +186,7 @@ export const LEVELS = [
     // ceiling, so the hand cannot be lifted and speed has to come from sweeping
     // sideways. Working if: >= 90% clear; glancing below Act 1's (the old
     // zoned levels measured 12.5% against 18.7% open).
-    id: 6,
+    id: 7,
     kind: 'teaching', teaches: 'zone',
     act: 2,
     name: 'Low Ceiling',
@@ -183,7 +221,7 @@ export const LEVELS = [
     // slot: the tail looped right round the post and wedged the rat in the slot,
     // at rest for 90 s through 60 yanks - a soft-lock in a teaching level. Flush,
     // whatever survives is part of one solid block, like any floating target.
-    id: 7,
+    id: 8,
     kind: 'teaching', teaches: 'shield',
     act: 2,
     name: 'Glass Cage',
@@ -214,7 +252,7 @@ export const LEVELS = [
     // broke in 0 of 4 runs on the old L9, fastest arrival 69. Rule 8: start easy
     // and tune from human play. Working if: the cage breaks in >= 80% of runs
     // and takes more contacts than L7's.
-    id: 8,
+    id: 9,
     kind: 'teaching', teaches: 'shield-strong',
     act: 2,
     name: 'Crate',
@@ -241,7 +279,7 @@ export const LEVELS = [
     // pumping up and down, and the two targets sit behind different tiers -
     // the player picks which to earn. Working if: slowest clears in Act 2
     // (the old Narrow Column measured 4.1 s median).
-    id: 9,
+    id: 10,
     kind: 'mixed',
     act: 2,
     name: 'Narrow Column',
@@ -277,7 +315,7 @@ export const LEVELS = [
     // needed. With the rope, a bumper level was unwinnable without yanking
     // (the old Crossfire, 6/6 bot failures). Working if: >= 90% clear, and a
     // yank is used in most runs that snag.
-    id: 10,
+    id: 11,
     kind: 'teaching', teaches: 'bumper',
     act: 3,
     name: 'Deflector',
@@ -313,7 +351,7 @@ export const LEVELS = [
     // often, so both the crossing rate and the speeds change. Bot runs cannot
     // settle it either - at a shared 120 the bot gave 0/8 where humans gave 45%.
     // Start easy, measure on human play. Working if: at most ~20% of runs cut.
-    id: 11,
+    id: 12,
     kind: 'teaching', teaches: 'blade',
     act: 3,
     name: 'First Cut',
@@ -364,7 +402,7 @@ export const LEVELS = [
     // learn a route that keeps the tail high - human cut rate falling across
     // attempts rather than staying flat. If it stays flat, the level is asking
     // for something unlearnable and the span, not the threshold, is the dial.
-    id: 12,
+    id: 13,
     kind: 'mixed',
     act: 3,
     name: 'Full Experiment',
@@ -415,12 +453,13 @@ const SAVE_KEY = 'yoyo_progress';
  * medium; heavy only ever appears in mixed levels with another way to the rat's
  * death, so it needs no teaching level of its own.
  */
-export const MECHANICS = ['moving', 'zone', 'shield', 'shield-strong', 'bumper', 'blade'];
+export const MECHANICS = ['moving', 'weak-point', 'zone', 'shield', 'shield-strong', 'bumper', 'blade'];
 
 export function levelMechanics(level) {
   const m = new Set();
   const targets = level.targets || [];
   if (targets.some(t => t.movement)) m.add('moving');
+  if (targets.some(t => t.shape === 'wedge')) m.add('weak-point');
   if (level.handZone) m.add('zone');
   const shields = targets.filter(t => t.isShield);
   if (shields.length) m.add('shield');

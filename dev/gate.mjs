@@ -38,9 +38,9 @@ const FIXED_DT = 1 / 60;
 const CASES = [
   { purpose: 'the swing',        level: 1,  variant: 'standard', seed: 42,  maxHits: 30, yankEvery: 1.5 },
   { purpose: 'the swing, heavy', level: 1,  variant: 'heavy',    seed: 42,  maxHits: 30, yankEvery: 1.5 },
-  { purpose: 'shield gate',      level: 7,  variant: 'standard', seed: 42,  maxHits: 45, yankEvery: 1.5, needsShieldBreak: true },
-  { purpose: 'bumper',           level: 10, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
-  { purpose: 'blade, uncut',     level: 11, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
+  { purpose: 'shield gate',      level: 8,  variant: 'standard', seed: 42,  maxHits: 45, yankEvery: 1.5, needsShieldBreak: true },
+  { purpose: 'bumper',           level: 11, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
+  { purpose: 'blade, uncut',     level: 12, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
   // The movement zone. This slot held the L12 finale until its floor blade was
   // made deliberately lethal (the bot loses 8/8 there by design), then L9, the
   // mixed zone+shield level - which FAILED the gate twice after passing once,
@@ -48,7 +48,7 @@ const CASES = [
   // A case that flaky asserts nothing, and L9 is where the bot is weakest
   // (3 of 4 timeouts in an earlier batch) while humans cleared it 6/6. L6 is
   // the zone in its simplest form and cleared in 3-4s in every probe.
-  { purpose: 'movement zone',    level: 6,  variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
+  { purpose: 'movement zone',    level: 7,  variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
 ];
 
 const checks = [];
@@ -283,7 +283,7 @@ const t0 = Date.now();
     await page.evaluate(o => window.__ratsmash.beginRun(o),
       // Any level serves the structural checks, but the whip below needs one
       // WITHOUT a handZone, or the zone clamps the hand before it reaches a wall.
-      { level: 12, variant: 'heavy', source: 'gate', seed: 1 });
+      { level: 13, variant: 'heavy', source: 'gate', seed: 1 });
     await page.waitForTimeout(250);
 
     const w = await page.evaluate(() => window.__ratsmash.state().world);

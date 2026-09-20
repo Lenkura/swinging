@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 185: the Act 1 teaching level for the weak point. It also verifies 184 at runtime - no level contains a wedge yet.",
+  "current_activity": "185 done - L5 Soft Spot teaches the weak point; the campaign is 13 levels at LAYOUT_VERSION 3. Remaining: 186 (measure the weak point on human play), 182 (act signatures), 183 (watch L9/L10 stuck rat), 173 (Phase 2 mixed levels). The branch swinging/feat/teaching-level-restructure is large and unmerged - worth /finish-branch before Phase 2.",
   "action_plan": [
     {
       "id": 45,
@@ -308,14 +308,15 @@
     {
       "id": 185,
       "task": "Act 1 teaching level for the weak point - one wedge, weak face reachable but not on the lazy line",
-      "status": "pending",
-      "context": "The rules require it: a weak point is a new mechanic, so it must be taught in a level of its own before any mixed level uses it (rules 1 and 3, enforced by the suite). Act 1 goes to five teaching levels plus its mixed closer; the campaign becomes 13 levels. MECHANICS in levels.js gains weak-point."
+      "status": "completed",
+      "context": "The rules require it: a weak point is a new mechanic, so it must be taught in a level of its own before any mixed level uses it (rules 1 and 3, enforced by the suite). Act 1 goes to five teaching levels plus its mixed closer; the campaign becomes 13 levels. MECHANICS in levels.js gains weak-point. DONE 2026-09-20 as L5 Soft Spot, which pushed every later level up one and took LAYOUT_VERSION to 3 (13 levels). The wedge faced DOWN first and measured dead - every weak hit slow (raw 0-40 against ordinary hits reaching 203), because an underside is reached only by swinging up against gravity. Facing it away from the hand, weak hits of raw 110 and 141 took the full 65 while ordinary hits still clamped at 40. Bot: 8/8 cleared, 11 of 32 hits on the open face.",
+      "completed_date": "2026-09-20T20:46:45"
     },
     {
       "id": 186,
       "task": "Measure the weak point on human play: cap value, window width, and whether players notice the face",
       "status": "pending",
-      "context": "Telemetry records weak-face hits and the cap applied. Working if the share of hits landing on weak faces RISES across attempts - a flat share means the face is not readable and the silhouette, not the numbers, is the dial. Bot runs cannot answer this (they aim at target centres)."
+      "context": "Telemetry records weak-face hits and the cap applied. Working if the share of hits landing on weak faces RISES across attempts - a flat share means the face is not readable and the silhouette, not the numbers, is the dial. Bot runs cannot answer this (they aim at target centres). Baseline to beat: the bot, which aims at target centres, lands 34% of its hits on the open face. A human share below that would mean the silhouette is not readable."
     }
   ],
   "recently_updated_files": [
@@ -712,6 +713,11 @@
       "date": "2026-09-20",
       "decision": "Angle-rewarding targets are a WEDGE with one open face, placed at any of eight angles, and hitting that face raises the per-hit damage cap for that hit (0.40 -> 0.65 of max HP) rather than multiplying damage.",
       "rationale": "The reward had to survive the per-hit cap: 54.5% of measured hits already clamp at 40 HP, so a plain damage multiplier would have been invisible on more than half of hits - and invisible precisely on the best ones, which is backwards. Raising the cap for an earned hit is visible every time and leaves the cap as the safety rail it was added to be. One wedge rotated eight ways beats eight silhouettes: the shape itself says where to hit from (rule 9, legible before encountered), it needs no renderer work because target drawing is vertex-driven, and it is convex, so it needs no polygon decomposition (the poly-decomp tag was deleted in task 100). A weak point is a NEW MECHANIC, so the rules require a teaching level of its own before any mixed level uses it - Act 1 gains a fifth teaching level and the campaign becomes 13 levels. Alternatives declined: a damage multiplier (cap-flattened), and armour on the wrong sides only (always visible, but it slows every level and reads as punishment rather than reward)."
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "The weak-point teaching level faces its wedge AWAY from the hand rather than downwards.",
+      "rationale": "Measured, not guessed. Facing down, the reward was inert: over 8 bot runs every weak hit was slow (raw damage 0-40) while ordinary hits reached 203, because an underside face can only be struck by swinging up against gravity - the slowest part of a swing - so the raised cap never bound. Facing away from the hand, the face is struck on the fast return swing, and the same level produced weak hits of raw 110 and 141 taking the full 65 HP while ordinary hits still clamped at 40. General rule now in CLAUDE.md: which way a face points decides whether the reward can ever pay, and an underside face is a hard shot for a later level rather than a teaching one."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
