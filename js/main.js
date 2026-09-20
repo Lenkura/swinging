@@ -99,6 +99,11 @@ let shakeTimer = 0;
 let shakeIntensity = 0;
 const SHAKE_DURATION = 0.3;
 let hitStopTimer = 0; // sim freeze on heavy hits; render/particles keep running
+// A severed tail keeps bleeding through the tumble. Held as a countdown rather
+// than a one-shot burst because the loss is given 2.6s to land (see the
+// rope-cut handler) and a single puff at t=0 is over before the rat has fallen.
+let bleedTimer = 0;
+let bleedTick = 0;
 let flashTimer = 0;
 let squashTimer = 0;
 const FLASH_DURATION = 0.05;
@@ -336,7 +341,19 @@ Physics.on('rope-cut', ({ x, y, speed, cutSpeed }) => {
     kind: 'rope-cut', speed, cutSpeed, hitIndex: hitCount, hpAfter: ratHp,
   });
   hitLabel = { text: 'TAIL CUT!', x, y, timer: HIT_LABEL_DURATION, color: '#ff5d5d' };
-  Particles.emit(x, y, { count: 14, color: '#ff5d5d', speed: 260, radius: 3 });
+
+  // Arterial spray, aimed back along the tail - away from the rat, out of the
+  // cut - rather than scattered, so it reads as a wound rather than a puff.
+  // Three layers at one angle: heavy gouts, a fast fine mist, and a dark
+  // spatter that lingers.
+  const rat = Physics.getRatBody();
+  const away = rat ? Math.atan2(y - rat.position.y, x - rat.position.x) : -Math.PI / 2;
+  Particles.emit(x, y, { count: 18, color: '#b0202a', speed: 300, radius: 4, lifetime: 0.9, direction: away, spread: 1.1 });
+  Particles.emit(x, y, { count: 22, color: '#ff5d5d', speed: 420, radius: 2, lifetime: 0.6, direction: away, spread: 0.7 });
+  Particles.emit(x, y, { count: 10, color: '#7a1119', speed: 180, radius: 5, lifetime: 1.3, direction: away, spread: 2.0 });
+  bleedTimer = 1.6;
+  bleedTick = 0;
+
   shakeIntensity = 6;
   shakeTimer = SHAKE_DURATION;
   // A loss gets a longer beat than a win: the rat is sent tumbling and physics
@@ -378,6 +395,8 @@ function startLevel() {
   hitStopTimer = 0;
   flashTimer = 0;
   squashTimer = 0;
+  bleedTimer = 0;
+  bleedTick = 0;
 
   Physics.reset();
   Particles.clear();
@@ -513,6 +532,39 @@ function gameLoop(timestamp) {
     if (impactTimer <= 0) {
       gameState = 'RESULT';
       showResult();
+    }
+  }
+
+  // The stump. Emitted from the rat's tail base as it tumbles, in pulses rather
+  // than a stream - a steady trickle reads as a leak, a pulse reads as a heart.
+  // Weakens as it runs out, and paints the ground where it lands.
+  if (bleedTimer > 0) {
+    bleedTimer -= dt;
+    bleedTick -= dt;
+    const rat = Physics.getRatBody();
+    if (rat && bleedTick <= 0) {
+      bleedTick = 0.1;
+      const strength = Math.max(0, bleedTimer / 1.6);
+      const r = RAT_VARIANTS[selectedVariant].radius;
+      // Tail base offset, rotated with the body - the same anchor the rope hung
+      // from (physics.js attachRope: -r*0.85, r*0.22).
+      const ca = Math.cos(rat.angle), sa = Math.sin(rat.angle);
+      const bx = rat.position.x + (-r * 0.85) * ca - (r * 0.22) * sa;
+      const by = rat.position.y + (-r * 0.85) * sa + (r * 0.22) * ca;
+      Particles.emit(bx, by, {
+        // Slow and short-lived on purpose: at spray speed the droplets outran
+        // the rat and freckled the whole arena, which read as dust rather than
+        // blood. These trail the body instead.
+        count: Math.round(3 + 5 * strength), color: '#b0202a',
+        speed: 50 + 90 * strength, radius: 3, lifetime: 0.5,
+        direction: rat.angle + Math.PI, spread: 1.4,
+      });
+      // Only pool where blood could actually have landed. paintSplat always
+      // paints at the ground line, so calling it while the rat is still high
+      // put splats under a body that had not bled on that spot yet.
+      if (rat.position.y > Physics.getGroundTop() - 90) {
+        Renderer.paintSplat(bx, 0.25 * strength, 0.5);
+      }
     }
   }
 

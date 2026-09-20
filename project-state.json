@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "177 and 178 done - both level edits from the 2026-09-20 sketches are in. Next: 181 blood spurt on a tail cut, 179 angle-rewarding shapes (needs /brainstorm), 182 act signatures. Branch swinging/feat/teaching-level-restructure, unmerged. The next human playtest sets both blade thresholds (L11's 280 and L12's floor 200) and tells us whether L12's cut rate falls across attempts.",
+  "current_activity": "181 done (blood spurt on a tail cut). Remaining from the 2026-09-20 feedback: 179 angle-rewarding target shapes (needs /brainstorm) and 182 act signatures; new 183 watches a possible L9 stuck-rat. Branch swinging/feat/teaching-level-restructure, unmerged - it now carries 167-171, 177, 178, 180, 181.",
   "action_plan": [
     {
       "id": 45,
@@ -250,7 +250,7 @@
       "id": 176,
       "task": "Fixed-dt bot runs are not independent of earlier runs on the same page - find what carries over between runs",
       "status": "pending",
-      "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed."
+      "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed. MORE EVIDENCE 2026-09-20: the L9 gate case passed once then failed the gate twice (rat at rest, 24k rope contacts), while the same case cleared in ~13s in a probe that ran the same sequence WITHOUT the per-case beginRun the gate does. The gate case moved to L6."
     },
     {
       "id": 177,
@@ -282,14 +282,21 @@
     {
       "id": 181,
       "task": "Make a tail cut visually dramatic - blood spurting from the cut",
-      "status": "pending",
-      "context": "User request 2026-09-20, extending the 2.6s tumble already added for the loss: the cut itself should read. Blood particles exist (emitImpactBurst, the red splash) and the rope-cut handler already knows the cut point and speed."
+      "status": "completed",
+      "context": "User request 2026-09-20, extending the 2.6s tumble already added for the loss: the cut itself should read. Blood particles exist (emitImpactBurst, the red splash) and the rope-cut handler already knows the cut point and speed. DONE 2026-09-20: particles.emit gained optional direction/spread (radial by default, so every existing burst is unchanged); the cut fires three aimed layers out of the wound, and the severed stump keeps bleeding for 1.6s in pulses from the rat's tail base as it tumbles, pooling on the ground only once the body is within 90px of it. Captured at history/screenshots/tail-cut-bleed.png.",
+      "completed_date": "2026-09-20T18:12:02"
     },
     {
       "id": 182,
       "task": "Decide whether acts still need distinct signatures now that teaching levels flatten them",
       "status": "pending",
       "context": "Measured 2026-09-20: glancing is 28.1/27.2/28.3 across the three acts, against 18.7/12.5/11.7 in the nine-level layout. Teaching levels are simple by design, so \"one mechanic per level\" and \"each act has its own signature\" pull against each other. Either accept that the act signature is now carried by the mixed levels alone and measure it there, or restate the criterion. Act 3 is still the only act that can kill (11% cut) and Act 2 is still the slowest (3.5s vs 2.9s)."
+    },
+    {
+      "id": 183,
+      "task": "L9 Narrow Column: the bot ends at rest with 20-24k rope contacts inside the zone - check whether a human can get stuck there too",
+      "status": "pending",
+      "context": "Seen repeatedly 2026-09-20 while choosing gate cases: in that narrow column the rope wraps and the rat comes to a dead stop (lastSpeed 0, 24k rope contacts, 3 hits in 90s), and 60 yanks do not free it. Humans cleared L9 6/6 in the playtest, so this may be bot-only - but \"the rat is stuck and yanking will not help\" is the same shape as the L7 cage soft-lock that was real (task 171). Watch it in the next playtest; if a human ever sticks, the column geometry is the dial."
     }
   ],
   "recently_updated_files": [

@@ -41,10 +41,14 @@ const CASES = [
   { purpose: 'shield gate',      level: 7,  variant: 'standard', seed: 42,  maxHits: 45, yankEvery: 1.5, needsShieldBreak: true },
   { purpose: 'bumper',           level: 10, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
   { purpose: 'blade, uncut',     level: 11, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
-  // Was the L12 finale. Its floor blade is deliberately lethal (see levels.js),
-  // and the bot loses 8/8 runs there by design, so it cannot carry a case that
-  // asserts SHATTER. L9 is the other mixed level: zone and shields together.
-  { purpose: 'mixed: zone+shield', level: 9, variant: 'standard', seed: 7, maxHits: 45, yankEvery: 1.5 },
+  // The movement zone. This slot held the L12 finale until its floor blade was
+  // made deliberately lethal (the bot loses 8/8 there by design), then L9, the
+  // mixed zone+shield level - which FAILED the gate twice after passing once,
+  // the bot ending at rest with 24k rope contacts inside that narrow column.
+  // A case that flaky asserts nothing, and L9 is where the bot is weakest
+  // (3 of 4 timeouts in an earlier batch) while humans cleared it 6/6. L6 is
+  // the zone in its simplest form and cleared in 3-4s in every probe.
+  { purpose: 'movement zone',    level: 6,  variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
 ];
 
 const checks = [];
