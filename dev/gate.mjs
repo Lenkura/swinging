@@ -236,7 +236,17 @@ const t0 = Date.now();
     if (c.yankEvery > 0) check('yank input registered', s.yanks > 0, `${s.yanks}`);
     // A gate level cannot be won without a break, so SHATTER implies one - but
     // asserted separately so a failure names the shield path, not "no shatter".
-    if (c.needsShieldBreak) check('a shield was broken', s.shieldBreaks > 0, `${s.shieldBreaks}`);
+    if (c.needsShieldBreak) {
+      check('a shield was broken', s.shieldBreaks > 0, `${s.shieldBreaks}`);
+      // The caged target cannot legitimately be hit until a panel is gone, so a
+      // damaging hit before the first break means the rat crossed a 14px panel
+      // inside one step. That happened in 3 of 16 bot runs before sweepRat.
+      const brk = (doc.hits || []).filter(h => h.kind === 'shield-break').map(h => h.t);
+      const firstBreak = brk.length ? Math.min(...brk) : Infinity;
+      const early = (doc.hits || []).filter(h => h.kind === 'damage' && h.t < firstBreak);
+      check('nothing reached the caged target through its cage',
+        early.length === 0, early.map(h => `t=${h.t} @${Math.round(h.speed)}px/step`).join(' '));
+    }
 
     // Giblets (tasks 101-103): bodies spawn, carry piece types, and land.
     const post = await page.evaluate(() => window.__ratsmash.state());

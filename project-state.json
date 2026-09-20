@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Phase 1 playtest closed (172) and 136 closed on the user verdict. Six tasks from the 2026-09-20 feedback: 177 L11 blade diagonal, 178 L12 rework, 179 angle-rewarding shapes (needs /brainstorm), 180 rat tunnels through shields (a real bug), 181 blood spurt on a tail cut, 182 whether acts still need distinct signatures. Still on swinging/feat/teaching-level-restructure, unmerged.",
+  "current_activity": "180 done (rat tunnelling through shields, fixed and gated). Next from the 2026-09-20 feedback: 177 L11 blade diagonal, 178 L12 rework, 181 blood spurt on a tail cut, 179 angle-rewarding shapes (needs /brainstorm), 182 act signatures. Branch swinging/feat/teaching-level-restructure, unmerged. WATCH at the next playtest: the shield cages are genuinely harder now that they no longer leak.",
   "action_plan": [
     {
       "id": 45,
@@ -273,8 +273,9 @@
     {
       "id": 180,
       "task": "The rat tunnels through shield panels - it has no continuous collision and panels are 12-14px thick",
-      "status": "pending",
-      "context": "Measured 2026-09-20, answering the user question \"sometimes I hit the target before breaking any shield\": four hits landed on caged targets while the cage still stood, at 48, 52, 60 and 61 px/step through a 14px panel. Only the ROPE is swept (physics.js sweepRopeSegments / resolveRopeLinks); the rat deliberately has none, which is why the arena walls are 800px thick. A shield is the thinnest solid body in the game, so it is the one that leaks. Thickening panels cannot fix it (rat peaks 250-460 px/step); the fix is to sweep the rat against shield bodies, reusing the rope machinery."
+      "status": "completed",
+      "context": "Measured 2026-09-20, answering the user question \"sometimes I hit the target before breaking any shield\": four hits landed on caged targets while the cage still stood, at 48, 52, 60 and 61 px/step through a 14px panel. Only the ROPE is swept (physics.js sweepRopeSegments / resolveRopeLinks); the rat deliberately has none, which is why the arena walls are 800px thick. A shield is the thinnest solid body in the game, so it is the one that leaks. Thickening panels cannot fix it (rat peaks 250-460 px/step); the fix is to sweep the rat against shield bodies, reusing the rope machinery. FIXED 2026-09-20 with Physics.sweepRat (rewind-only, velocity untouched). A/B over 3 reps of a 16-run sequence: 3 tunnelled hits every rep without it, 0 with it. Bot clears on the cage levels fall 16/16 -> 14-15/16 because the bot arrives at ~46 px/step against light 45 and must now break a panel it used to slip through; humans broke that cage 4/4, so nothing was retuned. dev/smoke.mjs also had a hardcoded 9-level count - now asserts only that levels render, since the gate owns the exact number.",
+      "completed_date": "2026-09-20T14:12:43"
     },
     {
       "id": 181,

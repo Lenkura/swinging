@@ -55,6 +55,7 @@ let ropeCut = false;
 let ropeBodies = [];
 let ropeConstraints = [];
 let ropeContactCount = 0;
+let ratSweepCount = 0;    // rat crossings caught by sweepRat (see there)
 let groundBody, leftWall, rightWall, ceiling;
 let canvasW, canvasH;
 
@@ -352,6 +353,58 @@ function resolveRopeLinks(prev) {
   }
 }
 
+/**
+ * Swept collision for the RAT, against targets and bumpers.
+ *
+ * The rat used to have none on purpose - it is large enough for discrete
+ * collision, and the arena boundaries are 800px thick precisely so it cannot
+ * cross them in one step. Shields broke that reasoning: a panel is 12-14px
+ * thick while the rat travels 20-100+ px per step, so the rat could pass
+ * clean through a shield and hit the target it was guarding without ever
+ * touching it. Measured 2026-09-20 on human runs (hits at 48, 52, 60 and 61
+ * px/step through a 14px panel) and reproduced by the bot in 3 of 16 runs.
+ * Thickening panels cannot fix it: the rat peaks at 250-460 px/step.
+ *
+ * REWIND ONLY, no collision response of its own: on detecting a crossing the
+ * rat is moved back to the last free point with its VELOCITY UNTOUCHED, so the
+ * next step collides normally and the existing shield break/block path, the
+ * bounce and the hit event all run exactly as they do for a slow approach.
+ * Contrast sweepRopeSegments, which also zeroes velocity - a rope segment is
+ * meant to stop dead against an obstacle; the rat is meant to hit it.
+ *
+ * A/B over the same 16-run bot sequence, three repetitions each: without it,
+ * 3 tunnelled hits every time and 16/16 runs cleared; with it, 0 tunnelled hits
+ * every time and 14-15/16 cleared. The lost clears are the fix working, not a
+ * new bug - the bot arrives at the L7 cage at ~46 px/step against a light
+ * panel's 45, so it used to slip through a panel it could barely break and now
+ * has to break it. Human runs broke that cage in 4 of 4, so nothing was retuned
+ * on the bot's behalf; a cage is simply a harder gate now than when it leaked.
+ */
+function sweepRat(prev) {
+  if (!ratBody || !prev) return;
+  const obstacles = targetBodies.concat(bumperBodies);
+  if (!obstacles.length) return;
+
+  const r = ratBody.plugin.radius;
+  const dx = ratBody.position.x - prev.x;
+  const dy = ratBody.position.y - prev.y;
+  // Under its own radius, discrete collision cannot have been skipped over.
+  if (Math.hypot(dx, dy) <= r) return;
+  // Already overlapping: Matter is resolving this contact itself, and rewinding
+  // would fight it.
+  if (Query.point(obstacles, ratBody.position).length) return;
+  if (!Query.ray(obstacles, prev, ratBody.position, r * 2).length) return;
+
+  let free = 0, blocked = 1;
+  for (let k = 0; k < 8; k++) {
+    const mid = (free + blocked) / 2;
+    const pt = { x: prev.x + dx * mid, y: prev.y + dy * mid };
+    if (Query.point(obstacles, pt).length) blocked = mid; else free = mid;
+  }
+  Body.setPosition(ratBody, { x: prev.x + dx * free, y: prev.y + dy * free });
+  ratSweepCount++;
+}
+
 export function step(delta) {
   const dt = subSteps === 1 ? delta : delta / subSteps;
   const fraction = subSteps === 1 ? 1 : 1 / subSteps;
@@ -361,8 +414,14 @@ export function step(delta) {
     const prev = ropeConfig.ccd && ropeBodies.length
       ? ropeBodies.map(s => ({ x: s.position.x, y: s.position.y }))
       : null;
+    // The rat is swept whenever CCD is on, rope or no rope: a shield is thin
+    // enough to be crossed in one step at ordinary swing speed.
+    const prevRat = ropeConfig.ccd && ratBody
+      ? { x: ratBody.position.x, y: ratBody.position.y }
+      : null;
     Engine.update(engine, dt);
     if (prev) { sweepRopeSegments(prev); resolveRopeLinks(prev); detectBladeCuts(prev); }
+    if (prevRat) sweepRat(prevRat);
   }
 }
 
@@ -573,6 +632,7 @@ export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ro
 
 export function detachRope() {
   ropeContactCount = 0;
+  ratSweepCount = 0;
   ropeConstraints.forEach(c => { try { Composite.remove(world, c); } catch { /* already gone */ } });
   ropeBodies.forEach(b => { try { Composite.remove(world, b); } catch { /* already gone */ } });
   if (ropeConstraints.includes(stringConstraint)) stringConstraint = null;
@@ -582,6 +642,8 @@ export function detachRope() {
 
 export function getRopeBodies() { return ropeBodies; }
 export function getRopeContactCount() { return ropeContactCount; }
+/** Rat crossings caught and rewound by sweepRat - diagnostic, read by rigs. */
+export function getRatSweepCount() { return ratSweepCount; }
 
 /**
  * Total turning along the rope, in radians. A taut straight rope is ~0; a rope
@@ -1052,6 +1114,7 @@ export function reset() {
   ropeBodies = [];
   ropeConstraints = [];
   ropeContactCount = 0;
+  ratSweepCount = 0;
   targetBodies = [];
   fragmentBodies = [];
   bumperBodies = [];
