@@ -82,7 +82,11 @@ try {
   await page.screenshot({ path: join(ROOT, 'dev', 'smoke-levelselect.png') });
   console.log('[smoke] screenshot -> dev/smoke-levelselect.png');
 
-  if (levelButtons !== 9) { console.error(`[smoke] FAIL expected 9 level buttons, got ${levelButtons}`); ok = false; }
+  // Deliberately "some levels rendered", not a count: this file stays
+  // self-contained (no import of levels.js), and a pinned 9 went stale the
+  // moment the campaign was re-laid to 12 - the same copied-value drift that
+  // broke the gate. The count is printed above; the gate owns the exact number.
+  if (levelButtons < 1) { console.error('[smoke] FAIL no level buttons rendered'); ok = false; }
   if (!matterLoaded) { console.error('[smoke] FAIL Matter.js did not load'); ok = false; }
   if (!canvasSize) { console.error('[smoke] FAIL canvas missing'); ok = false; }
 } catch (err) {

@@ -181,11 +181,11 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 - **Pivot**: the hand/grip point; follows the pointer every frame (no button hold required). Defined per-level as `{x, y}` fractions of canvas size; overridden to the constraint anchor position during play. It does **not** exist until the pick-up — `pivotTarget`/`pivotActual` only go live in `anchorRope`.
 - **READY / the pick-up**: a level opens with the rat slumped on the ground at the level pivot's x, its tail sprawled toward the targets, and the rope built but *unanchored*. A `pointerdown` within `GRAB_RADIUS` (44px, sized for touch — the tip is a 5px body) of the tail tip anchors the rope at that exact point and hands over control; raising the hand then hauls the rat up through ordinary physics, with no animation and no teleport. This exists because the old immediate start jolted: the pivot teleported from the level position to wherever the cursor happened to be on the first `pointermove`, whipping the rat. After a grab the pointer *is* the pivot, so there is no jump left to make. **The grab is mandatory — an unfound tail tip is a game that cannot start** — which is why `drawGrabHint` pulses the tip and the hint bar names the action ([L0364]). The pose is held static by `Physics.freezeForGrab` until the grab: without it the chain coils into a pile within a second, and the tip stops being at a position `dev/gate.mjs` can compute. `beginRun` auto-grabs, so the bot rigs never see `READY`; `?dev=1&rope=0` keeps the old hang-and-play start so `dev/ab.mjs` still compares like with like.
 - **Tail attachment (segmented rope)**: the tail is a chain of 10 collidable circular bodies (radius 5, each 5% of the rat's mass) running pivot -> segment 0 -> ... -> segment 9 -> the rat's tail-base offset (`-r*0.85, r*0.22`), so the rat still hangs by its tail rather than its centre. Built by `Physics.buildRope` (the chain and every constraint *except* the pivot anchor) and hung by `Physics.anchorRope` (that one anchor, created at the grab point); `attachRope` still calls both back to back for callers that want the old one-shot behaviour. Total reach matches `pushStringLength`. Segments collide with world geometry and obstacles but never with each other or the rat (see Collision categories). Wrapping is not simulated — it emerges from segments colliding. `engine.constraintIterations` is raised to 48 while a rope is attached (Matter's default 2 lets the chain stretch ~30% under load, lengthening the pendulum from 130 to 171px) and restored by `attachString`. The pre-rope single `Constraint` still exists behind `?dev=1&rope=0` purely so `dev/ab.mjs` can compare against it.
-- **Arena containment**: the rat gets **no** continuous collision — only the rope is swept — so nothing keeps it inside except world geometry thicker than it can cross in one step. Every boundary is therefore 800px thick (`WALL_HALF` 400), far beyond the measured rat peak of 250–460 px/step. **A ceiling exists** as of 2026-09-16; before that there was none at all and the rat could swing clean off the top, reproduced at y = −21. `reset()` must re-add every boundary, since `World.clear` drops them and `reset()` runs on each `startLevel`. The gate asserts this **structurally** — the bodies exist and exceed a thickness floor — because the behavioural version is unreliable: whipping the hand at the boundaries reproduced the escape in a run of 90 iterations and missed it in one of 80, so a containment test that watches the rat can pass while containment is entirely absent.
+- **Arena containment**: the rat's only continuous collision is against targets and bumpers (`sweepRat`, added 2026-09-20); nothing sweeps it against the arena boundary, so nothing keeps it inside except world geometry thicker than it can cross in one step. Every boundary is therefore 800px thick (`WALL_HALF` 400), far beyond the measured rat peak of 250–460 px/step. **A ceiling exists** as of 2026-09-16; before that there was none at all and the rat could swing clean off the top, reproduced at y = −21. `reset()` must re-add every boundary, since `World.clear` drops them and `reset()` runs on each `startLevel`. The gate asserts this **structurally** — the bodies exist and exceed a thickness floor — because the behavioural version is unreliable: whipping the hand at the boundaries reproduced the escape in a run of 90 iterations and missed it in one of 80, so a containment test that watches the rat can pass while containment is entirely absent.
 - **Ground line**: `GROUND_TOP_INSET` (40) in `physics.js` is the single definition of where the floor is, exported and imported by `renderer.js` so the physical and drawn surfaces cannot drift apart ([L0182]). They used to: `groundBody`'s top sat at the canvas bottom edge (y 620) while `drawGround` painted its surface at y 580, so every body rested 40px inside the dirt and `paintSplat` hid it by drawing decals at the visual line regardless of where the body actually was. Use `Physics.getGroundTop()` to place anything on the floor.
 - **Collision categories** (`physics.js` `CAT`/`MASK`): rat `0x0001`, targets and bumpers `0x0002`, fragments `0x0004`, rope `0x0010`, world (ground/walls) `0x0020`. Matter allows a pair only when *both* filters agree, so every intended pair is declared from both sides. Ground and walls previously set no filter at all and inherited Matter's default `0x0001` — the same bit the rat uses — which is why the rat fell through floors and why rope could not hit world geometry without also hitting the rat.
-- **Rope collision (manual CCD)**: Matter 0.19 has no continuous collision detection, and rope segments whip to ~432 px/step against 44px bumpers, so discrete collision misses most contacts. Two passes run after each `Engine.update`: `sweepRopeSegments` sweeps each segment from its previous to its current position (`Matter.Query.ray`, then a binary search for the last free point) and `resolveRopeLinks` does the same for the *line between* adjacent segments, since the rope is a chain of circles with gaps a link can cut through. Measured effect: segment penetration 2.2% -> 0%, link crossings 5-7.5% -> under 1%, cost ~0.21ms/frame. Segments moving less than their own radius are skipped, which is what keeps it cheap. Neither pass touches the rat: it is large enough for discrete collision and it carries the damage.
-- **Yank**: `pointerdown` (the pivot still snaps to the pointer) pulls the rat toward the pivot to slacken and unwind a caught rope — 0.6s cooldown. Non-accelerating *by construction*: tangential motion is damped, a radial component is added, and the result is clamped to the speed the rat already had, so it can never exceed it. This is load-bearing, not a convenience: with the rope, Level 8 is unwinnable without it (6/6 bot failures, zero hits). A snag prompt appears after 2.5s below 25 px/step and is suppressed once the player has yanked once.
+- **Rope collision (manual CCD)**: Matter 0.19 has no continuous collision detection, and rope segments whip to ~432 px/step against 44px bumpers, so discrete collision misses most contacts. Two passes run after each `Engine.update`: `sweepRopeSegments` sweeps each segment from its previous to its current position (`Matter.Query.ray`, then a binary search for the last free point) and `resolveRopeLinks` does the same for the *line between* adjacent segments, since the rope is a chain of circles with gaps a link can cut through. Measured effect: segment penetration 2.2% -> 0%, link crossings 5-7.5% -> under 1%, cost ~0.21ms/frame. Segments moving less than their own radius are skipped, which is what keeps it cheap. Neither pass touches the rat; `sweepRat` is its own, added 2026-09-20 and needed for one reason: **a shield panel is 12–14px thick**, while the rat travels 20–100+ px per step, so the rat crossed panels within a single step and hit the target a cage was guarding without ever touching it (measured on human runs at 48, 52, 60 and 61 px/step; reproduced by the bot in 3 of 16 runs). Thickening panels cannot fix it — the rat peaks at 250–460 px/step — which is why the arena walls are 800px thick instead. `sweepRat` **rewinds only**: on detecting a crossing it moves the rat back to the last free point and leaves its velocity alone, so the next step collides normally and the existing shield break/block path, the bounce and the hit event all run unchanged. It skips a rat that moved less than its own radius, and a rat already overlapping something (Matter is resolving that itself). A/B over three repetitions of a 16-run sequence: 3 tunnelled hits every time without it, 0 with it. The gate asserts it as *nothing reached the caged target through its cage*.
+- **Yank**: `pointerdown` (the pivot still snaps to the pointer) pulls the rat toward the pivot to slacken and unwind a caught rope — 0.6s cooldown. Non-accelerating *by construction*: tangential motion is damped, a radial component is added, and the result is clamped to the speed the rat already had, so it can never exceed it. It was load-bearing in the nine-level layout, where L8 (Crossfire) was unwinnable without it (6/6 bot failures, zero hits). **No level in layout 2 needs it** — Deflector cleared 4/4 bot seeds and the finale 3/3 with no yank — so the gate asserts the yank path directly (`yank input registered`) rather than through a level that is impossible otherwise. It still matters: a tail looped round a thin floating post is exactly what yanking cannot fix, which is why the shield cages are built flush (see L7 in `levels.js`). A snag prompt appears after 2.5s below 25 px/step and is suppressed once the player has yanked once.
 - **HP system**: `ratHp` starts at 100. Damage per hit = `speed² × angleFactor × material.yoyoDamage × impactMultiplier × comboMultiplier / DAMAGE_SCALE` (`DAMAGE_SCALE = 80`). HP floors at 0; the rat shatters (giblets) when HP reaches 0. `DAMAGE_SCALE` was raised to 2000 in an earlier pass on the (incorrect) assumption that real swings reach ~60% of `pushMaxSpeed`; playtesting showed actual swing speeds land far below that, producing 30-40 hits to clear Level 1, so it was corrected back down to 200, and then to 80 in the 2026-09-13 variant rebalance (see **Variant difficulty** below). **`DAMAGE_SCALE` is a tuning group, not a lone constant:** three feedback constants in `main.js` are expressed in raw damage units and must scale in the same direction by the same factor in the same commit — `damageIntensity`'s `600`, `SHAKE_GATE` (`180`) and the shake's `/120` divisor (the original trio was `240`, `120` and `80` when `DAMAGE_SCALE` was 200). `pushMaxSpeed` is a **presentation knob only** — its single use is normalising the speed meter and the whoosh in `main.js`; it never enters the damage formula. Validated against human free-swing calibration on the rope build (2026-09-12): standard peaks at 720 against its 750, i.e. 96%, so the meter is correctly scaled; heavy peaked at 784 against 625, so heavy was raised to 785. `DAMAGE_SCALE` was left at 200 through the rope work (2026-09-12) because the data did not support a change; it moved to 80 the next day as part of the variant rebalance, and the L1 result was verified by human play — median 4 hits on standard against the documented 3–4 target, down from 10.5.
 - **Hit cooldown**: 0.35s lock-out after each registered hit. Prevents the physics engine from double-counting a single contact.
 - **Combo system**: Each hit within `COMBO_WINDOW` (1.0s) increments `comboCount`. Multiplier = `min(1 + comboCount × 0.5, 3.0)`. Resets if the window expires before the next hit.
@@ -202,6 +202,7 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 - **Bumpers**: static circular bodies with high restitution (0.9). Deflect the rat without dealing HP damage. Spawned from the level's `bumpers[]` array.
 - **Materials**: defined in `target.js` — glass, wood, steel. **A campaign material is cosmetic plus exactly one dial.** `yoyoDamage` scales how much hitting that material hurts your own rat, which is how you win; `restitution` is read by physics; `color`/`crackedColor`/`outlineColor`/`glowColor` and `label` are drawn. That is the complete list, because targets in the nine campaign levels are indestructible (`removeTarget` is called only for shields). Six dead fields and `evaluateImpact` were removed 2026-09-14 after an audit found no reader — see **Adding Content** before reaching for a new one. The spread is deliberately narrow (**0.85 / 1.0 / 1.15**, was 0.6 / 1.0 / 1.6): because damage is purely good, a wide spread made steel strictly better than glass and *inverted* the difficulty curve — the tougher material damaged your own rat more, so the hard levels were the easy ones to score on. Measured 2026-09-13: steel one-shot the rat on 60% of hits against glass's 23%.
 - **Per-hit damage cap**: `applyDamageCap` in `target.js` clamps HP loss to `MAX_HIT_DAMAGE_FRACTION` (0.40) of `RAT_MAX_HP`. Damage goes as speed² and swing speed varies ~4× within a run, so the distribution has a very long tail — measured over 61 human hits, p50 41 but p75 113 and max 426, meaning **34% of hits ended a level outright**. The medians were already right; only the tail was broken, so the fix is a bound rather than a rescale, and it is the explicit bound a one-sided knob needs. **The cap applies to the HP subtraction only** — screen shake, hit-stop, the particle burst and the hit sound all read the raw uncapped value, so a monster hit still feels enormous while removing 40 HP. That is also what keeps the three feedback constants correctly aimed at raw damage rather than needing a re-derivation.
+- **Weak points (wedge targets)**: a `wedge` target is armoured everywhere but one face, named by `weakDir` (one of eight compass points). A hit arriving within `WEAK_POINT_WINDOW` (±45°) of that direction raises **that hit's** damage cap from `MAX_HIT_DAMAGE_FRACTION` (0.40) to `WEAK_POINT_CAP_FRACTION` (0.65) — it does **not** multiply damage. That choice is the whole design: 54.5% of measured hits already clamp at the ordinary cap, so a multiplier would have been invisible on more than half of all hits and invisible precisely on the hardest ones. `wedgeVerts` and `isWeakHit` in `target.js` are pure and unit-tested; the shape is convex, so Matter needs no poly-decomp (deleted in task 100), and `drawPhysicsBody` is vertex-driven, so rendering needed no change. **Which way a face points decides whether the reward can ever pay.** The first teaching level faced its wedge *downwards* — a nice idea that measured dead: every weak hit was slow (raw damage 0–40 against ordinary hits reaching 203) because reaching an underside means swinging **up**, against gravity, so the raised cap never bound. Facing it away from the hand, where it is struck on the fast return swing, the same level produced weak hits of raw 110 and 141 taking the full 65. An underside face is a *hard shot* for a later level, not a teaching one.
 - **Damage states**: four overlay states driven by `ratHp / RAT_MAX_HP` — healthy (≥ 75%), dazed (50–75%, orbiting stars), injured (25–50%, wound marks + blood drips), critical (< 25%, red stars + more drips + × eyes). Independently, the rat's body/head fill blends from `variant.color` toward `variant.wornColor` as HP drops, and the per-hit `crackPattern` (generated once HP < 75%) renders as scuff marks on the rat's body via `drawCracks()`.
 - **Impact feedback**: every HP-damaging hit fires three `particles.js` bursts via `emitImpactBurst` — a red blood splash (circle), target-material chunk debris (`material.crackedColor`), and rat-fur chunk debris (`variant.chunkColor`), the latter two using the `shape: 'chunk'` (rotating rectangle) particle type. Burst size/count scale with `damageIntensity(rawDamage)` = `sqrt(raw/600)`, clamped to 0–1 (it reads the **raw** uncapped value, not the HP-capped one — see the per-hit damage cap above). **It is a square root because the linear version was dead**: raw damage over 880 human hits runs p50 46, p90 182, max 1015, so `raw/600` left the median hit at 0.08 and 59% of hits below 0.10 — the documented burst scaling barely moved. The root gives p50 0.28 / p90 0.55 with monster hits still on top. Screen shake and hit-stop fire above `SHAKE_GATE` (180, the measured p90 — about one hit in ten). The old gate of 300 fired on 3.9% of hits while **54.5% of hits were taking the full capped 40 HP**, so the hits visibly doing the most to the HP bar mostly got no shake: the cap had moved what a "big hit" means to the player, and the feedback thresholds had not followed (task 136): chunk radii range from their base size up to 3× at full intensity, and ~8% of chunks spawn 2.5–4× oversized for variety. SHATTER reuses the same burst at `scale: 2`.
 - **Game feel** — what makes a hit read as a hit, beyond the particle burst. All of it is presentation: none of it touches damage, scoring or physics outcomes.
@@ -215,7 +216,7 @@ Use `/voice <mode>` to switch; `/voice` alone shows the current mode and options
 - **Giblets**: on shatter, 8 fragment bodies (circular Matter.js bodies) spawn with a lobbed radial velocity (`spread × 10 × rand` px/step + small up-bias — kept well under ~50 px/step, the single-step tunneling threshold for the 50px walls/floor). Each carries a `plugin.piece` generated once at spawn: guaranteed 1 bone shard / 1 organ / 1 gut coil, the rest weighted flesh chunks (60/20/20). `drawFragments` branches per type — flesh (red blob, ragged fur-tuft edge in `variant.color`), bone (off-white shaft with knobbed ends), organ (dark maroon, baked gloss highlight), gut (two-pass pink tube) — all geometry precomputed, no per-frame randomness. Fragments collide with ground/walls (`0x0001` in the mask); first ground contact fires `fragment-landed` → `Renderer.paintSplat` (small decal splat), and airborne pieces shed blood-drip particles on a per-fragment cadence (`plugin.dripInterval`, advanced in the game loop). Removed from the world after 4000ms with an alpha fade.
 - **Moving targets**: a target with a `movement: { axis, range, period }` field oscillates sinusoidally around its spawn position along `axis` (`'x'` or `'y'`), `range` (fraction of canvas width/height) wide, over `period` seconds — driven by `Physics.updateMovingTargets(elapsed)`, called each frame during SWINGING. The body stays `isStatic`; only its position is repositioned via `Body.setPosition`, so collision/damage formulas are unaffected.
 - **Act structure**: 9 levels in 3 acts — Act 1 (The Sewer), Act 2 (The Warehouse), Act 3 (The Lab). An ACT CLEAR screen appears when the last level of an act is shattered. **Each act poses a different spatial question; see [Level Design](#level-design) below, which is the authority on what belongs where.**
-- **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel`.
+- **Progress**: stored in `localStorage` under key `yoyo_progress` — high scores per level + `unlockedLevel` + `layoutVersion`. A save from another layout (or one predating the field) loses its high scores, which belong to different levels, and keeps its unlock progress capped at the current level count. **Bump `LAYOUT_VERSION` whenever a level id stops meaning the same level** — telemetry and saved scores both key on the id.
 
 ---
 
@@ -240,25 +241,109 @@ symptoms that had been investigated separately over weeks:
 Tuning content cannot fix sameness of structure. Three balance passes each found this
 independently before the cause was located.
 
-### Each act asks a question the previous one does not
+### Campaign structure: teaching levels, then mixed levels
 
-| act | intent | the question | vocabulary |
+Agreed 2026-09-19 after a playtest in which the early levels felt cluttered and the zone and
+shields arrived tangled together. **Each act opens with teaching levels that introduce one
+mechanic apiece, and closes with a mixed level that combines them.** After Act 3 comes a
+fourth section of miscellaneous mixed levels that recombine everything already taught.
+
+| act | intent | the question | teaches, in order |
 |---|---|---|---|
-| **1 — The Sewer** | open | *can you build and aim speed?* | pivot variety, materials, shapes. No obstacles: this act teaches the swing, and anything that interrupts it belongs later. |
-| **2 — The Warehouse** | constrained | *can you do it in a confined space?* | **movement zones**, shields. Both restrict *where* you may act — a zone bounds the hand, a shield denies a surface until you earn it. |
-| **3 — The Lab** | hazardous | *can you do it without getting cut?* | **blades**, bumpers, moving targets. All three punish loss of control rather than restricting position, and this is the only act where you can **lose**. |
+| **1 — The Sewer** | open | *can you build and aim speed?* | the grab and the swing; swinging from above; swinging upward; a moving target; the weak point — then a mixed level with two targets |
+| **2 — The Warehouse** | constrained | *can you do it in a confined space?* | the movement zone; the shield gate (light); a stronger shield (medium) — then a mixed level combining zone and shield |
+| **3 — The Lab** | hazardous | *can you do it without getting cut?* | bumpers, and yanking a snagged rope free; blades and the fail state — then a mixed finale |
+| **4 — mixed** | recombination | *can you read an unfamiliar arrangement?* | nothing new — ~9 levels built from the mechanics above in different ways (Phase 2, task 173) |
 
 The ordering is freedom → constraint → danger. An obstacle belongs to the act whose question
 it sharpens: if it restricts where you may be, it is Act 2; if it punishes what you do, it is
-Act 3. An obstacle that does neither is decoration.
+Act 3. An obstacle that does neither is decoration. Moving targets sit in Act 1 because they
+change *when* you swing, not where you may be or what punishes you.
 
-### Pivot position and rope length are design variables
+**Materials are not a mechanic.** Their damage spread is deliberately narrow (0.85 / 1.0 /
+1.15 — see Materials in Key Concepts), so a glass level and a wood level play the same. The
+Act 1 material levels teach the *swing*, through pivot position and target placement, and
+the material is flavour. Making materials behave differently would reopen the 2026-09-13
+balance decision and is a separate design pass, not something a level can do on its own.
 
-They are currently near-constant across the campaign, which is the mechanism behind the
-sameness above. Moving the pivot — centre, right, high, low — changes the entire spatial
-problem **using code that already exists**, and it is the cheapest level-design lever
-available. Treat `pivot` and `pushStringLength` as first-class per-level choices with a
-stated reason, not as values copied from the previous level.
+### Level design rules
+
+Each rule is tagged with what enforces it. **[test]** rules are checked by the named test in
+`tests/levels.test.js`, derived from the level data rather than from a hand-kept list, so a
+new level is checked without anyone remembering to add it. **[playtest]** rules can only be
+judged from human runs, and each names the number that judges it.
+
+The mechanics a level uses are read from its data by `levelMechanics` in `levels.js`:
+`movement` on any target → *moving*; a `wedge` target → *weak-point*; `handZone` → *zone*;
+any shield → *shield*, plus *shield-strong* if one is medium or heavy; `bumpers` → *bumper*;
+`blades` → *blade*.
+**Not mechanics:** materials, pivot position, and the number of targets — multiple targets
+are what mixed levels build up to, governed by rule 2. Shield tiers are deliberately two
+mechanics rather than three: a stronger shield is taught once, with a medium, and heavy
+only ever appears in mixed levels, so a separate *heavy* mechanic would have no teaching
+level and every mixed level using it would fail rule 3.
+
+**Structure**
+
+1. **A teaching level introduces exactly one new mechanic.** Everything else in it has
+   already been taught by an earlier level. A level with `teaches: 'swing'` introduces none —
+   it varies pivot and placement only. *[test: "a teaching level introduces exactly its
+   teaches mechanic"]*
+2. **One target, unless several targets are the point.** A teaching level has exactly one
+   target to hit the rat against; multiple targets are built up to in mixed levels. Shields,
+   bumpers and blades are obstacles, not targets. *[test: "a teaching level has exactly one
+   target"]*
+3. **A mechanic is taught before it is mixed.** A mixed level uses only mechanics some
+   earlier level has taught. *[test: "a mixed level uses only mechanics already taught"]*
+4. **Acts keep their order and their shape** — freedom → constraint → danger, each act that
+   teaches opening with a teaching level and closing with a mixed one. An all-mixed act (the
+   planned fourth section) teaches nothing and is exempt. *[test: "each act opens with a
+   teaching level and closes with a mixed one"]*
+
+**Fairness**
+
+5. **A teaching level is won the obvious way.** The new mechanic is the only thing in the
+   player's way. *[playtest: at least 90% of runs clear each teaching level; the blade level
+   fails at most ~20% of runs]*
+6. **A shield guarding the only target must be reliably breakable.** With one target, every
+   shield in the level is a gate — the level cannot be won without breaking it — so a
+   shield there turns from "denies a surface" into a hard progression gate, and an
+   unbreakable one soft-locks the level. Light is always allowed; medium only where it has
+   been measured breakable; **heavy never guards the only target.** This is not hypothetical:
+   the unzoned medium shield on the old L9 broke in 0 of 4 runs on 2026-09-19, its fastest
+   arrival 69 against a threshold of 70. *[test: "no heavy shield in a single-target level";
+   playtest: each gate shield breaks in at least 80% of runs]*
+7. **Hazards arrive gently.** A teaching blade uses a forgiving `cutSpeed`, and lethality
+   ramps up across the mixed levels rather than peaking at the introduction. The old L7 did
+   the opposite — 45% of runs cut on the level that taught the hazard. *[playtest: blade
+   teaching level fails at most ~20% of runs]*
+8. **New shield and blade values start deliberately easy and are tuned from human play,
+   never from bot runs.** The two error directions are not symmetric: too easy is a soft
+   level, too hard is an unreachable one, which has now happened three times (the 180 tier,
+   heavy after the zones, the L9 medium). The bot also does not approach a blade the way a
+   person does — see Blades and the fail state. *[playtest]*
+
+**Craft** — carried over from the 2026-09-14 findings above
+
+9. **Every obstacle is legible before it is encountered.** A constraint the player cannot see
+   cannot guide anyone: shield tiers were pointless until they were tinted per tier, and this
+   applies to movement zones with particular force. A teaching level's `hint` names its
+   mechanic — there is no tutorial layer, so the hint is how a level teaches. *[playtest:
+   screenshot every level; a hint that the player has to be told about has failed]*
+10. **Difficulty comes from arrangement first, furniture second.** If a level is hard only
+    because of what is in it, it will measure like every other level — that is what happened
+    to all nine originals. Rope length and target placement are the cheapest levers available
+    and use code that already exists, so every level states *why* its `pushStringLength` and
+    target positions are what they are, rather than copying the previous level's.
+    **`pivot` is only a lever inside a zone.** Once the tail is grabbed, the pointer *is* the
+    hand, and without a `handZone` nothing constrains it (`clampToZone` is a no-op) — so in
+    an open level `pivot` sets where the rat starts and nothing more. The 2026-09-14 analysis
+    that called the near-constant pivot "the mechanism behind the sameness" was half right:
+    the sameness was real, but in the open levels it lived in target placement, not in the
+    pivot. *[playtest]*
+11. **Every level states what it teaches or tests, and the number that would show it
+    working** — in a comment above the level, written *before* it is measured. A level
+    measured first and justified afterwards will always look justified. *[review]*
 
 ### How to measure whether the acts actually differ
 
@@ -284,15 +369,11 @@ differ" was always meant to mean. A future act, or a re-lay of one of these,
 should be held to the same bar: state the intent, then name the metric that
 would show it is working, *before* measuring.
 
-### Two rules that fall out of this
-
-- **A level's difficulty should come from its arrangement first and its furniture second.**
-  If a new level is hard only because of what is in it, it will measure the same as every
-  other level, because that is what happened to all nine.
-- **Every obstacle must be legible before it is encountered.** Shield tiers were invisible on
-  their first implementation — all three drew the same colour — which made the whole feature
-  pointless until they were tinted per tier. A constraint the player cannot see cannot guide
-  anyone, and this applies to movement zones with particular force.
+**These figures describe the nine-level layout.** The 2026-09-19 restructure
+replaces it, so they are the bar the new acts must still clear, not a
+measurement of them. Runs recorded before and after carry different
+`layoutVersion`s and must never be pooled — level 4 before and level 4 after
+are different levels with the same id.
 
 ---
 
@@ -300,7 +381,9 @@ would show it is working, *before* measuring.
 
 **New level**: add an entry to `LEVELS` in `levels.js`.
 
-Required fields: `id`, `act`, `name`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`.
+Required fields: `id`, `act`, `name`, `kind`, `background`, `groundColor`, `pivot`, `targets[]`, `parScore`, `stringLength`.
+
+**`kind`** — `'teaching'` or `'mixed'`, and a teaching level also sets **`teaches`**: one of `'swing'` (no new mechanic — the level varies pivot and placement only) or a mechanic from `MECHANICS` in `levels.js`. The suite checks the level against the **Level design rules** using its *derived* mechanics, so a teaching level that contains anything beyond what it declares fails — declare what the level is for, and the data has to agree. Read the rules before placing a level.
 
 Optional fields: `hint`, `pushStringLength` (overrides `stringLength`), `pushParScore` (default 1500), `bumpers[]`, `handZone`.
 
@@ -313,7 +396,7 @@ Optional fields: `hint`, `pushStringLength` (overrides `stringLength`), `pushPar
 - **The tail-grab point must lie inside the zone**, or the level cannot be started at all — a level opens with the grab target at `pivot.x + pushStringLength` on the ground, and if that falls outside the zone the player cannot reach it.
 - It bounds **where** the hand may be, not how fast it may move. A per-frame speed cap was tried in 2026-09-11 and rejected for capping the skill ceiling; limiting position is meant to do the opposite, by making placement matter.
 
-Target fields: `shape` (`'rectangle'` or `'circle'`), `x`, `y`, `material`, and for rectangles `w`/`h`, for circles `r`. Shield targets add `isShield: true` and `shieldTier` (`'light'`, `'medium'` or `'heavy'`) **instead of** `material` — the tier supplies both the break speed and the colour, and writing a raw `breakSpeed` or `material` on a shield fails the suite. Optional `movement: { axis: 'x'|'y', range, period }` makes the target oscillate — `range` is a fraction of canvas width (`axis: 'x'`) or height (`axis: 'y'`), `period` is the full oscillation in seconds.
+Target fields: `shape` (`'rectangle'`, `'circle'` or `'wedge'`), `x`, `y`, `material`, and for rectangles `w`/`h`, for circles `r`, for wedges `size` plus **`weakDir`** (one of `n, ne, e, se, s, sw, w, nw`) — see **Weak points** in Key Concepts, and note that a downward-facing weak face is reached only by a slow upward swing, so it rewards nothing. Shield targets add `isShield: true` and `shieldTier` (`'light'`, `'medium'` or `'heavy'`) **instead of** `material` — the tier supplies both the break speed and the colour, and writing a raw `breakSpeed` or `material` on a shield fails the suite. Optional `movement: { axis: 'x'|'y', range, period }` makes the target oscillate — `range` is a fraction of canvas width (`axis: 'x'`) or height (`axis: 'y'`), `period` is the full oscillation in seconds.
 
 Bumper fields: `x`, `y`, `radius`.
 
@@ -403,6 +486,13 @@ the console and stores the full document in `localStorage` (`yoyo_dev_runs`,
 last 100 runs, separate from `yoyo_progress`). `__ratsmashTelemetry.exportRuns()`
 downloads them all as JSON. A run is only recorded end-to-end if you reach the
 result screen — abandoning to the level select discards it.
+
+**Filter by `layoutVersion` before grouping by level.** Every run document
+carries it (`LAYOUT_VERSION` in `levels.js`); a run without the field is layout
+1, the nine-level campaign. Level ids are reused across re-lays, so "L4" in
+layout 1 (Low Ceiling) and "L4" in layout 2 (Drifter) are different levels, and
+an export that spans the change holds both. Grouping by `level` alone pools them
+silently and measures neither.
 
 ### Layout
 

@@ -22,16 +22,33 @@ const FIXED_DT = 1 / 60;
 // Seeded, fixed-dt cases. Bounds are deliberately wide: the gate catches
 // regressions, it does not enforce balance. Tightening these into balance
 // assertions would make every intentional tuning change look like a failure.
-// yankEvery models a competent player: with the rope, Level 8 is unwinnable
-// without yanking (6/6 failures, zero hits), so a bot that never yanks would
-// report a broken level - and a gate without an L8 case would not have caught
-// the soft-lock at all.
+// yankEvery models a competent player, and every case yanks.
+//
+// Cases are chosen by PURPOSE - the mechanic each one exercises - and pinned to
+// a level id only through that purpose. They were once "L4 = shields, L7 =
+// bumpers, L8 = needs the yank", and the 2026-09-19 re-lay (LAYOUT_VERSION 2)
+// moved every one of those mechanics to a different id. Seeds are the ones
+// probed to SHATTER deterministically at fixed dt; a seed is part of the case.
+//
+// There is no longer a "needs the yank" case. The nine-level L8 was unwinnable
+// without yanking (6/6 failures), which proved the yank worked by the level
+// being impossible otherwise. Nothing in layout 2 needs it - Deflector cleared
+// 4/4 seeds and the finale 3/3 with no yank at all - so the yank path is
+// asserted DIRECTLY instead: every case must register yanks (see the checks).
 const CASES = [
-  { level: 1, variant: 'standard', seed: 42, maxHits: 30, yankEvery: 1.5 },
-  { level: 1, variant: 'heavy', seed: 42, maxHits: 30, yankEvery: 1.5 },
-  { level: 4, variant: 'standard', seed: 7, maxHits: 45, yankEvery: 1.5 },  // Act 2 - shields
-  { level: 7, variant: 'standard', seed: 7, maxHits: 45, yankEvery: 1.5 },  // Act 3 - bumpers
-  { level: 8, variant: 'standard', seed: 500, maxHits: 45, yankEvery: 1.5 }, // needs the yank
+  { purpose: 'the swing',        level: 1,  variant: 'standard', seed: 42,  maxHits: 30, yankEvery: 1.5 },
+  { purpose: 'the swing, heavy', level: 1,  variant: 'heavy',    seed: 42,  maxHits: 30, yankEvery: 1.5 },
+  { purpose: 'shield gate',      level: 8,  variant: 'standard', seed: 42,  maxHits: 45, yankEvery: 1.5, needsShieldBreak: true },
+  { purpose: 'bumper',           level: 11, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
+  { purpose: 'blade, uncut',     level: 12, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
+  // The movement zone. This slot held the L12 finale until its floor blade was
+  // made deliberately lethal (the bot loses 8/8 there by design), then L9, the
+  // mixed zone+shield level - which FAILED the gate twice after passing once,
+  // the bot ending at rest with 24k rope contacts inside that narrow column.
+  // A case that flaky asserts nothing, and L9 is where the bot is weakest
+  // (3 of 4 timeouts in an earlier batch) while humans cleared it 6/6. L6 is
+  // the zone in its simplest form and cleared in 3-4s in every probe.
+  { purpose: 'movement zone',    level: 7,  variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
 ];
 
 const checks = [];
@@ -63,7 +80,7 @@ const t0 = Date.now();
   check('every resource on page load succeeds', failedLoads.length === 0, failedLoads.join(' | '));
 
   const levelButtons = await page.locator('#ls-grid button').count();
-  check('level select renders 9 levels', levelButtons === 9, `${levelButtons}`);
+  check(`level select renders all ${LEVELS.length} levels`, levelButtons === LEVELS.length, `${levelButtons}`);
 
   const globals = await page.evaluate(() => ({
     t: typeof window.__ratsmashTelemetry, h: typeof window.__ratsmash,
@@ -182,7 +199,7 @@ const t0 = Date.now();
   check('harness installs under ?dev=1', harnessReady);
 
   for (const c of CASES) {
-    console.log(`\n[L${c.level} ${c.variant} seed=${c.seed}]`);
+    console.log(`\n[L${c.level} ${c.variant} seed=${c.seed} - ${c.purpose}]`);
     const before = errors.length;
 
     // Spawn invariants, checked mid-run rather than inferred from the result
@@ -221,6 +238,22 @@ const t0 = Date.now();
     check('score is positive', s.score > 0, `${s.score}`);
     check(`hits within sane bound`, s.hitsToClear > 0 && s.hitsToClear <= c.maxHits, `${s.hitsToClear} (max ${c.maxHits})`);
     check('no errors captured in run', s.errors === 0, `${s.errors}`);
+    // The yank is the only way to free a snagged tail; with no level left that
+    // is unwinnable without it, this is what proves the input still lands.
+    if (c.yankEvery > 0) check('yank input registered', s.yanks > 0, `${s.yanks}`);
+    // A gate level cannot be won without a break, so SHATTER implies one - but
+    // asserted separately so a failure names the shield path, not "no shatter".
+    if (c.needsShieldBreak) {
+      check('a shield was broken', s.shieldBreaks > 0, `${s.shieldBreaks}`);
+      // The caged target cannot legitimately be hit until a panel is gone, so a
+      // damaging hit before the first break means the rat crossed a 14px panel
+      // inside one step. That happened in 3 of 16 bot runs before sweepRat.
+      const brk = (doc.hits || []).filter(h => h.kind === 'shield-break').map(h => h.t);
+      const firstBreak = brk.length ? Math.min(...brk) : Infinity;
+      const early = (doc.hits || []).filter(h => h.kind === 'damage' && h.t < firstBreak);
+      check('nothing reached the caged target through its cage',
+        early.length === 0, early.map(h => `t=${h.t} @${Math.round(h.speed)}px/step`).join(' '));
+    }
 
     // Giblets (tasks 101-103): bodies spawn, carry piece types, and land.
     const post = await page.evaluate(() => window.__ratsmash.state());
@@ -248,7 +281,9 @@ const t0 = Date.now();
   {
     console.log('\n[arena containment]');
     await page.evaluate(o => window.__ratsmash.beginRun(o),
-      { level: 9, variant: 'heavy', source: 'gate', seed: 1 });
+      // Any level serves the structural checks, but the whip below needs one
+      // WITHOUT a handZone, or the zone clamps the hand before it reaches a wall.
+      { level: 13, variant: 'heavy', source: 'gate', seed: 1 });
     await page.waitForTimeout(250);
 
     const w = await page.evaluate(() => window.__ratsmash.state().world);

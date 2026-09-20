@@ -11,9 +11,17 @@ function generateBlobVerts(count = 6) {
   return verts;
 }
 
-export function emit(x, y, { count = 12, color = '#fff', speed = 300, gravity = 400, radius = 4, lifetime = 0.7, shape = 'circle' } = {}) {
+/**
+ * `direction` (radians) plus `spread` aims a burst instead of scattering it
+ * evenly: omit them and the burst is radial, exactly as before. Added for the
+ * arterial spray of a cut tail, which has to read as coming OUT of the stump
+ * in one direction - a radial puff reads as an explosion, not a wound.
+ */
+export function emit(x, y, { count = 12, color = '#fff', speed = 300, gravity = 400, radius = 4, lifetime = 0.7, shape = 'circle', direction = null, spread = Math.PI * 2 } = {}) {
   for (let i = 0; i < count; i++) {
-    const angle = Math.random() * Math.PI * 2;
+    const angle = direction === null
+      ? Math.random() * Math.PI * 2
+      : direction + (Math.random() - 0.5) * spread;
     const s = speed * (0.4 + Math.random() * 0.6);
     let r = radius * (0.5 + Math.random() * 0.7);
     // Rare oversized chunk for visual variety
@@ -21,7 +29,7 @@ export function emit(x, y, { count = 12, color = '#fff', speed = 300, gravity = 
     particles.push({
       x, y,
       vx: Math.cos(angle) * s,
-      vy: Math.sin(angle) * s - speed * 0.3,
+      vy: Math.sin(angle) * s - (direction === null ? speed * 0.3 : 0),
       gravity,
       radius: r,
       color,

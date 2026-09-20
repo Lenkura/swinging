@@ -5,7 +5,7 @@ import * as Particles from './particles.js';
 import * as UI from './ui.js';
 import { RAT_VARIANTS } from './rat.js';
 import { LEVELS, getLevel, saveProgress, loadProgress } from './levels.js';
-import { generateCrackPattern, applyDamageCap } from './target.js';
+import { generateCrackPattern, applyDamageCap, isWeakHit, WEAK_POINT_CAP_FRACTION, MAX_HIT_DAMAGE_FRACTION } from './target.js';
 import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak, startWhoosh, updateWhoosh, stopWhoosh } from './audio.js';
 import { calcPushScore, comboMultiplier } from './scoring.js';
 
@@ -99,6 +99,11 @@ let shakeTimer = 0;
 let shakeIntensity = 0;
 const SHAKE_DURATION = 0.3;
 let hitStopTimer = 0; // sim freeze on heavy hits; render/particles keep running
+// A severed tail keeps bleeding through the tumble. Held as a countdown rather
+// than a one-shot burst because the loss is given 2.6s to land (see the
+// rope-cut handler) and a single puff at t=0 is over before the rat has fallen.
+let bleedTimer = 0;
+let bleedTick = 0;
 let flashTimer = 0;
 let squashTimer = 0;
 const FLASH_DURATION = 0.05;
@@ -238,7 +243,14 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, speed, hitPoint, material, angleF
     // is deliberately unbounded, so a monster swing still reads as one. Only the
     // HP subtraction is capped, which is what stops a single hit ending a level.
     const rawDamage = speed * speed * af * (material.yoyoDamage || 1.0) * (yoyo.plugin.impactMultiplier || 1.0) * cm / DAMAGE_SCALE;
-    const damage = applyDamageCap(rawDamage, RAT_MAX_HP);
+    // A wedge rewards being struck on its open face by raising THIS hit's
+    // ceiling, not by multiplying damage: over half of all hits already clamp
+    // at the ordinary cap, so a multiplier would be invisible exactly on the
+    // hardest hits. The approach angle is the rat's own heading at contact.
+    const weakHit = Boolean(target.plugin.weakDir)
+      && isWeakHit(Math.atan2(yoyo.velocity.y, yoyo.velocity.x), target.plugin.weakDir);
+    const damage = applyDamageCap(rawDamage, RAT_MAX_HP,
+      weakHit ? WEAK_POINT_CAP_FRACTION : MAX_HIT_DAMAGE_FRACTION);
     ratHp = Math.max(0, ratHp - damage);
     hitCount++;
     hitCooldown = 0.35;
@@ -250,9 +262,15 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, speed, hitPoint, material, angleF
       // Both, on purpose: once damage is capped it reads as a flat ceiling, and
       // the tail that justified the cap would be invisible to the next analysis.
       damage, rawDamage, combo: comboCount, multiplier: cm, hpAfter: ratHp, hitIndex: hitCount,
+      // Recorded on every hit at a wedge, hit or miss of the face, so the
+      // window and the raised cap can be tuned from the distribution rather
+      // than from anecdote - and so "did players find the face?" is answerable.
+      ...(target.plugin.weakDir ? { weakDir: target.plugin.weakDir, weakHit } : {}),
     });
 
-    if (af < 0.55) {
+    if (weakHit) {
+      hitLabel = { text: 'WEAK POINT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#ffd166' };
+    } else if (af < 0.55) {
       hitLabel = { text: 'GLANCING!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#f4a261' };
     } else if (af > 0.88) {
       hitLabel = { text: 'CLEAN HIT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#80ffdb' };
@@ -336,7 +354,19 @@ Physics.on('rope-cut', ({ x, y, speed, cutSpeed }) => {
     kind: 'rope-cut', speed, cutSpeed, hitIndex: hitCount, hpAfter: ratHp,
   });
   hitLabel = { text: 'TAIL CUT!', x, y, timer: HIT_LABEL_DURATION, color: '#ff5d5d' };
-  Particles.emit(x, y, { count: 14, color: '#ff5d5d', speed: 260, radius: 3 });
+
+  // Arterial spray, aimed back along the tail - away from the rat, out of the
+  // cut - rather than scattered, so it reads as a wound rather than a puff.
+  // Three layers at one angle: heavy gouts, a fast fine mist, and a dark
+  // spatter that lingers.
+  const rat = Physics.getRatBody();
+  const away = rat ? Math.atan2(y - rat.position.y, x - rat.position.x) : -Math.PI / 2;
+  Particles.emit(x, y, { count: 18, color: '#b0202a', speed: 300, radius: 4, lifetime: 0.9, direction: away, spread: 1.1 });
+  Particles.emit(x, y, { count: 22, color: '#ff5d5d', speed: 420, radius: 2, lifetime: 0.6, direction: away, spread: 0.7 });
+  Particles.emit(x, y, { count: 10, color: '#7a1119', speed: 180, radius: 5, lifetime: 1.3, direction: away, spread: 2.0 });
+  bleedTimer = 1.6;
+  bleedTick = 0;
+
   shakeIntensity = 6;
   shakeTimer = SHAKE_DURATION;
   // A loss gets a longer beat than a win: the rat is sent tumbling and physics
@@ -378,6 +408,8 @@ function startLevel() {
   hitStopTimer = 0;
   flashTimer = 0;
   squashTimer = 0;
+  bleedTimer = 0;
+  bleedTick = 0;
 
   Physics.reset();
   Particles.clear();
@@ -513,6 +545,39 @@ function gameLoop(timestamp) {
     if (impactTimer <= 0) {
       gameState = 'RESULT';
       showResult();
+    }
+  }
+
+  // The stump. Emitted from the rat's tail base as it tumbles, in pulses rather
+  // than a stream - a steady trickle reads as a leak, a pulse reads as a heart.
+  // Weakens as it runs out, and paints the ground where it lands.
+  if (bleedTimer > 0) {
+    bleedTimer -= dt;
+    bleedTick -= dt;
+    const rat = Physics.getRatBody();
+    if (rat && bleedTick <= 0) {
+      bleedTick = 0.1;
+      const strength = Math.max(0, bleedTimer / 1.6);
+      const r = RAT_VARIANTS[selectedVariant].radius;
+      // Tail base offset, rotated with the body - the same anchor the rope hung
+      // from (physics.js attachRope: -r*0.85, r*0.22).
+      const ca = Math.cos(rat.angle), sa = Math.sin(rat.angle);
+      const bx = rat.position.x + (-r * 0.85) * ca - (r * 0.22) * sa;
+      const by = rat.position.y + (-r * 0.85) * sa + (r * 0.22) * ca;
+      Particles.emit(bx, by, {
+        // Slow and short-lived on purpose: at spray speed the droplets outran
+        // the rat and freckled the whole arena, which read as dust rather than
+        // blood. These trail the body instead.
+        count: Math.round(3 + 5 * strength), color: '#b0202a',
+        speed: 50 + 90 * strength, radius: 3, lifetime: 0.5,
+        direction: rat.angle + Math.PI, spread: 1.4,
+      });
+      // Only pool where blood could actually have landed. paintSplat always
+      // paints at the ground line, so calling it while the rat is still high
+      // put splats under a body that had not bled on that spot yet.
+      if (rat.position.y > Physics.getGroundTop() - 90) {
+        Renderer.paintSplat(bx, 0.25 * strength, 0.5);
+      }
     }
   }
 
