@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "181 done (blood spurt on a tail cut). Remaining from the 2026-09-20 feedback: 179 angle-rewarding target shapes (needs /brainstorm) and 182 act signatures; new 183 watches a possible L9 stuck-rat. Branch swinging/feat/teaching-level-restructure, unmerged - it now carries 167-171, 177, 178, 180, 181.",
+  "current_activity": "Task 184 (weak-point mechanic) on swinging/feat/teaching-level-restructure - the branch is large and unmerged, carrying 167-171, 177, 178, 180, 181 and now the weak-point work; worth a /finish-branch soon. 179 is superseded by 184-186.",
   "action_plan": [
     {
       "id": 45,
@@ -269,8 +269,8 @@
     {
       "id": 179,
       "task": "Angle-rewarding target shapes - eight shapes, one per cardinal and diagonal",
-      "status": "pending",
-      "context": "User idea 2026-09-20: a target shape that grants more damage when struck from a particular direction (e.g. from below), so a level can be built around approaching from that side. Needs a design pass - it touches the damage formula, which has exactly one direction term today (angleFactor, the dot product of approach and surface normal) and no notion of a preferred side. Run /brainstorm."
+      "status": "superseded",
+      "context": "User idea 2026-09-20: a target shape that grants more damage when struck from a particular direction (e.g. from below), so a level can be built around approaching from that side. Needs a design pass - it touches the damage formula, which has exactly one direction term today (angleFactor, the dot product of approach and surface normal) and no notion of a preferred side. Run /brainstorm. Designed 2026-09-20 and split into 184-186; see that day's decision entry."
     },
     {
       "id": 180,
@@ -297,6 +297,24 @@
       "task": "L9 Narrow Column: the bot ends at rest with 20-24k rope contacts inside the zone - check whether a human can get stuck there too",
       "status": "pending",
       "context": "Seen repeatedly 2026-09-20 while choosing gate cases: in that narrow column the rope wraps and the rat comes to a dead stop (lastSpeed 0, 24k rope contacts, 3 hits in 90s), and 60 yanks do not free it. Humans cleared L9 6/6 in the playtest, so this may be bot-only - but \"the rat is stuck and yanking will not help\" is the same shape as the L7 cage soft-lock that was real (task 171). Watch it in the next playtest; if a human ever sticks, the column geometry is the dial."
+    },
+    {
+      "id": 184,
+      "task": "Weak-point mechanic: wedge geometry, the raised per-hit cap, and its unit tests",
+      "status": "pending",
+      "context": "wedgeVerts(size, weakDir) and isWeakHit(approach, weakDir) as pure functions in target.js, WEAK_POINT_CAP_FRACTION 0.65 beside the existing 0.40, a wedge branch in spawnTargets using Bodies.fromVertices (convex - no decomposition), and the hit path in main.js picking the cap, firing a WEAK POINT! label and recording it in telemetry so the window and cap can be tuned from human play. Renderer needs no change: drawPhysicsBody is vertex-driven."
+    },
+    {
+      "id": 185,
+      "task": "Act 1 teaching level for the weak point - one wedge, weak face reachable but not on the lazy line",
+      "status": "pending",
+      "context": "The rules require it: a weak point is a new mechanic, so it must be taught in a level of its own before any mixed level uses it (rules 1 and 3, enforced by the suite). Act 1 goes to five teaching levels plus its mixed closer; the campaign becomes 13 levels. MECHANICS in levels.js gains weak-point."
+    },
+    {
+      "id": 186,
+      "task": "Measure the weak point on human play: cap value, window width, and whether players notice the face",
+      "status": "pending",
+      "context": "Telemetry records weak-face hits and the cap applied. Working if the share of hits landing on weak faces RISES across attempts - a flat share means the face is not readable and the silhouette, not the numbers, is the dial. Bot runs cannot answer this (they aim at target centres)."
     }
   ],
   "recently_updated_files": [
@@ -688,6 +706,11 @@
       "date": "2026-09-20",
       "decision": "L12's floor blade stays lethal as sketched: full span, cutSpeed 200, cutting 8 of 8 bot runs.",
       "rationale": "Measured before deciding: the tail whips through the low arc at 405-565 px/step, and the blade spans it, so any threshold below whip speed means \"never let the tail drop\". Two alternatives were offered and declined - shortening it to leave a safe corridor, and raising the threshold to ~600 (above every crossing measured, which would have made it decoration like the old L8 blade at 0 cuts in 24 runs). The player chose the harsh reading with the numbers in front of them, so the finale is deliberately exempt from rule 7 (hazards arrive gently). Consequences taken rather than hidden: the gate finale case moved to L9 because the bot loses L12 8/8 by design, and the level comment now says what would show it is working - a human cut rate that FALLS across attempts. A flat rate means the level asks for something unlearnable, and then the span, not the threshold, is the dial."
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "Angle-rewarding targets are a WEDGE with one open face, placed at any of eight angles, and hitting that face raises the per-hit damage cap for that hit (0.40 -> 0.65 of max HP) rather than multiplying damage.",
+      "rationale": "The reward had to survive the per-hit cap: 54.5% of measured hits already clamp at 40 HP, so a plain damage multiplier would have been invisible on more than half of hits - and invisible precisely on the best ones, which is backwards. Raising the cap for an earned hit is visible every time and leaves the cap as the safety rail it was added to be. One wedge rotated eight ways beats eight silhouettes: the shape itself says where to hit from (rule 9, legible before encountered), it needs no renderer work because target drawing is vertex-driven, and it is convex, so it needs no polygon decomposition (the poly-decomp tag was deleted in task 100). A weak point is a NEW MECHANIC, so the rules require a teaching level of its own before any mixed level uses it - Act 1 gains a fifth teaching level and the campaign becomes 13 levels. Alternatives declined: a damage multiplier (cap-flattened), and armour on the wrong sides only (always visible, but it slows every level and reads as punishment rather than reward)."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
