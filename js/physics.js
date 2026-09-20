@@ -1,4 +1,4 @@
-import { MATERIALS, generateCrackPattern, resolveShieldTier } from './target.js';
+import { MATERIALS, generateCrackPattern, resolveShieldTier, wedgeVerts } from './target.js';
 import { RAT_VARIANTS } from './rat.js';
 
 const { Engine, Bodies, Body, Composite, Constraint, Events, World, Query } = Matter;
@@ -707,7 +707,30 @@ export function spawnTargets(levelTargets, shieldSpeedScale = 1) {
     const material = MATERIALS[td.material];
 
     let body;
-    if (td.shape === 'circle') {
+    if (td.shape === 'wedge') {
+      // An angle-rewarding target: blunt open face, armoured point. The shape
+      // is convex on purpose - Matter falls back to poly-decomp for concave
+      // vertex sets, and that library was deleted in task 100.
+      body = Bodies.fromVertices(x, y, [wedgeVerts(td.size, td.weakDir)], {
+        isStatic: true,
+        label: 'target',
+        restitution: material.restitution,
+        friction: 0.5,
+        collisionFilter: { category: CAT.TARGET, mask: MASK.TARGET },
+        plugin: {
+          materialKey: td.material,
+          cracked: false,
+          crackPattern: null,
+          width: td.size,
+          height: td.size,
+          fragmentsSpawned: false,
+          isShield: false,
+          breakSpeed: 0,
+          weakDir: td.weakDir,
+          movement: makeMovementPlugin(td.movement, x, y),
+        },
+      });
+    } else if (td.shape === 'circle') {
       body = Bodies.circle(x, y, td.r, {
         isStatic: true,
         label: 'target',

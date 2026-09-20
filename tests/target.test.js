@@ -3,6 +3,7 @@ import {
   getFragmentVerts, generateCrackPattern, MATERIALS,
   applyDamageCap, MAX_HIT_DAMAGE_FRACTION,
   SHIELD_TIERS, resolveShieldTier, MAX_OBSERVED_CONTACT_SPEED,
+  WEAK_POINT_CAP_FRACTION, WEAK_POINT_WINDOW, WEAK_DIRECTIONS, wedgeVerts, isWeakHit,
 } from '../js/target.js'
 
 // -------------------------------------------------------------------
@@ -281,5 +282,135 @@ describe('resolveShieldTier — shieldSpeedScale', () => {
   it('does not scale a non-shield target', () => {
     const td = { shape: 'circle', material: 'glass' }
     expect(resolveShieldTier(td, 0.5)).toBe(td)
+  })
+})
+
+// -------------------------------------------------------------------
+// Weak points. The reward is a RAISED CAP rather than a damage
+// multiplier, because 54.5% of measured hits already clamp at the
+// ordinary cap - a multiplier would be invisible on the hardest hits.
+// -------------------------------------------------------------------
+describe('weak point cap', () => {
+  const HP = 100
+
+  it('is higher than the ordinary cap, or it rewards nothing', () => {
+    expect(WEAK_POINT_CAP_FRACTION).toBeGreaterThan(MAX_HIT_DAMAGE_FRACTION)
+  })
+
+  it('still bounds a monster hit — it raises the ceiling, it does not remove it', () => {
+    expect(applyDamageCap(99999, HP, WEAK_POINT_CAP_FRACTION)).toBe(HP * WEAK_POINT_CAP_FRACTION)
+    expect(applyDamageCap(99999, HP, WEAK_POINT_CAP_FRACTION)).toBeLessThan(HP)
+  })
+
+  it('leaves a hit under the ordinary cap completely alone', () => {
+    expect(applyDamageCap(22, HP, WEAK_POINT_CAP_FRACTION)).toBe(22)
+  })
+
+  it('defaults to the ordinary cap, so every existing call is unchanged', () => {
+    expect(applyDamageCap(999, HP)).toBe(HP * MAX_HIT_DAMAGE_FRACTION)
+  })
+})
+
+describe('wedgeVerts', () => {
+  const dirs = Object.keys(WEAK_DIRECTIONS)
+
+  it('offers all eight compass directions', () => {
+    expect(dirs.sort()).toEqual(['e', 'n', 'ne', 'nw', 's', 'se', 'sw', 'w'])
+  })
+
+  it('throws on an unknown direction rather than defaulting', () => {
+    // A silent default would put the open face somewhere the level never asked
+    // for, and the silhouette is the whole affordance.
+    expect(() => wedgeVerts(60, 'up')).toThrow(/Unknown weakDir/)
+  })
+
+  it('is convex — Matter would need poly-decomp otherwise, and it was deleted', () => {
+    for (const d of dirs) {
+      const v = wedgeVerts(60, d)
+      let sign = 0
+      for (let i = 0; i < v.length; i++) {
+        const a = v[i], b = v[(i + 1) % v.length], c = v[(i + 2) % v.length]
+        const cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x)
+        if (Math.abs(cross) < 1e-9) continue
+        const s = Math.sign(cross)
+        if (sign === 0) sign = s
+        expect(s, `${d} turns back on itself`).toBe(sign)
+      }
+    }
+  })
+
+  it('comes to a POINT on the armoured side, opposite the open face', () => {
+    // Stated as a projection along the weak direction, because two earlier
+    // versions of this test guessed at the geometry and were wrong: the open
+    // face is not the furthest-apart pair of vertices (that is a diagonal),
+    // and the point is not the vertex furthest from centre (the face's own
+    // corners are further out). What is true: along the weak direction, one
+    // vertex alone sits at the minimum.
+    for (const [dir, angle] of Object.entries(WEAK_DIRECTIONS)) {
+      const v = wedgeVerts(60, dir)
+      const proj = v.map(p => p.x * Math.cos(angle) + p.y * Math.sin(angle)).sort((a, b) => a - b)
+      expect(proj[0], `${dir} armoured point`).toBeLessThan(proj[1])
+      expect(proj[0], `${dir} point is on the far side of centre`).toBeLessThan(0)
+    }
+  })
+
+  it('presents a FLAT face on the weak side, not a corner', () => {
+    // Two vertices tie for furthest along the weak direction: that tie is what
+    // makes the open side a face the rat can strike square rather than a point.
+    for (const [dir, angle] of Object.entries(WEAK_DIRECTIONS)) {
+      const v = wedgeVerts(60, dir)
+      const proj = v.map(p => p.x * Math.cos(angle) + p.y * Math.sin(angle)).sort((a, b) => b - a)
+      expect(proj[0], `${dir} open face is flat`).toBeCloseTo(proj[1], 6)
+      expect(proj[1], `${dir} open face stands proud of the rest`).toBeGreaterThan(proj[2])
+    }
+  })
+
+  it('scales with size', () => {
+    const small = wedgeVerts(40, 'n')
+    const big = wedgeVerts(80, 'n')
+    const span = v => Math.max(...v.map(p => Math.hypot(p.x, p.y)))
+    expect(span(big)).toBeCloseTo(span(small) * 2, 5)
+  })
+})
+
+describe('isWeakHit', () => {
+  // `approach` is the direction the RAT is travelling, so a rat moving east
+  // (0) arrives at a west-facing open face.
+  it('counts a hit that arrives onto the open face', () => {
+    expect(isWeakHit(0, 'w')).toBe(true)
+    expect(isWeakHit(Math.PI, 'e')).toBe(true)
+    expect(isWeakHit(Math.PI / 2, 'n')).toBe(true)   // travelling down, hits the top face
+    expect(isWeakHit(-Math.PI / 2, 's')).toBe(true)  // travelling up, hits the underside
+  })
+
+  it('rejects a hit on the armoured side', () => {
+    expect(isWeakHit(0, 'e')).toBe(false)
+    expect(isWeakHit(Math.PI, 'w')).toBe(false)
+    expect(isWeakHit(Math.PI / 2, 's')).toBe(false)
+  })
+
+  it('accepts every one of the eight directions when struck square', () => {
+    for (const [dir, angle] of Object.entries(WEAK_DIRECTIONS)) {
+      expect(isWeakHit(angle + Math.PI, dir), dir).toBe(true)
+    }
+  })
+
+  it('is inclusive at the window edge and rejects just outside it', () => {
+    const almost = WEAK_POINT_WINDOW - 1e-6
+    expect(isWeakHit(almost, 'w')).toBe(true)
+    expect(isWeakHit(WEAK_POINT_WINDOW + 0.01, 'w')).toBe(false)
+  })
+
+  it('wraps around the angle discontinuity rather than failing there', () => {
+    // A west-facing face is hit by a rat travelling east; approach angles of
+    // +PI and -PI are the same heading and must behave the same.
+    expect(isWeakHit(Math.PI - 0.01, 'e')).toBe(true)
+    expect(isWeakHit(-Math.PI + 0.01, 'e')).toBe(true)
+  })
+
+  it('returns false for an unknown direction instead of throwing mid-hit', () => {
+    // Authoring errors throw at spawn (wedgeVerts); this runs inside the
+    // collision handler, where throwing would take the frame down.
+    expect(isWeakHit(0, 'up')).toBe(false)
   })
 })

@@ -5,7 +5,7 @@ import * as Particles from './particles.js';
 import * as UI from './ui.js';
 import { RAT_VARIANTS } from './rat.js';
 import { LEVELS, getLevel, saveProgress, loadProgress } from './levels.js';
-import { generateCrackPattern, applyDamageCap } from './target.js';
+import { generateCrackPattern, applyDamageCap, isWeakHit, WEAK_POINT_CAP_FRACTION, MAX_HIT_DAMAGE_FRACTION } from './target.js';
 import { playHit, playShatter, playComboTone, playShieldBlock, playShieldBreak, startWhoosh, updateWhoosh, stopWhoosh } from './audio.js';
 import { calcPushScore, comboMultiplier } from './scoring.js';
 
@@ -243,7 +243,14 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, speed, hitPoint, material, angleF
     // is deliberately unbounded, so a monster swing still reads as one. Only the
     // HP subtraction is capped, which is what stops a single hit ending a level.
     const rawDamage = speed * speed * af * (material.yoyoDamage || 1.0) * (yoyo.plugin.impactMultiplier || 1.0) * cm / DAMAGE_SCALE;
-    const damage = applyDamageCap(rawDamage, RAT_MAX_HP);
+    // A wedge rewards being struck on its open face by raising THIS hit's
+    // ceiling, not by multiplying damage: over half of all hits already clamp
+    // at the ordinary cap, so a multiplier would be invisible exactly on the
+    // hardest hits. The approach angle is the rat's own heading at contact.
+    const weakHit = Boolean(target.plugin.weakDir)
+      && isWeakHit(Math.atan2(yoyo.velocity.y, yoyo.velocity.x), target.plugin.weakDir);
+    const damage = applyDamageCap(rawDamage, RAT_MAX_HP,
+      weakHit ? WEAK_POINT_CAP_FRACTION : MAX_HIT_DAMAGE_FRACTION);
     ratHp = Math.max(0, ratHp - damage);
     hitCount++;
     hitCooldown = 0.35;
@@ -255,9 +262,15 @@ Physics.on('yoyo-hit-target', ({ target, yoyo, speed, hitPoint, material, angleF
       // Both, on purpose: once damage is capped it reads as a flat ceiling, and
       // the tail that justified the cap would be invisible to the next analysis.
       damage, rawDamage, combo: comboCount, multiplier: cm, hpAfter: ratHp, hitIndex: hitCount,
+      // Recorded on every hit at a wedge, hit or miss of the face, so the
+      // window and the raised cap can be tuned from the distribution rather
+      // than from anecdote - and so "did players find the face?" is answerable.
+      ...(target.plugin.weakDir ? { weakDir: target.plugin.weakDir, weakHit } : {}),
     });
 
-    if (af < 0.55) {
+    if (weakHit) {
+      hitLabel = { text: 'WEAK POINT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#ffd166' };
+    } else if (af < 0.55) {
       hitLabel = { text: 'GLANCING!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#f4a261' };
     } else if (af > 0.88) {
       hitLabel = { text: 'CLEAN HIT!', x: hitPoint.x, y: hitPoint.y, timer: HIT_LABEL_DURATION, color: '#80ffdb' };

@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Task 184 (weak-point mechanic) on swinging/feat/teaching-level-restructure - the branch is large and unmerged, carrying 167-171, 177, 178, 180, 181 and now the weak-point work; worth a /finish-branch soon. 179 is superseded by 184-186.",
+  "current_activity": "Task 185: the Act 1 teaching level for the weak point. It also verifies 184 at runtime - no level contains a wedge yet.",
   "action_plan": [
     {
       "id": 45,
@@ -301,8 +301,9 @@
     {
       "id": 184,
       "task": "Weak-point mechanic: wedge geometry, the raised per-hit cap, and its unit tests",
-      "status": "pending",
-      "context": "wedgeVerts(size, weakDir) and isWeakHit(approach, weakDir) as pure functions in target.js, WEAK_POINT_CAP_FRACTION 0.65 beside the existing 0.40, a wedge branch in spawnTargets using Bodies.fromVertices (convex - no decomposition), and the hit path in main.js picking the cap, firing a WEAK POINT! label and recording it in telemetry so the window and cap can be tuned from human play. Renderer needs no change: drawPhysicsBody is vertex-driven."
+      "status": "completed",
+      "context": "wedgeVerts(size, weakDir) and isWeakHit(approach, weakDir) as pure functions in target.js, WEAK_POINT_CAP_FRACTION 0.65 beside the existing 0.40, a wedge branch in spawnTargets using Bodies.fromVertices (convex - no decomposition), and the hit path in main.js picking the cap, firing a WEAK POINT! label and recording it in telemetry so the window and cap can be tuned from human play. Renderer needs no change: drawPhysicsBody is vertex-driven. DONE 2026-09-20; the runtime path (spawn, render, weak hit recorded) is verified by task 185, the first level to contain a wedge.",
+      "completed_date": "2026-09-20T20:41:27"
     },
     {
       "id": 185,
