@@ -41,7 +41,10 @@ const CASES = [
   { purpose: 'shield gate',      level: 7,  variant: 'standard', seed: 42,  maxHits: 45, yankEvery: 1.5, needsShieldBreak: true },
   { purpose: 'bumper',           level: 10, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
   { purpose: 'blade, uncut',     level: 11, variant: 'standard', seed: 7,   maxHits: 45, yankEvery: 1.5 },
-  { purpose: 'finale, all',      level: 12, variant: 'standard', seed: 500, maxHits: 45, yankEvery: 1.5 },
+  // Was the L12 finale. Its floor blade is deliberately lethal (see levels.js),
+  // and the bot loses 8/8 runs there by design, so it cannot carry a case that
+  // asserts SHATTER. L9 is the other mixed level: zone and shields together.
+  { purpose: 'mixed: zone+shield', level: 9, variant: 'standard', seed: 7, maxHits: 45, yankEvery: 1.5 },
 ];
 
 const checks = [];

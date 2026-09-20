@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "177 done (L11 diagonal blade). Next: 178 L12 rework, then 181 blood spurt, 179 angle shapes (/brainstorm), 182 act signatures. Branch swinging/feat/teaching-level-restructure, unmerged. Both 177 and 178 need the next human playtest to set blade thresholds.",
+  "current_activity": "177 and 178 done - both level edits from the 2026-09-20 sketches are in. Next: 181 blood spurt on a tail cut, 179 angle-rewarding shapes (needs /brainstorm), 182 act signatures. Branch swinging/feat/teaching-level-restructure, unmerged. The next human playtest sets both blade thresholds (L11's 280 and L12's floor 200) and tells us whether L12's cut rate falls across attempts.",
   "action_plan": [
     {
       "id": 45,
@@ -262,8 +262,9 @@
     {
       "id": 178,
       "task": "L12 Full Experiment - second blade along the bottom, two more shields, two targets removed",
-      "status": "pending",
-      "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 12 feedback.png): add a blade along the bottom (~x 0.527, y 0.771, w ~410), add two more light shields above and below the existing one to make a column, and delete the wood rectangle and the glass circle, leaving the moving steel target. Check the rules still pass: a single-target level may not put a heavy shield in the way (rule 6) - these are light, so it should hold."
+      "status": "completed",
+      "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 12 feedback.png): add a blade along the bottom (~x 0.527, y 0.771, w ~410), add two more light shields above and below the existing one to make a column, and delete the wood rectangle and the glass circle, leaving the moving steel target. Check the rules still pass: a single-target level may not put a heavy shield in the way (rule 6) - these are light, so it should hold. DONE 2026-09-20 to the sketch: floor blade (x 0.527, y 0.771, w 412), the single light shield became a column of three (y 0.345 / 0.52 / 0.695), and the wood and glass targets are gone, leaving the moving steel one. The floor blade cuts 8 of 8 BOT runs at tail speeds 405-565 against its 200 threshold; the player was shown that and chose to keep it lethal as drawn, so the level now asks that the tail never drops. The gate finale case moved to L9 - the bot cannot clear L12 by design.",
+      "completed_date": "2026-09-20T15:57:44"
     },
     {
       "id": 179,
@@ -675,6 +676,11 @@
       "date": "2026-09-20",
       "decision": "Phase 1 of the teaching restructure passes its playtest: 12 levels, 68 human runs, gate shields breaking in 100% of runs and every teaching level clearing 100% except the blade level.",
       "rationale": "Criteria were fixed before measuring. Two misses are tracked rather than patched quietly: First Cut cuts 2 of 7 runs against a <= 20% target (177), and the acts no longer separate on glancing now that teaching levels are deliberately simple (182). The playtest also answered a user question with a measurement: the rat tunnels through 14px shield panels at 48-61 px/step because only the rope is swept (180)."
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "L12's floor blade stays lethal as sketched: full span, cutSpeed 200, cutting 8 of 8 bot runs.",
+      "rationale": "Measured before deciding: the tail whips through the low arc at 405-565 px/step, and the blade spans it, so any threshold below whip speed means \"never let the tail drop\". Two alternatives were offered and declined - shortening it to leave a safe corridor, and raising the threshold to ~600 (above every crossing measured, which would have made it decoration like the old L8 blade at 0 cuts in 24 runs). The player chose the harsh reading with the numbers in front of them, so the finale is deliberately exempt from rule 7 (hazards arrive gently). Consequences taken rather than hidden: the gate finale case moved to L9 because the bot loses L12 8/8 by design, and the level comment now says what would show it is working - a human cut rate that FALLS across attempts. A flat rate means the level asks for something unlearnable, and then the span, not the threshold, is the dial."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

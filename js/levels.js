@@ -333,14 +333,37 @@ export const LEVELS = [
     hint: 'A blade across your path. It will not touch the rat - but whip your tail through it and you lose.',
   },
   {
-    // MIXED finale: everything taught outside the zone - a shield, bumpers, a
-    // moving target, a blade - and three targets. The blade is the act's
-    // harshest (cutSpeed 90, which cut 1 of 6 runs at 94 on 2026-09-19) because
-    // lethality ramps INTO the finale, not out of the introduction.
+    // MIXED finale: everything taught outside the zone - shields, bumpers, a
+    // moving target, blades - against ONE target, so the level is about the
+    // route rather than the choice of thing to hit. Re-laid 2026-09-20 from a
+    // player sketch (temp/level 12 feedback.png): the wood rectangle and glass
+    // circle are gone, the single light shield became a column of three, and a
+    // second blade runs along the floor.
     //
-    // The shield is LIGHT. On the old finale it was an unzoned medium at 70 and
-    // broke in 0 of 4 runs, fastest arrival 69 - a shield nobody could open.
-    // Working if: the act's highest cut rate, with clears still >= 70%.
+    // The shield column blocks the DIRECT line to the target without gating it -
+    // above and below it are open - so it shapes the approach rather than
+    // denying it. That is deliberate: rule 6 forbids gating a lone target behind
+    // anything but a reliably breakable shield, and a finale should not hinge on
+    // one break.
+    //
+    // Blades: overhead at cutSpeed 90 (it cut 1 of 6 runs at tail speed 94 on
+    // 2026-09-19, and 0 of 6 on 2026-09-20), floor at 200.
+    //
+    // THE FLOOR BLADE IS DELIBERATELY BRUTAL, and this is a design decision the
+    // player took on 2026-09-20 with the measurement in front of them, not an
+    // untuned number. It spans the whole low arc, and the tail whips through
+    // there at 400-565 px/step, so 8 of 8 bot runs were cut on it - and the bot
+    // is the tame swinger that cut 0/8 where humans cut 45%. Any threshold below
+    // whip speed means "never let the tail drop", which is what this finale now
+    // asks. Raising it to ~600 would clear every crossing measured and make it
+    // decoration, the failure the old L8 blade had; shortening it was offered
+    // and declined.
+    //
+    // So the usual rule-7 "hazards arrive gently" does not apply to this level:
+    // it is the end of the campaign and it is meant to bite. Working if: players
+    // learn a route that keeps the tail high - human cut rate falling across
+    // attempts rather than staying flat. If it stays flat, the level is asking
+    // for something unlearnable and the span, not the threshold, is the dial.
     id: 12,
     kind: 'mixed',
     act: 3,
@@ -352,12 +375,16 @@ export const LEVELS = [
     pushStringLength: 170,
     blades: [
       { x: 0.50, y: 0.20, w: 340, h: 10, cutSpeed: 90 },
+      // The floor blade. Every run starts under it - the rat is picked up off
+      // the ground below - so it is crossed at least once at near-zero speed,
+      // which is exactly what a speed gate is for. 200 while unmeasured.
+      { x: 0.527, y: 0.771, w: 412, h: 10, cutSpeed: 200 },
     ],
     targets: [
-      { shape: 'rectangle', w: 55, h: 76, x: 0.74, y: 0.52, material: 'wood' },
-      { shape: 'circle', r: 28, x: 0.66, y: 0.66, material: 'glass' },
       { shape: 'rectangle', w: 60, h: 86, x: 0.86, y: 0.56, material: 'steel', movement: { axis: 'x', range: 0.03, period: 2.0 } },
+      { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.345, isShield: true, shieldTier: 'light' },
       { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.52, isShield: true, shieldTier: 'light' },
+      { shape: 'rectangle', w: 12, h: 86, x: 0.62, y: 0.695, isShield: true, shieldTier: 'light' },
     ],
     bumpers: [
       { x: 0.48, y: 0.54, radius: 22 },
@@ -365,7 +392,7 @@ export const LEVELS = [
     ],
     parScore: 2800,
     pushParScore: 3000,
-    hint: 'Everything at once. Break the shield, route past the bumpers, and keep your tail off the blade.',
+    hint: 'Everything at once. Find a way past the shields, and keep your tail off both blades.',
   },
 ];
 
