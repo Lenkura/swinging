@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/spike-and-blade-feedback: the spike reward is on the point (LAYOUT_VERSION 4) and blade near-misses spark, scrape and are recorded. Next: a playtest to close 187 (is the spike reward still frequent enough) and 188 (set cut speeds from the crossing distribution). Also open: 182 act signatures, 183 stuck-rat watch, 173 Phase 2 mixed levels.",
+  "current_activity": "On swinging/feat/spike-and-blade-feedback: spike reward on the point (LAYOUT_VERSION 4), blade near-misses spark and scrape, and blade telemetry now records every crossing with tail speed and blade id. The instrument already shows the blade rule is the problem, not the thresholds (188). Next: playtest to close 187 and 188; then 182, 183, 173.",
   "action_plan": [
     {
       "id": 78,
@@ -119,7 +119,7 @@
       "id": 176,
       "task": "Fixed-dt bot runs are not independent of earlier runs on the same page - find what carries over between runs",
       "status": "pending",
-      "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed. MORE EVIDENCE 2026-09-20: the L9 gate case passed once then failed the gate twice (rat at rest, 24k rope contacts), while the same case cleared in ~13s in a probe that ran the same sequence WITHOUT the per-case beginRun the gate does. The gate case moved to L6."
+      "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed. MORE EVIDENCE 2026-09-20: the L9 gate case passed once then failed the gate twice (rat at rest, 24k rope contacts), while the same case cleared in ~13s in a probe that ran the same sequence WITHOUT the per-case beginRun the gate does. The gate case moved to L6. STILL LIVE 2026-09-20: the gate failed one case (50k rope contacts, 0 damaging hits) then passed 121/121 on an immediate rerun with no code change. A gate that fails intermittently cannot be used to judge a change."
     },
     {
       "id": 177,
@@ -183,9 +183,9 @@
     },
     {
       "id": 188,
-      "task": "Set the blade cut speeds from the crossing distribution, now that every crossing is recorded",
+      "task": "Blade cut rule: it tests the touching segment, not the tail - decide the rule, then set the speeds",
       "status": "pending",
-      "context": "blade-graze records speed and threshold for every crossing, cut or not (2026-09-20). First look, bot runs on First Cut: crossings 0-64 px/step against a 280 threshold while the cuts that do happen are 527 - so an ordinary pass is nowhere near biting, which is what \"it seems to do nothing\" was. Needs the human distribution: bot crossings are not human ones. Supersedes the guessed 280 and 200."
+      "context": "blade-graze records speed and threshold for every crossing, cut or not (2026-09-20). First look, bot runs on First Cut: crossings 0-64 px/step against a 280 threshold while the cuts that do happen are 527 - so an ordinary pass is nowhere near biting, which is what \"it seems to do nothing\" was. Needs the human distribution: bot crossings are not human ones. Supersedes the guessed 280 and 200. REFRAMED 2026-09-20 once every crossing was recorded with the tail speed beside it. Over 6 bot runs on the finale: the 5 non-cutting crossings had a touching-segment speed of 0 (median AND max) while the tail was at 408, and the 6 cuts had segment speed 413 = tail max 413. So a blade only ever cuts when the whipping part happens to be the part that touches; a slack segment draped across it does nothing however fast the tail looks. That is the \"inconsistent\" the player reported, and it is the RULE (fastEnoughToCut tests one segment) rather than the thresholds. Candidates: test the tail max, or the fastest of the two segments either side of the crossing. Confirm on human runs before changing it."
     }
   ],
   "recently_updated_files": [
@@ -597,6 +597,11 @@
       "date": "2026-09-20",
       "decision": "The wedge's reward moved from its flat face to its point, and a blade crossing that is too slow to cut now sparks and scrapes.",
       "rationale": "Both came from the same player report. The spike reward measured fine where it was - 38% of human hits found the flat face, 8 of 12 beating the ordinary cap - but \"it would make more sense for the point to do more damage\" is an affordance argument, and the shape was arguing against the rule: a point that rewards nothing has to be memorised rather than read. The cost is frequency, since a point glances easily (bot: 2 of 7 against 8 of 12), and that is now task 187 to measure rather than a guess to pre-correct. The blade half is the same problem in reverse: the rule is speed, and the player could only ever see the half that kills, so a slow crossing looked like a broken hazard. Sparks and a scrape make the live-but-slow case visible, and recording every crossing finally exposes the sub-threshold distribution that the thresholds should have been set from all along (task 188)."
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "Blade telemetry records every crossing with the tail speed beside the touching-segment speed, bounded per step and per run rather than by a time window.",
+      "rationale": "Asked whether the instruments could answer the \"razor feels inconsistent\" report, they could not, in three ways. The 0.2s cooldown gated the RECORD as well as the sparks, thinning crossings to ~1 per run and keeping the first of each window rather than the fastest; records did not say which blade; and only the touching segment's speed was kept, which is the one number that disagrees with what the player sees. A 0.05s window was tried and still dropped 60% of crossings with the same first-not-fastest bias, so the bound is now one record per blade per physics step, nothing while the tail is still (draped, not crossing), and a hard cap of 250 per blade per run so localStorage cannot be flooded. One bug found by looking at the output: cutRope measured the tail AFTER detachRope emptied it, so every cut recorded a tail speed of 0 and the cut half of the distribution was junk."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

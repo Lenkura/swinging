@@ -347,8 +347,16 @@ Input.onYank(pos => {
 // kills. Sparks and a scrape say "this one is live, you were just slow", and
 // the crossing is recorded so the thresholds can finally be set from the whole
 // distribution rather than from the cuts alone.
-Physics.on('blade-graze', ({ x, y, speed, cutSpeed }) => {
+Physics.on('blade-graze', ({ x, y, speed, tailMax, cutSpeed, bladeIndex, feedback }) => {
   if (gameState !== 'SWINGING') return;
+  // EVERY crossing is recorded; only the sparks are rate-limited. `speed` is
+  // the segment the rule tested, `tailMax` is the fastest part of the tail at
+  // that moment - the gap between them is what makes a blade feel arbitrary.
+  Telemetry.recordHit({
+    kind: 'blade-graze', speed, tailMax, cutSpeed, bladeIndex, cut: false,
+    hitIndex: hitCount, hpAfter: ratHp,
+  });
+  if (!feedback) return;
   const closeness = cutSpeed > 0 ? Math.min(speed / cutSpeed, 1) : 0;
   Particles.emit(x, y, {
     count: 4 + Math.round(8 * closeness),
@@ -356,10 +364,9 @@ Physics.on('blade-graze', ({ x, y, speed, cutSpeed }) => {
     lifetime: 0.25, gravity: 260,
   });
   playBladeGraze(closeness);
-  Telemetry.recordHit({ kind: 'blade-graze', speed, cutSpeed, hitIndex: hitCount, hpAfter: ratHp });
 });
 
-Physics.on('rope-cut', ({ x, y, speed, cutSpeed }) => {
+Physics.on('rope-cut', ({ x, y, speed, tailMax, cutSpeed, bladeIndex }) => {
   if (gameState !== 'SWINGING') return;
   gameState = 'IMPACT';
   lastOutcome = 'FAILED';
@@ -368,7 +375,8 @@ Physics.on('rope-cut', ({ x, y, speed, cutSpeed }) => {
   // Recorded so cutSpeed can be calibrated from the speeds that actually cut,
   // rather than from cut/no-cut counts alone.
   Telemetry.recordHit({
-    kind: 'rope-cut', speed, cutSpeed, hitIndex: hitCount, hpAfter: ratHp,
+    kind: 'rope-cut', speed, tailMax, cutSpeed, bladeIndex, cut: true,
+    hitIndex: hitCount, hpAfter: ratHp,
   });
   hitLabel = { text: 'TAIL CUT!', x, y, timer: HIT_LABEL_DURATION, color: '#ff5d5d' };
 
