@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "Everything from the 2026-09-20/21 feedback is merged: the spike reward is on the point (64% of hits find it, up from 38%), blade near-misses spark and are recorded, and both cut speeds are set from human crossings. Next decision before more content: 182 - whether the acts still need distinct signatures now that teaching levels flatten them - because 173 (Phase 2, ~9 mixed levels) builds on the answer. Also open: 183 stuck-rat watch, 176 gate flakiness (1 failure in 5 runs), 135 per-level par.",
+  "current_activity": "182 closed - the acts still differ; the criterion gained a sample-size floor instead. On swinging/docs/act-signature-criterion. Phase 2 (173, ~9 mixed levels) is now unblocked and can use spikes. Also open: 183 stuck-rat watch, 176 gate flakiness, 135 per-level par.",
   "action_plan": [
     {
       "id": 78,
@@ -124,8 +124,9 @@
     {
       "id": 182,
       "task": "Decide whether acts still need distinct signatures now that teaching levels flatten them",
-      "status": "pending",
-      "context": "Measured 2026-09-20: glancing is 28.1/27.2/28.3 across the three acts, against 18.7/12.5/11.7 in the nine-level layout. Teaching levels are simple by design, so \"one mechanic per level\" and \"each act has its own signature\" pull against each other. Either accept that the act signature is now carried by the mixed levels alone and measure it there, or restate the criterion. Act 3 is still the only act that can kill (11% cut) and Act 2 is still the slowest (3.5s vs 2.9s)."
+      "status": "completed",
+      "context": "Measured 2026-09-20: glancing is 28.1/27.2/28.3 across the three acts, against 18.7/12.5/11.7 in the nine-level layout. Teaching levels are simple by design, so \"one mechanic per level\" and \"each act has its own signature\" pull against each other. Either accept that the act signature is now carried by the mixed levels alone and measure it there, or restate the criterion. Act 3 is still the only act that can kill (11% cut) and Act 2 is still the slowest (3.5s vs 2.9s). CLOSED 2026-09-21: the acts DO still differ - the criterion stands, and nothing about the restructure needed changing. Over 73 runs of layouts 3-4 (L5 excluded): act 1 highest glancing 27.9%, act 2 slowest at 4.7s, act 3 the only one that kills at 24% cut. The flat 28.1/27.2/28.3 reading came from a single 68-run playtest, about 5 runs per act across 12 levels, which is noise. Two corrections written into CLAUDE.md: the check needs ~20 runs per act, and act character lives in the TEACHING levels as much as the mixed ones - measuring on mixed levels only (my proposal) is contradicted, since there Act 1 glances LESS than Act 2 (17.4% vs 20.0%).",
+      "completed_date": "2026-09-21T22:21:10"
     },
     {
       "id": 183,
@@ -593,6 +594,11 @@
       "date": "2026-09-21",
       "decision": "Merged branch swinging/feat/spike-and-blade-feedback into main",
       "rationale": "f60fa98dae16dea8b4a59ec00bc43b36eea2ccb7"
+    },
+    {
+      "date": "2026-09-21",
+      "decision": "The act-signature criterion stands unchanged; a sample-size floor of ~20 runs per act is added, and the \"measure it on mixed levels only\" proposal is rejected on data.",
+      "rationale": "The criterion was suspected of having been broken by the teaching-level restructure, on a single 68-run playtest that read 28.1/27.2/28.3. Spread over 12 levels that is about five runs an act, and glancing rate on five runs is noise. Re-measured over 73 runs of the current layout, all three signatures are present in the directions their intents predict. The proposed repair was worse than the problem: on mixed levels alone the Act 1 / Act 2 glancing order REVERSES (17.4% against 20.0%) on 6 and 5 runs, while teaching levels carry the signature most strongly (31.7% against 17.6%) - which follows from teaching levels being built out of their act vocabulary. A criterion was nearly rewritten because the instrument was read at a sample size it cannot support."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

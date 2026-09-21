@@ -373,11 +373,35 @@ differ" was always meant to mean. A future act, or a re-lay of one of these,
 should be held to the same bar: state the intent, then name the metric that
 would show it is working, *before* measuring.
 
-**These figures describe the nine-level layout.** The 2026-09-19 restructure
-replaces it, so they are the bar the new acts must still clear, not a
-measurement of them. Runs recorded before and after carry different
-`layoutVersion`s and must never be pooled — level 4 before and level 4 after
-are different levels with the same id.
+Those figures describe the nine-level layout. **The 13-level campaign clears the
+same bar** (73 runs, layouts 3–4, L5 excluded because it changed between them):
+
+| act | intent | measured | n |
+|---|---|---|---|
+| 1 — open | highest glancing | **27.9%** glancing, 2.9 s | 24 |
+| 2 — constrained | slowest clears | 18.4%, **4.7 s** | 17 |
+| 3 — hazardous | the only act that can kill you | 20.8%, 3.7 s, **24% cut** | 21 |
+
+Two corrections came out of checking it, and both are about the instrument
+rather than the levels:
+
+- **About 20 runs per act, or it reads as flat.** One 68-run playtest measured
+  28.1 / 27.2 / 28.3 and looked like proof that teaching levels had erased act
+  character. They had not: spread over 12 levels that is ~5 runs an act, and
+  glancing rate on 5 runs is noise. The restructure was nearly rewritten on the
+  strength of it (task 182).
+- **Act character lives in the TEACHING levels as much as the mixed ones.** The
+  obvious repair — "measure act character on the mixed levels only, since
+  teaching levels are deliberately simple" — is contradicted by the data: on
+  mixed levels alone Act 1 glances *less* than Act 2 (17.4% against 20.0%, the
+  wrong way round), while on teaching levels alone the signature is at its
+  strongest (31.7% against 17.6%). That follows from how the acts are built:
+  a teaching level is made of its act's vocabulary, so an Act 2 teaching level
+  is zoned and an Act 1 one is open. Three mixed levels could not carry this
+  check anyway.
+
+Runs recorded under different `layoutVersion`s must never be pooled — level 4 in
+one layout and level 4 in another are different levels with the same id.
 
 ---
 
