@@ -845,5 +845,13 @@
     "context": "User request 2026-09-20, extending the 2.6s tumble already added for the loss: the cut itself should read. Blood particles exist (emitImpactBurst, the red splash) and the rope-cut handler already knows the cut point and speed. DONE 2026-09-20: particles.emit gained optional direction/spread (radial by default, so every existing burst is unchanged); the cut fires three aimed layers out of the wound, and the severed stump keeps bleeding for 1.6s in pulses from the rat's tail base as it tumbles, pooling on the ground only once the body is within 90px of it. Captured at history/screenshots/tail-cut-bleed.png.",
     "completed_date": "2026-09-20T18:12:02",
     "archived_date": "2026-09-21"
+  },
+  {
+    "id": 184,
+    "task": "Weak-point mechanic: wedge geometry, the raised per-hit cap, and its unit tests",
+    "status": "completed",
+    "context": "wedgeVerts(size, weakDir) and isWeakHit(approach, weakDir) as pure functions in target.js, WEAK_POINT_CAP_FRACTION 0.65 beside the existing 0.40, a wedge branch in spawnTargets using Bodies.fromVertices (convex - no decomposition), and the hit path in main.js picking the cap, firing a WEAK POINT! label and recording it in telemetry so the window and cap can be tuned from human play. Renderer needs no change: drawPhysicsBody is vertex-driven. DONE 2026-09-20; the runtime path (spawn, render, weak hit recorded) is verified by task 185, the first level to contain a wedge.",
+    "completed_date": "2026-09-20T20:41:27",
+    "archived_date": "2026-09-21"
   }
 ]

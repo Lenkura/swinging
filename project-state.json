@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "182 closed - the acts still differ; the criterion gained a sample-size floor instead. On swinging/docs/act-signature-criterion. Phase 2 (173, ~9 mixed levels) is now unblocked and can use spikes. Also open: 183 stuck-rat watch, 176 gate flakiness, 135 per-level par.",
+  "current_activity": "Phase 2 (task 173) is the next substantial piece: ~9 mixed levels built from the taught mechanics, which can now use spikes. It is unblocked - the act-signature criterion was re-measured and stands (182). Smaller open items: 183 (a rat stuck in Narrow Column, watch on the next playtest), 176 (the gate fails about 1 run in 5 with no code change), 135 (per-level par, which now has data across all 13 levels). Phase 2 wants its own /brainstorm before any level is written.",
   "action_plan": [
     {
       "id": 78,
@@ -133,13 +133,6 @@
       "task": "L9 Narrow Column: the bot ends at rest with 20-24k rope contacts inside the zone - check whether a human can get stuck there too",
       "status": "pending",
       "context": "Seen repeatedly 2026-09-20 while choosing gate cases: in that narrow column the rope wraps and the rat comes to a dead stop (lastSpeed 0, 24k rope contacts, 3 hits in 90s), and 60 yanks do not free it. Humans cleared L9 6/6 in the playtest, so this may be bot-only - but \"the rat is stuck and yanking will not help\" is the same shape as the L7 cage soft-lock that was real (task 171). Watch it in the next playtest; if a human ever sticks, the column geometry is the dial."
-    },
-    {
-      "id": 184,
-      "task": "Weak-point mechanic: wedge geometry, the raised per-hit cap, and its unit tests",
-      "status": "completed",
-      "context": "wedgeVerts(size, weakDir) and isWeakHit(approach, weakDir) as pure functions in target.js, WEAK_POINT_CAP_FRACTION 0.65 beside the existing 0.40, a wedge branch in spawnTargets using Bodies.fromVertices (convex - no decomposition), and the hit path in main.js picking the cap, firing a WEAK POINT! label and recording it in telemetry so the window and cap can be tuned from human play. Renderer needs no change: drawPhysicsBody is vertex-driven. DONE 2026-09-20; the runtime path (spawn, render, weak hit recorded) is verified by task 185, the first level to contain a wedge.",
-      "completed_date": "2026-09-20T20:41:27"
     },
     {
       "id": 185,
@@ -599,6 +592,11 @@
       "date": "2026-09-21",
       "decision": "The act-signature criterion stands unchanged; a sample-size floor of ~20 runs per act is added, and the \"measure it on mixed levels only\" proposal is rejected on data.",
       "rationale": "The criterion was suspected of having been broken by the teaching-level restructure, on a single 68-run playtest that read 28.1/27.2/28.3. Spread over 12 levels that is about five runs an act, and glancing rate on five runs is noise. Re-measured over 73 runs of the current layout, all three signatures are present in the directions their intents predict. The proposed repair was worse than the problem: on mixed levels alone the Act 1 / Act 2 glancing order REVERSES (17.4% against 20.0%) on 6 and 5 runs, while teaching levels carry the signature most strongly (31.7% against 17.6%) - which follows from teaching levels being built out of their act vocabulary. A criterion was nearly rewritten because the instrument was read at a sample size it cannot support."
+    },
+    {
+      "date": "2026-09-21",
+      "decision": "Merged branch swinging/docs/act-signature-criterion into main",
+      "rationale": "b3db48afa189210c96d0392bed14cf99a62b7064"
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
