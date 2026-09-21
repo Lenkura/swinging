@@ -13,11 +13,15 @@ export const ACT_NAMES = { 1: 'The Sewer', 2: 'The Warehouse', 3: 'The Lab' };
  * 1 = the nine-level layout (2026-09-14 to 2026-09-19). Anything recorded
  *     before this field existed is layout 1.
  * 2 = the 12-level teaching/mixed layout (2026-09-19).
- * 3 = the weak-point teaching level inserted at id 5 (2026-09-20), which
- *     pushed every later level up by one - L5 was Both Ways and is now
- *     Soft Spot; the campaign is 13 levels.
+ * 3 = the spike teaching level inserted at id 5 (2026-09-20), which pushed
+ *     every later level up by one - L5 was Both Ways and is now Soft Spot;
+ *     the campaign is 13 levels.
+ * 4 = the spike reward moved from the wedge's flat face to its point
+ *     (2026-09-20). No level id changed, but L5 asks a different question of
+ *     the player, so its hit-share numbers are not comparable across the
+ *     boundary - which is the other thing this version guards.
  */
-export const LAYOUT_VERSION = 3;
+export const LAYOUT_VERSION = 4;
 
 export const LEVELS = [
   // ─────────────────────────────────────────────
@@ -117,26 +121,28 @@ export const LEVELS = [
     hint: 'This one moves. Swing for where it is going to be, not where it is.',
   },
   {
-    // TEACHES the weak point: a target armoured everywhere but one face. This
-    // one opens AWAY from the hand, so the lazy swing hits armour and the deep
-    // hit has to come back from the far side - round the target and in.
+    // TEACHES the spike: a target with one dangerous end. Run the rat onto the
+    // point and the hit bites deeper; hit the blunt back and it does not. The
+    // spike faces AWAY from the hand, so the lazy swing meets the flat side and
+    // the deep hit has to come back from the far side - round the target and in.
     //
-    // It faced DOWN first, which reads better as an idea and measured badly:
-    // over 8 bot runs every weak hit was slow (raw damage 0-40) while ordinary
-    // hits reached 203, because reaching an underside means swinging UP against
-    // gravity - the slowest part of any swing - so the raised cap never bound
-    // and the reward was inert. A face that is reached on the fast return swing
-    // can actually pay. An underside face is not wasted, but it belongs in a
-    // later level as a hard shot, not in the one that teaches the idea.
+    // Two placements were measured before this one. Facing the reward DOWN was
+    // inert: every rewarded hit was slow (raw damage 0-40 against ordinary hits
+    // reaching 203), because reaching an underside means swinging UP against
+    // gravity, so the raised cap never bound. Facing it away from the hand pays,
+    // because it is struck on the fast return swing (raw 110 and 141 taking the
+    // full 65). Then the reward moved from the flat face to the POINT on player
+    // feedback: a spike should hurt more than a slab, and an affordance the
+    // shape argues against has to be memorised rather than read.
     //
-    // A weak hit raises that hit's damage cap (0.40 -> 0.65 of max HP) rather
-    // than multiplying damage; see WEAK_POINT_CAP_FRACTION in target.js for why
-    // a multiplier would have been invisible. Working if: >= 90% clear, and the
-    // share of hits landing on the open face RISES across attempts - a flat
-    // share means the silhouette is not readable and the shape, not the
-    // numbers, is the dial.
+    // A spike hit raises that hit's damage cap (0.40 -> 0.65 of max HP) rather
+    // than multiplying damage; see SPIKE_CAP_FRACTION in target.js for why a
+    // multiplier would have been invisible. Working if: >= 90% clear, and the
+    // share of hits landing on the spike RISES across attempts - a flat share
+    // means the silhouette is not readable and the shape, not the numbers, is
+    // the dial. Baseline to beat: 38% on the flat-face version.
     id: 5,
-    kind: 'teaching', teaches: 'weak-point',
+    kind: 'teaching', teaches: 'spike',
     act: 1,
     name: 'Soft Spot',
     background: ['#2a2e1a', '#16180e'],
@@ -145,11 +151,11 @@ export const LEVELS = [
     stringLength: 140,
     pushStringLength: 150,
     targets: [
-      { shape: 'wedge', size: 92, x: 0.56, y: 0.44, weakDir: 'e', material: 'steel' },
+      { shape: 'wedge', size: 92, x: 0.56, y: 0.44, spikeDir: 'e', material: 'steel' },
     ],
     parScore: 1600,
     pushParScore: 3000,
-    hint: 'Armoured on this side. Swing PAST it and come back into the open face for a much deeper hit.',
+    hint: 'That spike is the dangerous end. Swing PAST it and run the rat onto the point for a much deeper hit.',
   },
   {
     // MIXED closer for Act 1: the first level with two targets, one on each side
@@ -415,8 +421,19 @@ export const LEVELS = [
       { x: 0.50, y: 0.20, w: 340, h: 10, cutSpeed: 90 },
       // The floor blade. Every run starts under it - the rat is picked up off
       // the ground below - so it is crossed at least once at near-zero speed,
-      // which is exactly what a speed gate is for. 200 while unmeasured.
-      { x: 0.527, y: 0.771, w: 412, h: 10, cutSpeed: 200 },
+      // which is exactly what a speed gate is for.
+      //
+      // 200 -> 50, set from human crossings (2026-09-21, 14 crossings over 3
+      // runs): p50 15, p90 38, MAX 65. At 200 it could never fire - the fastest
+      // pass a player made was a third of the threshold - so the finale's second
+      // blade was decoration. 50 cuts roughly a quarter of crossings, which is
+      // the deliberately harsh reading the player chose for this level.
+      //
+      // The bot crosses this same blade at 405-565 and was cut 8 times in 8 runs
+      // at 200. That is the widest bot-versus-human gap measured in this project:
+      // the bot drops a slack tail through the low arc, a player keeps it up.
+      // Never tune a blade on bot runs.
+      { x: 0.527, y: 0.771, w: 412, h: 10, cutSpeed: 50 },
     ],
     targets: [
       { shape: 'rectangle', w: 60, h: 86, x: 0.86, y: 0.56, material: 'steel', movement: { axis: 'x', range: 0.03, period: 2.0 } },
@@ -453,13 +470,13 @@ const SAVE_KEY = 'yoyo_progress';
  * medium; heavy only ever appears in mixed levels with another way to the rat's
  * death, so it needs no teaching level of its own.
  */
-export const MECHANICS = ['moving', 'weak-point', 'zone', 'shield', 'shield-strong', 'bumper', 'blade'];
+export const MECHANICS = ['moving', 'spike', 'zone', 'shield', 'shield-strong', 'bumper', 'blade'];
 
 export function levelMechanics(level) {
   const m = new Set();
   const targets = level.targets || [];
   if (targets.some(t => t.movement)) m.add('moving');
-  if (targets.some(t => t.shape === 'wedge')) m.add('weak-point');
+  if (targets.some(t => t.shape === 'wedge')) m.add('spike');
   if (level.handZone) m.add('zone');
   const shields = targets.filter(t => t.isShield);
   if (shields.length) m.add('shield');

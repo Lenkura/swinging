@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "The 13-level teaching/mixed campaign is merged (LAYOUT_VERSION 3). Next is a human playtest of all 13 levels, which closes 186 (do players find the weak face - the bot manages 34%), settles L12 First Cut's cutSpeed 280 and L13's floor blade at 200, and watches 183 (a rat stuck in Narrow Column). Then 182 (whether acts still need distinct signatures) and 173 (Phase 2: ~9 mixed levels, which can now use wedges).",
+  "current_activity": "187 and 188 closed on the layout-4 playtest. On swinging/feat/spike-and-blade-feedback: spike reward on the point (64% of hits find it, up from 38%), blade near-misses spark, blade telemetry records every crossing, and the finale floor blade is 50. Remaining: 182 act signatures, 183 stuck-rat watch, 173 Phase 2 mixed levels, 176 gate flakiness. Branch unmerged - worth /finish-branch.",
   "action_plan": [
     {
       "id": 78,
@@ -119,7 +119,7 @@
       "id": 176,
       "task": "Fixed-dt bot runs are not independent of earlier runs on the same page - find what carries over between runs",
       "status": "pending",
-      "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed. MORE EVIDENCE 2026-09-20: the L9 gate case passed once then failed the gate twice (rat at rest, 24k rope contacts), while the same case cleared in ~13s in a probe that ran the same sequence WITHOUT the per-case beginRun the gate does. The gate case moved to L6."
+      "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed. MORE EVIDENCE 2026-09-20: the L9 gate case passed once then failed the gate twice (rat at rest, 24k rope contacts), while the same case cleared in ~13s in a probe that ran the same sequence WITHOUT the per-case beginRun the gate does. The gate case moved to L6. STILL LIVE 2026-09-20: the gate failed one case (50k rope contacts, 0 damaging hits) then passed 121/121 on an immediate rerun with no code change. A gate that fails intermittently cannot be used to judge a change."
     },
     {
       "id": 177,
@@ -171,8 +171,23 @@
     {
       "id": 186,
       "task": "Measure the weak point on human play: cap value, window width, and whether players notice the face",
-      "status": "pending",
-      "context": "Telemetry records weak-face hits and the cap applied. Working if the share of hits landing on weak faces RISES across attempts - a flat share means the face is not readable and the silhouette, not the numbers, is the dial. Bot runs cannot answer this (they aim at target centres). Baseline to beat: the bot, which aims at target centres, lands 34% of its hits on the open face. A human share below that would mean the silhouette is not readable."
+      "status": "completed",
+      "context": "Telemetry records weak-face hits and the cap applied. Working if the share of hits landing on weak faces RISES across attempts - a flat share means the face is not readable and the silhouette, not the numbers, is the dial. Bot runs cannot answer this (they aim at target centres). Baseline to beat: the bot, which aims at target centres, lands 34% of its hits on the open face. A human share below that would mean the silhouette is not readable. CLOSED 2026-09-20 on 52 human runs of layout 3: 38% of hits at the wedge landed on the rewarded face (bot 34%) and 8 of 12 beat the ordinary cap, taking 65 instead of 40 - the mechanic fires and pays. The player rejected the AFFORDANCE, not the numbers, so the reward moved to the point (task 187) and the share needs re-measuring on the new shape.",
+      "completed_date": "2026-09-20T21:37:12"
+    },
+    {
+      "id": 187,
+      "task": "Re-measure the spike on human play now that the reward is on the point, not the flat face",
+      "status": "completed",
+      "context": "Moving the reward costs frequency: bot runs give 2 of 7 spike hits beating the ordinary cap, against 8 of 12 on the flat face, because a point is small and glances easily. Baseline to beat: 38% of hits found the flat face. If the reward is now too rare to feel, the dials are SPIKE_WINDOW (currently 45 degrees either side) and SPIKE_CAP_FRACTION - not the shape, which the player chose on sight. CLOSED 2026-09-21 on 21 human runs of layout 4: 64% of hits at the wedge landed on the spike, against 38% on the flat face, and 3 of 7 spike hits beat the ordinary cap (82->65, 96->65). Moving the reward to the point made it MORE findable, not less - the bot warning that a point would be harder to hit was a bot artifact. No change to SPIKE_WINDOW or the cap.",
+      "completed_date": "2026-09-21T22:06:41"
+    },
+    {
+      "id": 188,
+      "task": "Blade cut rule: it tests the touching segment, not the tail - decide the rule, then set the speeds",
+      "status": "completed",
+      "context": "blade-graze records speed and threshold for every crossing, cut or not (2026-09-20). First look, bot runs on First Cut: crossings 0-64 px/step against a 280 threshold while the cuts that do happen are 527 - so an ordinary pass is nowhere near biting, which is what \"it seems to do nothing\" was. Needs the human distribution: bot crossings are not human ones. Supersedes the guessed 280 and 200. REFRAMED 2026-09-20 once every crossing was recorded with the tail speed beside it. Over 6 bot runs on the finale: the 5 non-cutting crossings had a touching-segment speed of 0 (median AND max) while the tail was at 408, and the 6 cuts had segment speed 413 = tail max 413. So a blade only ever cuts when the whipping part happens to be the part that touches; a slack segment draped across it does nothing however fast the tail looks. That is the \"inconsistent\" the player reported, and it is the RULE (fastEnoughToCut tests one segment) rather than the thresholds. Candidates: test the tail max, or the fastest of the two segments either side of the crossing. Confirm on human runs before changing it. CLOSED 2026-09-21, and the rule is EXONERATED. The bot-derived claim that fastEnoughToCut tests the wrong thing does not survive human runs: over 67 crossings the touching segment tracks the tail closely (First Cut p50 96 against tail p50 127) and in 0 of 65 near misses was the tail fast enough while the touching segment was not. The 0-vs-408 gap was the bot draping a slack tail over a blade. The thresholds were simply out of reach: First Cut 280 sits just above p90 234 (48 of 49 crossings pass, ~1 run in 4 cut - the intent, left alone), and the finale floor blade sat at 200 while the fastest human crossing was 65, so it could never fire. Set to 50 at the player's direction, ~a quarter of crossings.",
+      "completed_date": "2026-09-21T22:06:41"
     }
   ],
   "recently_updated_files": [
@@ -579,6 +594,21 @@
       "date": "2026-09-20",
       "decision": "Merged branch swinging/feat/teaching-level-restructure into main",
       "rationale": "4643f6d24679264751f4bb55e11dddf0c6259207"
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "The wedge's reward moved from its flat face to its point, and a blade crossing that is too slow to cut now sparks and scrapes.",
+      "rationale": "Both came from the same player report. The spike reward measured fine where it was - 38% of human hits found the flat face, 8 of 12 beating the ordinary cap - but \"it would make more sense for the point to do more damage\" is an affordance argument, and the shape was arguing against the rule: a point that rewards nothing has to be memorised rather than read. The cost is frequency, since a point glances easily (bot: 2 of 7 against 8 of 12), and that is now task 187 to measure rather than a guess to pre-correct. The blade half is the same problem in reverse: the rule is speed, and the player could only ever see the half that kills, so a slow crossing looked like a broken hazard. Sparks and a scrape make the live-but-slow case visible, and recording every crossing finally exposes the sub-threshold distribution that the thresholds should have been set from all along (task 188)."
+    },
+    {
+      "date": "2026-09-20",
+      "decision": "Blade telemetry records every crossing with the tail speed beside the touching-segment speed, bounded per step and per run rather than by a time window.",
+      "rationale": "Asked whether the instruments could answer the \"razor feels inconsistent\" report, they could not, in three ways. The 0.2s cooldown gated the RECORD as well as the sparks, thinning crossings to ~1 per run and keeping the first of each window rather than the fastest; records did not say which blade; and only the touching segment's speed was kept, which is the one number that disagrees with what the player sees. A 0.05s window was tried and still dropped 60% of crossings with the same first-not-fastest bias, so the bound is now one record per blade per physics step, nothing while the tail is still (draped, not crossing), and a hard cap of 250 per blade per run so localStorage cannot be flooded. One bug found by looking at the output: cutRope measured the tail AFTER detachRope emptied it, so every cut recorded a tail speed of 0 and the cut half of the distribution was junk."
+    },
+    {
+      "date": "2026-09-21",
+      "decision": "Blade cut speeds set from human crossing distributions: First Cut stays 280, the finale floor blade 200 -> 50. The cut RULE is unchanged.",
+      "rationale": "The instrument added the day before did its job and refuted the conclusion drawn from bot data. Bot runs had shown non-cutting crossings with a touching segment at 0 against a tail at 408, which looked like the rule testing the wrong quantity and nearly bought a rewrite of fastEnoughToCut. Human runs show the opposite: the touching segment tracks the tail, and not one near miss had a fast tail with a slow touching segment. The bot drapes a slack tail through the low arc; a player keeps it up. Same blade, same threshold: 8 of 8 bot runs cut, 0 of 14 human crossings even close. Widest bot-versus-human gap measured in this project."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."

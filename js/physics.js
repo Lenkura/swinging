@@ -56,6 +56,8 @@ let ropeBodies = [];
 let ropeConstraints = [];
 let ropeContactCount = 0;
 let ratSweepCount = 0;    // rat crossings caught by sweepRat (see there)
+let simClock = 0;         // seconds of simulated time, for graze cooldowns
+let stepCount = 0;        // physics steps this run, for per-step dedupe
 let groundBody, leftWall, rightWall, ceiling;
 let canvasW, canvasH;
 
@@ -126,6 +128,8 @@ function onCollision(event) {
         const seg = bodyA.label === 'rope' ? bodyA : bodyB;
         if (fastEnoughToCut(other, seg)) {
           cutRope({ x: other.position.x, y: other.position.y }, segSpeed(seg), other);
+        } else {
+          grazeBlade(other, seg.position, segSpeed(seg));
         }
         continue;
       }
@@ -217,6 +221,55 @@ function clampRopeSpeed() {
  * between adjacent segments are tested, for the same reason resolveRopeLinks
  * exists: the rope is a chain of circles with gaps a thin blade can sit inside.
  */
+/**
+ * A crossing that was too slow to cut.
+ *
+ * It used to be silent, and that is what made blades read as broken: the tail
+ * sweeps through one, nothing happens, and nothing tells the player why. The
+ * rule is speed, and a rule the player cannot see is indistinguishable from a
+ * bug (player feedback, 2026-09-20). Emitting it also gives the first
+ * measurement of the crossings that DON'T cut - until now telemetry recorded
+ * only cuts, so the whole sub-threshold distribution was invisible and the
+ * thresholds were set from cut/no-cut counts alone.
+ *
+ * Rate-limited per blade, or a tail resting against one would emit every step.
+ */
+const GRAZE_COOLDOWN = 0.2;        // sparks and scrape only
+
+// Recording is bounded WITHOUT a time window, because every time window biases
+// the sample the same way: it keeps the first crossing in the window, not the
+// fastest, and the fastest is the one that decides where a threshold belongs.
+// 0.2s (feedback and recording shared) thinned it to ~1 crossing per run; 0.05s
+// still dropped 60% of them. Instead: at most one record per blade per STEP -
+// several segments crossing in one step are one event - nothing at all while
+// the tail is effectively still, which is a draped tail rather than a pass, and
+// a hard ceiling per blade per run so localStorage cannot be flooded.
+const GRAZE_STILL_SPEED = 5;       // px/step: below this nothing is crossing
+const GRAZE_RECORD_CAP = 250;      // per blade per run
+
+function grazeBlade(blade, at, speed) {
+  if (ropeCut) return;
+  // The cooldown gates the SPARKS, not the record. It gated both at first,
+  // which quietly thinned the very distribution the grazes exist to measure:
+  // during one fast sweep several segments cross, and only the first inside
+  // each window would have been logged - an arbitrary sample, not the spread.
+  const tailMax = maxTailSpeed();
+  if (tailMax < GRAZE_STILL_SPEED) return;          // resting on it, not crossing it
+  if (blade.plugin.lastGrazeStep === stepCount) return;   // one event, several segments
+  blade.plugin.lastGrazeStep = stepCount;
+  const recorded = blade.plugin.grazeRecords ?? 0;
+  if (recorded >= GRAZE_RECORD_CAP) return;
+  blade.plugin.grazeRecords = recorded + 1;
+
+  const last = blade.plugin.lastGraze ?? -Infinity;
+  const feedback = simClock - last >= GRAZE_COOLDOWN;
+  if (feedback) blade.plugin.lastGraze = simClock;
+  emit('blade-graze', {
+    x: at.x, y: at.y, speed, tailMax,
+    cutSpeed: blade.plugin.cutSpeed, bladeIndex: blade.plugin.index, feedback,
+  });
+}
+
 function detectBladeCuts(prev) {
   if (!bladeBodies.length || !ropeBodies.length || ropeCut) return;
   const r = ropeConfig.radius;
@@ -227,8 +280,11 @@ function detectBladeCuts(prev) {
     const seg = ropeBodies[i];
     const to = seg.position;
     const hit = Query.ray(bladeBodies, from, to, r * 2)[0];
-    if (hit && fastEnoughToCut(hit.body, seg)) {
-      return cutRope({ x: to.x, y: to.y }, segSpeed(seg), hit.body);
+    if (hit) {
+      if (fastEnoughToCut(hit.body, seg)) {
+        return cutRope({ x: to.x, y: to.y }, segSpeed(seg), hit.body);
+      }
+      grazeBlade(hit.body, to, segSpeed(seg));
     }
   }
 
@@ -236,6 +292,10 @@ function detectBladeCuts(prev) {
     const a = ropeBodies[i];
     const b = ropeBodies[i + 1];
     const hit = Query.ray(bladeBodies, a.position, b.position, r)[0];
+    if (hit && !fastEnoughToCut(hit.body, a) && !fastEnoughToCut(hit.body, b)) {
+      grazeBlade(hit.body, { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 },
+        Math.max(segSpeed(a), segSpeed(b)));
+    }
     if (hit && (fastEnoughToCut(hit.body, a) || fastEnoughToCut(hit.body, b))) {
       return cutRope(
         { x: (a.position.x + b.position.x) / 2, y: (a.position.y + b.position.y) / 2 },
@@ -257,6 +317,24 @@ const segSpeed = s => Math.hypot(s.velocity.x, s.velocity.y);
  * it", which is a test of control and therefore what Act 3 is actually for.
  * Mirrors how a shield gates on rat speed.
  */
+/**
+ * The fastest segment anywhere on the tail, right now.
+ *
+ * Recorded alongside every crossing because the cut RULE and the player's EYE
+ * disagree: the rule tests the speed of the one segment touching the blade,
+ * while the player sees the whole tail, whose tip can be moving an order of
+ * magnitude faster. "I ran the tail past it fast" and "the part that touched
+ * was slow" are both true, and without this number the data cannot say so.
+ */
+function maxTailSpeed() {
+  let max = 0;
+  for (const seg of ropeBodies) {
+    const v = Math.hypot(seg.velocity.x, seg.velocity.y);
+    if (v > max) max = v;
+  }
+  return max;
+}
+
 function fastEnoughToCut(blade, segment) {
   const threshold = blade.plugin.cutSpeed ?? DEFAULT_CUT_SPEED;
   return Math.hypot(segment.velocity.x, segment.velocity.y) >= threshold;
@@ -272,12 +350,19 @@ function fastEnoughToCut(blade, segment) {
 function cutRope(at, speed = 0, blade = null) {
   if (ropeCut) return;
   ropeCut = true;
+  // BEFORE detachRope, which empties ropeBodies: measured after it, every cut
+  // recorded a tail speed of 0 and the cut half of the distribution was junk.
+  const tailMax = maxTailSpeed();
   detachRope();
   emit('rope-cut', {
     x: at.x,
     y: at.y,
     speed,
+    // Same fields as a graze: cuts and near-misses are two halves of one
+    // distribution, and a threshold can only be set by looking at both.
+    tailMax,
     cutSpeed: blade ? blade.plugin.cutSpeed : null,
+    bladeIndex: blade ? blade.plugin.index : null,
   });
 }
 
@@ -406,6 +491,8 @@ function sweepRat(prev) {
 }
 
 export function step(delta) {
+  simClock += delta / 1000;
+  stepCount++;
   const dt = subSteps === 1 ? delta : delta / subSteps;
   const fraction = subSteps === 1 ? 1 : 1 / subSteps;
   for (let i = 0; i < subSteps; i++) {
@@ -633,6 +720,8 @@ export function attachRope(pivotX, pivotY, length, segments = 10, stiffness = ro
 export function detachRope() {
   ropeContactCount = 0;
   ratSweepCount = 0;
+  simClock = 0;
+  stepCount = 0;
   ropeConstraints.forEach(c => { try { Composite.remove(world, c); } catch { /* already gone */ } });
   ropeBodies.forEach(b => { try { Composite.remove(world, b); } catch { /* already gone */ } });
   if (ropeConstraints.includes(stringConstraint)) stringConstraint = null;
@@ -711,7 +800,7 @@ export function spawnTargets(levelTargets, shieldSpeedScale = 1) {
       // An angle-rewarding target: blunt open face, armoured point. The shape
       // is convex on purpose - Matter falls back to poly-decomp for concave
       // vertex sets, and that library was deleted in task 100.
-      body = Bodies.fromVertices(x, y, [wedgeVerts(td.size, td.weakDir)], {
+      body = Bodies.fromVertices(x, y, [wedgeVerts(td.size, td.spikeDir)], {
         isStatic: true,
         label: 'target',
         restitution: material.restitution,
@@ -726,7 +815,7 @@ export function spawnTargets(levelTargets, shieldSpeedScale = 1) {
           fragmentsSpawned: false,
           isShield: false,
           breakSpeed: 0,
-          weakDir: td.weakDir,
+          spikeDir: td.spikeDir,
           movement: makeMovementPlugin(td.movement, x, y),
         },
       });
@@ -826,7 +915,9 @@ export function spawnBlades(levelBlades = []) {
       isSensor: true,   // it severs rather than deflects; nothing should bounce
       angle: (bd.angle || 0) * Math.PI / 180,
       collisionFilter: { category: CAT.BLADE, mask: MASK.BLADE },
-      plugin: { w: bd.w, h: bd.h, cutSpeed: bd.cutSpeed ?? DEFAULT_CUT_SPEED },
+      // `index` so a record says WHICH blade: a level can carry two, and
+      // telling them apart by threshold alone fails the moment two match.
+      plugin: { w: bd.w, h: bd.h, cutSpeed: bd.cutSpeed ?? DEFAULT_CUT_SPEED, index: bladeBodies.length },
     });
     Composite.add(world, body);
     bladeBodies.push(body);
@@ -1138,6 +1229,8 @@ export function reset() {
   ropeConstraints = [];
   ropeContactCount = 0;
   ratSweepCount = 0;
+  simClock = 0;
+  stepCount = 0;
   targetBodies = [];
   fragmentBodies = [];
   bumperBodies = [];
