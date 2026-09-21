@@ -421,8 +421,19 @@ export const LEVELS = [
       { x: 0.50, y: 0.20, w: 340, h: 10, cutSpeed: 90 },
       // The floor blade. Every run starts under it - the rat is picked up off
       // the ground below - so it is crossed at least once at near-zero speed,
-      // which is exactly what a speed gate is for. 200 while unmeasured.
-      { x: 0.527, y: 0.771, w: 412, h: 10, cutSpeed: 200 },
+      // which is exactly what a speed gate is for.
+      //
+      // 200 -> 50, set from human crossings (2026-09-21, 14 crossings over 3
+      // runs): p50 15, p90 38, MAX 65. At 200 it could never fire - the fastest
+      // pass a player made was a third of the threshold - so the finale's second
+      // blade was decoration. 50 cuts roughly a quarter of crossings, which is
+      // the deliberately harsh reading the player chose for this level.
+      //
+      // The bot crosses this same blade at 405-565 and was cut 8 times in 8 runs
+      // at 200. That is the widest bot-versus-human gap measured in this project:
+      // the bot drops a slack tail through the low arc, a player keeps it up.
+      // Never tune a blade on bot runs.
+      { x: 0.527, y: 0.771, w: 412, h: 10, cutSpeed: 50 },
     ],
     targets: [
       { shape: 'rectangle', w: 60, h: 86, x: 0.86, y: 0.56, material: 'steel', movement: { axis: 'x', range: 0.03, period: 2.0 } },

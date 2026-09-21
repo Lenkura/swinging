@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "On swinging/feat/spike-and-blade-feedback: spike reward on the point (LAYOUT_VERSION 4), blade near-misses spark and scrape, and blade telemetry now records every crossing with tail speed and blade id. The instrument already shows the blade rule is the problem, not the thresholds (188). Next: playtest to close 187 and 188; then 182, 183, 173.",
+  "current_activity": "187 and 188 closed on the layout-4 playtest. On swinging/feat/spike-and-blade-feedback: spike reward on the point (64% of hits find it, up from 38%), blade near-misses spark, blade telemetry records every crossing, and the finale floor blade is 50. Remaining: 182 act signatures, 183 stuck-rat watch, 173 Phase 2 mixed levels, 176 gate flakiness. Branch unmerged - worth /finish-branch.",
   "action_plan": [
     {
       "id": 78,
@@ -178,14 +178,16 @@
     {
       "id": 187,
       "task": "Re-measure the spike on human play now that the reward is on the point, not the flat face",
-      "status": "pending",
-      "context": "Moving the reward costs frequency: bot runs give 2 of 7 spike hits beating the ordinary cap, against 8 of 12 on the flat face, because a point is small and glances easily. Baseline to beat: 38% of hits found the flat face. If the reward is now too rare to feel, the dials are SPIKE_WINDOW (currently 45 degrees either side) and SPIKE_CAP_FRACTION - not the shape, which the player chose on sight."
+      "status": "completed",
+      "context": "Moving the reward costs frequency: bot runs give 2 of 7 spike hits beating the ordinary cap, against 8 of 12 on the flat face, because a point is small and glances easily. Baseline to beat: 38% of hits found the flat face. If the reward is now too rare to feel, the dials are SPIKE_WINDOW (currently 45 degrees either side) and SPIKE_CAP_FRACTION - not the shape, which the player chose on sight. CLOSED 2026-09-21 on 21 human runs of layout 4: 64% of hits at the wedge landed on the spike, against 38% on the flat face, and 3 of 7 spike hits beat the ordinary cap (82->65, 96->65). Moving the reward to the point made it MORE findable, not less - the bot warning that a point would be harder to hit was a bot artifact. No change to SPIKE_WINDOW or the cap.",
+      "completed_date": "2026-09-21T22:06:41"
     },
     {
       "id": 188,
       "task": "Blade cut rule: it tests the touching segment, not the tail - decide the rule, then set the speeds",
-      "status": "pending",
-      "context": "blade-graze records speed and threshold for every crossing, cut or not (2026-09-20). First look, bot runs on First Cut: crossings 0-64 px/step against a 280 threshold while the cuts that do happen are 527 - so an ordinary pass is nowhere near biting, which is what \"it seems to do nothing\" was. Needs the human distribution: bot crossings are not human ones. Supersedes the guessed 280 and 200. REFRAMED 2026-09-20 once every crossing was recorded with the tail speed beside it. Over 6 bot runs on the finale: the 5 non-cutting crossings had a touching-segment speed of 0 (median AND max) while the tail was at 408, and the 6 cuts had segment speed 413 = tail max 413. So a blade only ever cuts when the whipping part happens to be the part that touches; a slack segment draped across it does nothing however fast the tail looks. That is the \"inconsistent\" the player reported, and it is the RULE (fastEnoughToCut tests one segment) rather than the thresholds. Candidates: test the tail max, or the fastest of the two segments either side of the crossing. Confirm on human runs before changing it."
+      "status": "completed",
+      "context": "blade-graze records speed and threshold for every crossing, cut or not (2026-09-20). First look, bot runs on First Cut: crossings 0-64 px/step against a 280 threshold while the cuts that do happen are 527 - so an ordinary pass is nowhere near biting, which is what \"it seems to do nothing\" was. Needs the human distribution: bot crossings are not human ones. Supersedes the guessed 280 and 200. REFRAMED 2026-09-20 once every crossing was recorded with the tail speed beside it. Over 6 bot runs on the finale: the 5 non-cutting crossings had a touching-segment speed of 0 (median AND max) while the tail was at 408, and the 6 cuts had segment speed 413 = tail max 413. So a blade only ever cuts when the whipping part happens to be the part that touches; a slack segment draped across it does nothing however fast the tail looks. That is the \"inconsistent\" the player reported, and it is the RULE (fastEnoughToCut tests one segment) rather than the thresholds. Candidates: test the tail max, or the fastest of the two segments either side of the crossing. Confirm on human runs before changing it. CLOSED 2026-09-21, and the rule is EXONERATED. The bot-derived claim that fastEnoughToCut tests the wrong thing does not survive human runs: over 67 crossings the touching segment tracks the tail closely (First Cut p50 96 against tail p50 127) and in 0 of 65 near misses was the tail fast enough while the touching segment was not. The 0-vs-408 gap was the bot draping a slack tail over a blade. The thresholds were simply out of reach: First Cut 280 sits just above p90 234 (48 of 49 crossings pass, ~1 run in 4 cut - the intent, left alone), and the finale floor blade sat at 200 while the fastest human crossing was 65, so it could never fire. Set to 50 at the player's direction, ~a quarter of crossings.",
+      "completed_date": "2026-09-21T22:06:41"
     }
   ],
   "recently_updated_files": [
@@ -602,6 +604,11 @@
       "date": "2026-09-20",
       "decision": "Blade telemetry records every crossing with the tail speed beside the touching-segment speed, bounded per step and per run rather than by a time window.",
       "rationale": "Asked whether the instruments could answer the \"razor feels inconsistent\" report, they could not, in three ways. The 0.2s cooldown gated the RECORD as well as the sparks, thinning crossings to ~1 per run and keeping the first of each window rather than the fastest; records did not say which blade; and only the touching segment's speed was kept, which is the one number that disagrees with what the player sees. A 0.05s window was tried and still dropped 60% of crossings with the same first-not-fastest bias, so the bound is now one record per blade per physics step, nothing while the tail is still (draped, not crossing), and a hard cap of 250 per blade per run so localStorage cannot be flooded. One bug found by looking at the output: cutRope measured the tail AFTER detachRope emptied it, so every cut recorded a tail speed of 0 and the cut half of the distribution was junk."
+    },
+    {
+      "date": "2026-09-21",
+      "decision": "Blade cut speeds set from human crossing distributions: First Cut stays 280, the finale floor blade 200 -> 50. The cut RULE is unchanged.",
+      "rationale": "The instrument added the day before did its job and refuted the conclusion drawn from bot data. Bot runs had shown non-cutting crossings with a touching segment at 0 against a tail at 408, which looked like the rule testing the wrong quantity and nearly bought a rewrite of fastEnoughToCut. Human runs show the opposite: the touching segment tracks the tail, and not one near miss had a fast tail with a slow touching segment. The bot drapes a slack tail through the low arc; a player keeps it up. Same blade, same threshold: 8 of 8 bot runs cut, 0 of 14 human crossings even close. Widest bot-versus-human gap measured in this project."
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
