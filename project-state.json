@@ -5,7 +5,7 @@
   "last_session_date": "2026-09-18",
   "last_session_summary_path": "history/session-008-summary.md",
   "last_solution_architect_review": null,
-  "current_activity": "187 and 188 closed on the layout-4 playtest. On swinging/feat/spike-and-blade-feedback: spike reward on the point (64% of hits find it, up from 38%), blade near-misses spark, blade telemetry records every crossing, and the finale floor blade is 50. Remaining: 182 act signatures, 183 stuck-rat watch, 173 Phase 2 mixed levels, 176 gate flakiness. Branch unmerged - worth /finish-branch.",
+  "current_activity": "Everything from the 2026-09-20/21 feedback is merged: the spike reward is on the point (64% of hits find it, up from 38%), blade near-misses spark and are recorded, and both cut speeds are set from human crossings. Next decision before more content: 182 - whether the acts still need distinct signatures now that teaching levels flatten them - because 173 (Phase 2, ~9 mixed levels) builds on the answer. Also open: 183 stuck-rat watch, 176 gate flakiness (1 failure in 5 runs), 135 per-level par.",
   "action_plan": [
     {
       "id": 78,
@@ -120,27 +120,6 @@
       "task": "Fixed-dt bot runs are not independent of earlier runs on the same page - find what carries over between runs",
       "status": "pending",
       "context": "Found 2026-09-19 remapping the gate: L7 seed 7 won alone yet timed out after other runs, and L7 seed 42 won in a fresh page but stalled after the two L1 gate cases. The gate is deterministic only because its case ORDER is fixed; a reordered or added case can change another case's outcome. Id 175 is skipped - it was filed in error and removed. MORE EVIDENCE 2026-09-20: the L9 gate case passed once then failed the gate twice (rat at rest, 24k rope contacts), while the same case cleared in ~13s in a probe that ran the same sequence WITHOUT the per-case beginRun the gate does. The gate case moved to L6. STILL LIVE 2026-09-20: the gate failed one case (50k rope contacts, 0 damaging hits) then passed 121/121 on an immediate rerun with no code change. A gate that fails intermittently cannot be used to judge a change."
-    },
-    {
-      "id": 177,
-      "task": "L11 First Cut - move the blade to the diagonal the user drew, and ease cutSpeed",
-      "status": "completed",
-      "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 11 feedback.png): the blade moves from horizontal overhead to a diagonal running up-to-the-right between the hand and the target, roughly (577,325)-(755,168) in canvas px, so ~x 0.605 y 0.397, length ~237, angle ~-41 deg. It also cut 2 of 7 runs at 230 (tail speeds 233 and 272) against the <= 20% rule-7 criterion, so ease the threshold as well - but the diagonal changes which speeds ever reach it, so re-measure rather than trusting a number picked now. DONE 2026-09-20: blade moved to the sketched diagonal (x 0.605, y 0.398, w 237, angle -41) and cutSpeed 230 -> 280. Screenshot matches the sketch; bot 8/8 cleared, 0 cut - which says nothing about the human cut rate (at a shared 120 the bot gave 0/8 against a human 45%). The threshold is a starting point, not a measurement: a blade in the swing path is crossed far more often than an overhead one, so it needs the next playtest.",
-      "completed_date": "2026-09-20T15:03:34"
-    },
-    {
-      "id": 178,
-      "task": "L12 Full Experiment - second blade along the bottom, two more shields, two targets removed",
-      "status": "completed",
-      "context": "Playtest feedback 2026-09-20 with a sketch (temp/level 12 feedback.png): add a blade along the bottom (~x 0.527, y 0.771, w ~410), add two more light shields above and below the existing one to make a column, and delete the wood rectangle and the glass circle, leaving the moving steel target. Check the rules still pass: a single-target level may not put a heavy shield in the way (rule 6) - these are light, so it should hold. DONE 2026-09-20 to the sketch: floor blade (x 0.527, y 0.771, w 412), the single light shield became a column of three (y 0.345 / 0.52 / 0.695), and the wood and glass targets are gone, leaving the moving steel one. The floor blade cuts 8 of 8 BOT runs at tail speeds 405-565 against its 200 threshold; the player was shown that and chose to keep it lethal as drawn, so the level now asks that the tail never drops. The gate finale case moved to L9 - the bot cannot clear L12 by design.",
-      "completed_date": "2026-09-20T15:57:44"
-    },
-    {
-      "id": 181,
-      "task": "Make a tail cut visually dramatic - blood spurting from the cut",
-      "status": "completed",
-      "context": "User request 2026-09-20, extending the 2.6s tumble already added for the loss: the cut itself should read. Blood particles exist (emitImpactBurst, the red splash) and the rope-cut handler already knows the cut point and speed. DONE 2026-09-20: particles.emit gained optional direction/spread (radial by default, so every existing burst is unchanged); the cut fires three aimed layers out of the wound, and the severed stump keeps bleeding for 1.6s in pulses from the rat's tail base as it tumbles, pooling on the ground only once the body is within 90px of it. Captured at history/screenshots/tail-cut-bleed.png.",
-      "completed_date": "2026-09-20T18:12:02"
     },
     {
       "id": 182,
@@ -609,6 +588,11 @@
       "date": "2026-09-21",
       "decision": "Blade cut speeds set from human crossing distributions: First Cut stays 280, the finale floor blade 200 -> 50. The cut RULE is unchanged.",
       "rationale": "The instrument added the day before did its job and refuted the conclusion drawn from bot data. Bot runs had shown non-cutting crossings with a touching segment at 0 against a tail at 408, which looked like the rule testing the wrong quantity and nearly bought a rewrite of fastEnoughToCut. Human runs show the opposite: the touching segment tracks the tail, and not one near miss had a fast tail with a slow touching segment. The bot drapes a slack tail through the low arc; a player keeps it up. Same blade, same threshold: 8 of 8 bot runs cut, 0 of 14 human crossings even close. Widest bot-versus-human gap measured in this project."
+    },
+    {
+      "date": "2026-09-21",
+      "decision": "Merged branch swinging/feat/spike-and-blade-feedback into main",
+      "rationale": "f60fa98dae16dea8b4a59ec00bc43b36eea2ccb7"
     }
   ],
   "notes": "Migrated to the frameworklite scaffold on 2026-06-12 from a feature-complete state. Completed action items 1-75 live in history/action-plan-archive.md (archived 2026-07-03); the decisions array remains the full rationale log. Session summaries backfilled 2026-07-06: session-003 (a0f8301f, post-migration physics/feel overhaul) and session-004 (b066af57, game-feel bundle) were reconstructed from the decisions log and git after the 06-15 and game-feel sessions ran without summaries; the two short 2026-07-06 transcripts (f0a6ba72, d8ac9af7) were trivial and not summarised."
